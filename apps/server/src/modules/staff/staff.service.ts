@@ -51,6 +51,7 @@ export class StaffService {
             emergencyContact: account.profile.emergencyContactName,
             emergencyPhone: account.profile.emergencyContactPhone,
             serviceCategories: account.skills.map((s) => ({
+              id: s.id,
               categoryId: s.categoryId,
               categoryName: s.categoryName,
               skillLevel: s.skillLevel,

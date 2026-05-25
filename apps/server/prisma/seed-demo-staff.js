@@ -70,6 +70,26 @@ function ensureDemoFile(staffId, credentialType, staffAccountId) {
   };
 }
 
+const FULL_MANDATORY_CREDENTIAL_TYPES = [
+  'id_card',
+  'health_cert',
+  'no_crime_cert',
+  'credit_report',
+  'medical_report',
+];
+
+const CREDENTIAL_TYPE_LABELS = {
+  id_card: '身份证',
+  health_cert: '健康证',
+  no_crime_cert: '无犯罪记录证明',
+  credit_report: '征信报告',
+  medical_report: '体检报告',
+  insurance: '保险',
+  skill_cert: '技能证书',
+  education: '学历',
+  other: '其他',
+};
+
 const DEMO_STAFF = [
   {
     staffId: 'DEMO1001',
@@ -81,6 +101,7 @@ const DEMO_STAFF = [
     intakeStatus: 'pending_review',
     reviewRemark: null,
     credentialStatus: 'pending',
+    includeSkillCert: true,
   },
   {
     staffId: 'DEMO1002',
@@ -92,6 +113,7 @@ const DEMO_STAFF = [
     intakeStatus: 'needs_more_info',
     reviewRemark: '请补充健康证有效期照片。',
     credentialStatus: 'pending',
+    includeSkillCert: false,
   },
   {
     staffId: 'DEMO1003',
@@ -103,6 +125,7 @@ const DEMO_STAFF = [
     intakeStatus: 'approved',
     reviewRemark: '演示数据：已通过审核。',
     credentialStatus: 'approved',
+    includeSkillCert: true,
   },
 ];
 
@@ -190,9 +213,11 @@ async function createDemoStaff(prisma, item) {
               : [],
       },
     },
+    include: { skills: true },
   });
 
-  for (const credentialType of ['id_card', 'health_cert']) {
+  // Create all mandatory credentials
+  for (const credentialType of FULL_MANDATORY_CREDENTIAL_TYPES) {
     const fileAsset = ensureDemoFile(item.staffId, credentialType, account.id);
     await prisma.fileAsset.create({ data: fileAsset });
 
@@ -200,10 +225,9 @@ async function createDemoStaff(prisma, item) {
       data: {
         staffAccountId: account.id,
         credentialType,
-        credentialName:
-          credentialType === 'id_card' ? '身份证' : '健康证',
+        credentialName: CREDENTIAL_TYPE_LABELS[credentialType] || credentialType,
         credentialNumber:
-          credentialType === 'id_card' ? item.idNumber : `HC-${item.staffId}`,
+          credentialType === 'id_card' ? item.idNumber : `${credentialType.toUpperCase()}-${item.staffId}`,
         issuingAuthority: '演示机构',
         issueDate: new Date('2025-01-01'),
         expiryDate: new Date('2027-12-31'),
@@ -229,6 +253,55 @@ async function createDemoStaff(prisma, item) {
           messageType: 'audit',
         },
       });
+    }
+  }
+
+  // Create skill_cert linked to nanny skill for select demo staff
+  if (item.includeSkillCert) {
+    const nannySkill = account.skills.find((s) => s.categoryId === 'nanny');
+    if (nannySkill) {
+      const fileAsset = ensureDemoFile(item.staffId, 'skill_cert', account.id);
+      await prisma.fileAsset.create({ data: fileAsset });
+
+      const skillCert = await prisma.staffCredential.create({
+        data: {
+          staffAccountId: account.id,
+          credentialType: 'skill_cert',
+          credentialName: '住家保姆技能证书',
+          credentialNumber: `SKILL-${item.staffId}`,
+          issuingAuthority: '家政行业协会',
+          issueDate: new Date('2025-03-01'),
+          expiryDate: new Date('2028-03-01'),
+          credentialStatus: item.credentialStatus,
+          credentialBadge: item.credentialStatus === 'approved' ? 'valid' : null,
+          version: 1,
+          isCurrent: true,
+          files: {
+            create: {
+              fileAssetId: fileAsset.id,
+              fileType: 'credential_image',
+            },
+          },
+        },
+      });
+
+      await prisma.staffCredentialSkill.create({
+        data: {
+          staffCredentialId: skillCert.id,
+          staffSkillId: nannySkill.id,
+        },
+      });
+
+      if (item.credentialStatus === 'pending') {
+        await prisma.message.create({
+          data: {
+            staffAccountId: account.id,
+            title: '证件待审核',
+            content: `${skillCert.credentialName} 已提交，等待后台审核。`,
+            messageType: 'audit',
+          },
+        });
+      }
     }
   }
 

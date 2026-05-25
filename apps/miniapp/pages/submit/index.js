@@ -11,7 +11,9 @@ Page({
     loaded: false,
     isSubmitting: false,
     canSubmit: false,
-    issues: []
+    issues: [],
+    mandatoryCredentials: [],
+    skillCredentialRequirements: []
   },
 
   onLoad() {
@@ -21,7 +23,7 @@ Page({
   loadSummary() {
     const that = this;
 
-    // 加载入驻预览（包含资料摘要 + 证件统计）
+    // 加载入驻预览（包含资料摘要 + 证件统计 + 强制证件 + 技能证书要求）
     request.get(constants.API.SUBMIT_INTAKE + '/preview').then((res) => {
       that.setData({
         profileSummary: {
@@ -32,6 +34,8 @@ Page({
         credentialCount: res.credentialsCount || 0,
         canSubmit: res.canSubmit || false,
         issues: res.issues || [],
+        mandatoryCredentials: res.mandatoryCredentials || [],
+        skillCredentialRequirements: res.skillCredentialRequirements || [],
         loaded: true
       });
     }).catch(() => {
@@ -101,6 +105,28 @@ Page({
     }).finally(() => {
       this.setData({ isSubmitting: false });
     });
+  },
+
+  getMandatoryStatusClass(cred) {
+    if (cred.hasCredential && cred.credentialStatus === 'approved') return 'status-approved';
+    if (cred.hasCredential && cred.credentialStatus === 'pending') return 'status-pending';
+    if (cred.hasCredential) return 'status-rejected';
+    return 'status-missing';
+  },
+
+  getMandatoryStatusLabel(cred) {
+    if (!cred.hasCredential) return '未上传';
+    if (cred.credentialStatus === 'approved') return '已通过';
+    if (cred.credentialStatus === 'pending') return '待审核';
+    if (cred.credentialStatus === 'rejected') return '已驳回';
+    return cred.credentialStatus || '未知';
+  },
+
+  getSkillCertStatusLabel(req) {
+    if (req.hasSkillCert && req.coveringCredentialStatus === 'approved') return '已通过';
+    if (req.hasSkillCert && req.coveringCredentialStatus === 'pending') return '待审核';
+    if (req.hasSkillCert) return '已驳回';
+    return '缺少';
   },
 
   goToEditProfile() {

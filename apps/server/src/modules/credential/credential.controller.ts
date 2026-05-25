@@ -23,6 +23,14 @@ export class CredentialController {
     return this.credentialService.listByAccount(user.id);
   }
 
+  @Get(':id')
+  async detail(
+    @CurrentUser() user: { id: string; staffId: string },
+    @Param('id') id: string,
+  ) {
+    return this.credentialService.findById(user.id, id);
+  }
+
   @Post()
   async create(
     @CurrentUser() user: { id: string; staffId: string },

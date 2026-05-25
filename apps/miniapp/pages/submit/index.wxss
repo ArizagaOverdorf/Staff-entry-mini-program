@@ -107,6 +107,49 @@
   line-height: 1.8;
 }
 
+.mandatory-list {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 8px;
+}
+
+.mandatory-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.mandatory-item:last-child {
+  border-bottom: none;
+}
+
+.mandatory-label {
+  font-size: 13px;
+  color: #333;
+}
+
+.mandatory-status {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-approved {
+  color: #07c160;
+}
+
+.status-pending {
+  color: #faad14;
+}
+
+.status-rejected {
+  color: #f56c6c;
+}
+
+.status-missing {
+  color: #f56c6c;
+}
+
 .submit-footer {
   padding: 10px 0 30px;
   background-color: #fff;

@@ -16,7 +16,12 @@ Page({
     status: 'pending',
     isSubmitting: false,
     isEdit: false,
-    credTypes: []
+    credTypes: [],
+    // Skill linking for skill_cert
+    showSkillPicker: false,
+    staffSkills: [],
+    selectedSkillIds: [],
+    selectedSkillNames: []
   },
 
   onLoad(options) {
@@ -25,22 +30,27 @@ Page({
       this.loadCredential(options.id);
     }
     this.loadCredTypes();
+    this.loadStaffSkills();
   },
 
   loadCredential(id) {
     const that = this;
     request.get(constants.API.CREDENTIALS + '/' + id).then((res) => {
       const cred = res.credential || res;
+      const isSkillCert = (cred.typeId || cred.credentialType) === 'skill_cert';
       that.setData({
         name: cred.name || '',
         typeName: cred.typeName || '',
-        typeId: cred.typeId || '',
+        typeId: cred.typeId || cred.credentialType || '',
         expireDate: cred.expireDate || cred.expiryDate || '',
         credentialNumber: cred.credentialNumber || '',
         remark: cred.remark || '',
         fileUrl: cred.fileUrl || '',
         status: cred.status || 'pending',
-        fileIds: cred.files ? cred.files.map(f => f.fileAsset.id) : []
+        fileIds: cred.files ? cred.files.map(f => f.fileAsset.id) : [],
+        showSkillPicker: isSkillCert,
+        selectedSkillIds: cred.staffSkillIds || [],
+        selectedSkillNames: (cred.linkedSkills || []).map(s => s.categoryName)
       });
     }).catch(() => {});
   },
@@ -51,12 +61,51 @@ Page({
     });
   },
 
+  loadStaffSkills() {
+    const that = this;
+    request.get(constants.API.PROFILE).then((res) => {
+      const categories = (res.profile && res.profile.serviceCategories) || [];
+      that.setData({
+        staffSkills: categories.map(c => ({
+          id: c.id,
+          categoryId: c.categoryId,
+          categoryName: c.categoryName
+        }))
+      });
+    }).catch(() => {});
+  },
+
   onTypeChange(e) {
     const index = parseInt(e.detail.value);
     const type = this.data.credTypes[index];
+    const isSkillCert = type.value === 'skill_cert';
     this.setData({
       typeId: type.value,
-      typeName: type.label
+      typeName: type.label,
+      showSkillPicker: isSkillCert,
+      selectedSkillIds: isSkillCert ? this.data.selectedSkillIds : [],
+      selectedSkillNames: isSkillCert ? this.data.selectedSkillNames : []
+    });
+  },
+
+  onSkillToggle(e) {
+    const skillId = e.currentTarget.dataset.id;
+    const skillName = e.currentTarget.dataset.name;
+    let selectedSkillIds = this.data.selectedSkillIds || [];
+    let selectedSkillNames = this.data.selectedSkillNames || [];
+
+    const idx = selectedSkillIds.indexOf(skillId);
+    if (idx > -1) {
+      selectedSkillIds = selectedSkillIds.filter(id => id !== skillId);
+      selectedSkillNames = selectedSkillNames.filter(n => n !== skillName);
+    } else {
+      selectedSkillIds = [...selectedSkillIds, skillId];
+      selectedSkillNames = [...selectedSkillNames, skillName];
+    }
+
+    this.setData({
+      selectedSkillIds,
+      selectedSkillNames
     });
   },
 
@@ -114,6 +163,10 @@ Page({
       wx.showToast({ title: '请选择证件类型', icon: 'none' });
       return;
     }
+    if (this.data.typeId === 'skill_cert' && (!this.data.selectedSkillIds || this.data.selectedSkillIds.length === 0)) {
+      wx.showToast({ title: '技能证书需关联至少一个服务技能', icon: 'none' });
+      return;
+    }
 
     this.setData({ isSubmitting: true });
 
@@ -127,14 +180,20 @@ Page({
       fileIds: this.data.fileIds
     };
 
+    if (this.data.typeId === 'skill_cert') {
+      data.staffSkillIds = this.data.selectedSkillIds;
+    }
+
     const url = this.data.isEdit
       ? constants.API.CREDENTIALS + '/' + this.data.id
       : constants.API.CREDENTIALS;
 
-    const method = this.data.isEdit ? request.put : request.post;
-
     const that = this;
-    method(url, data).then(() => {
+    const saveRequest = this.data.isEdit
+      ? request.put(url, data)
+      : request.post(url, data);
+
+    saveRequest.then(() => {
       wx.showToast({
         title: '保存成功',
         icon: 'success',

@@ -10,8 +10,12 @@ interface StaffCredentialListProps {
 const credentialTypeLabels: Record<string, string> = {
   id_card: '身份证',
   health_cert: '健康证',
+  no_crime_cert: '无犯罪记录证明',
+  credit_report: '征信报告',
+  medical_report: '体检报告',
+  insurance: '保险',
   skill_cert: '技能证书',
-  training_cert: '培训证书',
+  education: '学历',
   other: '其他',
 };
 

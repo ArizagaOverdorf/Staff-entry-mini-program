@@ -162,7 +162,8 @@ model StaffSkill {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  staffAccount        StaffAccount             @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  credentialSkillLinks StaffCredentialSkill[]
 
   @@index([staffAccountId])
   @@map("staff_skill")
@@ -204,8 +205,9 @@ model StaffCredential {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  staffAccount StaffAccount          @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
-  files        StaffCredentialFile[]
+  staffAccount   StaffAccount            @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  files          StaffCredentialFile[]
+  credentialSkills StaffCredentialSkill[]
 
   @@index([staffAccountId])
   @@index([credentialStatus])
@@ -225,6 +227,21 @@ model StaffCredentialFile {
 
   @@index([staffCredentialId])
   @@map("staff_credential_file")
+}
+
+model StaffCredentialSkill {
+  id                String   @id @default(uuid()) @db.Uuid
+  staffCredentialId String   @map("staff_credential_id") @db.Uuid
+  staffSkillId      String   @map("staff_skill_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  staffCredential StaffCredential @relation(fields: [staffCredentialId], references: [id], onDelete: Cascade)
+  staffSkill      StaffSkill      @relation(fields: [staffSkillId], references: [id], onDelete: Cascade)
+
+  @@unique([staffCredentialId, staffSkillId])
+  @@index([staffCredentialId])
+  @@index([staffSkillId])
+  @@map("staff_credential_skill")
 }
 
 // ============================================================

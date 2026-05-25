@@ -16,12 +16,32 @@ interface CredentialReviewListProps {
 const credentialTypeLabels: Record<string, string> = {
   id_card: '身份证',
   health_cert: '健康证',
-  no_crime_cert: '无犯罪证明',
+  no_crime_cert: '无犯罪记录证明',
+  credit_report: '征信报告',
+  medical_report: '体检报告',
   insurance: '保险',
   skill_cert: '技能证书',
   education: '学历',
   other: '其他',
 };
+
+const mandatoryCredentialTypes = [
+  'id_card',
+  'health_cert',
+  'no_crime_cert',
+  'credit_report',
+  'medical_report',
+];
+
+function getCredentialTag(credentialType: string): { color: string; text: string } {
+  if (credentialType === 'skill_cert') {
+    return { color: 'blue', text: '技能证书' };
+  }
+  if (mandatoryCredentialTypes.includes(credentialType)) {
+    return { color: 'red', text: '强准入' };
+  }
+  return { color: 'default', text: '可选' };
+}
 
 const statusMap: Record<string, { color: string; text: string }> = {
   pending: { color: 'orange', text: '待审核' },
@@ -113,6 +133,8 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
         renderItem={(item) => {
           const statusCfg = statusMap[item.status] || { color: 'default', text: item.status };
           const isPending = item.status === 'pending';
+          const credTag = getCredentialTag(item.credentialType);
+          const typeLabel = item.credentialTypeLabel || credentialTypeLabels[item.credentialType] || item.credentialType;
 
           return (
             <List.Item
@@ -147,10 +169,13 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                 avatar={<FileImageOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
                 title={
                   <span>
-                    {credentialTypeLabels[item.credentialType] || item.credentialType}
+                    {typeLabel}
                     {item.credentialName && ` - ${item.credentialName}`}
                     <Tag color={statusCfg.color} style={{ marginLeft: 8 }}>
                       {statusCfg.text}
+                    </Tag>
+                    <Tag color={credTag.color} style={{ marginLeft: 4 }}>
+                      {credTag.text}
                     </Tag>
                     {item.badge === 'expiring_soon' && (
                       <Tag color="warning" style={{ marginLeft: 4 }}>即将过期</Tag>
@@ -182,6 +207,16 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                         <Descriptions.Item label="备注" span={2}>{item.remark}</Descriptions.Item>
                       )}
                     </Descriptions>
+                    {item.credentialType === 'skill_cert' && item.linkedSkills && item.linkedSkills.length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <span style={{ color: '#666' }}>关联技能：</span>
+                        <Space wrap>
+                          {item.linkedSkills.map((skill) => (
+                            <Tag key={skill.id} color="blue">{skill.categoryName}</Tag>
+                          ))}
+                        </Space>
+                      </div>
+                    )}
                     {item.files && item.files.length > 0 && (
                       <div style={{ marginTop: 8 }}>
                         <Space wrap>

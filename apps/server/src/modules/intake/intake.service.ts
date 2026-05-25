@@ -4,7 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MANDATORY_CREDENTIAL_TYPES } from '../credential/credential.constants';
+import {
+  MANDATORY_CREDENTIAL_TYPES,
+  SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS,
+  CredentialTypeLabels,
+} from '../credential/credential.constants';
 
 @Injectable()
 export class IntakeService {
@@ -19,6 +23,9 @@ export class IntakeService {
         serviceAreas: true,
         credentials: {
           where: { isCurrent: true },
+          include: {
+            credentialSkills: { include: { staffSkill: true } },
+          },
         },
         intakeStatus: true,
         listingStatus: true,
@@ -26,15 +33,39 @@ export class IntakeService {
     });
     if (!account) throw new NotFoundException('Staff not found');
 
-    const mandatoryStatus = MANDATORY_CREDENTIAL_TYPES.map((type) => {
+    const mandatoryCredentials = MANDATORY_CREDENTIAL_TYPES.map((type) => {
       const cred = account.credentials.find((c) => c.credentialType === type);
       return {
         credentialType: type,
+        credentialTypeLabel: CredentialTypeLabels[type] ?? type,
         hasCredential: !!cred,
         credentialId: cred?.id ?? null,
         credentialStatus: cred?.credentialStatus ?? null,
       };
     });
+
+    const skillCredentialRequirements = account.skills
+      .filter((skill) =>
+        SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS.includes(skill.categoryId),
+      )
+      .map((skill) => {
+        const coveringCert = account.credentials.find(
+          (cred) =>
+            cred.credentialType === 'skill_cert' &&
+            cred.credentialSkills?.some(
+              (cs) => cs.staffSkillId === skill.id,
+            ),
+        );
+        return {
+          skillId: skill.id,
+          categoryId: skill.categoryId,
+          categoryName: skill.categoryName,
+          requiresSkillCert: true,
+          hasSkillCert: !!coveringCert,
+          coveringCredentialId: coveringCert?.id ?? null,
+          coveringCredentialStatus: coveringCert?.credentialStatus ?? null,
+        };
+      });
 
     const issues: string[] = [];
     if (!account.phoneEncrypted) issues.push('未绑定手机号');
@@ -49,9 +80,15 @@ export class IntakeService {
     if (account.skills.length === 0) issues.push('未选择服务类别');
     if (account.serviceAreas.length === 0) issues.push('未选择服务区域');
 
-    for (const ms of mandatoryStatus) {
-      if (!ms.hasCredential) {
-        issues.push(`缺少强准入证件: ${ms.credentialType}`);
+    for (const mc of mandatoryCredentials) {
+      if (!mc.hasCredential) {
+        issues.push(`缺少强准入证件: ${mc.credentialTypeLabel}`);
+      }
+    }
+
+    for (const sr of skillCredentialRequirements) {
+      if (!sr.hasSkillCert) {
+        issues.push(`服务技能「${sr.categoryName}」需要技能证书，请上传并关联`);
       }
     }
 
@@ -63,7 +100,8 @@ export class IntakeService {
       skillsCount: account.skills.length,
       serviceAreasCount: account.serviceAreas.length,
       credentialsCount: account.credentials.length,
-      mandatoryCredentials: mandatoryStatus,
+      mandatoryCredentials,
+      skillCredentialRequirements,
       intakeStatus: account.intakeStatus?.intakeStatus ?? 'draft',
       listingStatus: account.listingStatus?.listingStatus ?? 'offline',
     };
@@ -76,7 +114,12 @@ export class IntakeService {
         profile: true,
         skills: true,
         serviceAreas: true,
-        credentials: { where: { isCurrent: true } },
+        credentials: {
+          where: { isCurrent: true },
+          include: {
+            credentialSkills: { include: { staffSkill: true } },
+          },
+        },
         intakeStatus: true,
       },
     });
@@ -116,7 +159,26 @@ export class IntakeService {
         (c) => c.credentialType === credType,
       );
       if (!hasCred) {
-        throw new BadRequestException(`请上传强准入证件: ${credType}`);
+        const label = CredentialTypeLabels[credType] ?? credType;
+        throw new BadRequestException(`请上传强准入证件: ${label}`);
+      }
+    }
+
+    for (const skill of account.skills) {
+      if (!SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS.includes(skill.categoryId)) {
+        continue;
+      }
+      const hasCoveringCert = account.credentials.some(
+        (cred) =>
+          cred.credentialType === 'skill_cert' &&
+          cred.credentialSkills?.some(
+            (cs) => cs.staffSkillId === skill.id,
+          ),
+      );
+      if (!hasCoveringCert) {
+        throw new BadRequestException(
+          `服务技能「${skill.categoryName}」需要关联技能证书，请上传技能证书并关联该技能`,
+        );
       }
     }
 

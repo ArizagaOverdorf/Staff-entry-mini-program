@@ -4,7 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MANDATORY_CREDENTIAL_TYPES } from '../credential/credential.constants';
+import {
+  MANDATORY_CREDENTIAL_TYPES,
+  SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS,
+  CredentialTypeLabels,
+} from '../credential/credential.constants';
 
 const INTAKE_STATUS_LABELS: Record<string, string> = {
   draft: '草稿',
@@ -172,7 +176,10 @@ export class AdminStaffService {
 
     const credentials = await this.prisma.staffCredential.findMany({
       where: { staffAccountId: account.id },
-      include: { files: { include: { fileAsset: true } } },
+      include: {
+        files: { include: { fileAsset: true } },
+        credentialSkills: { include: { staffSkill: true } },
+      },
       orderBy: [{ isCurrent: 'desc' }, { version: 'desc' }],
     });
 
@@ -180,6 +187,8 @@ export class AdminStaffService {
       id: credential.id,
       staffId: account.staffId,
       credentialType: credential.credentialType,
+      credentialTypeLabel:
+        CredentialTypeLabels[credential.credentialType] ?? credential.credentialType,
       credentialName: credential.credentialName,
       credentialNumber: credential.credentialNumber,
       issuingAuthority: credential.issuingAuthority,
@@ -191,6 +200,11 @@ export class AdminStaffService {
       version: credential.version,
       isCurrent: credential.isCurrent,
       remark: credential.remark,
+      linkedSkills: (credential.credentialSkills || []).map((cs: any) => ({
+        id: cs.staffSkill?.id ?? cs.staffSkillId,
+        categoryId: cs.staffSkill?.categoryId,
+        categoryName: cs.staffSkill?.categoryName,
+      })),
       files: credential.files.map((file) => ({
         id: file.id,
         fileType: file.fileType,
@@ -222,9 +236,11 @@ export class AdminStaffService {
     const account = await this.getReviewAccount(staffId);
     this.assertPendingReview(account.intakeStatus?.intakeStatus);
 
+    const credentials = account.credentials || [];
+
     const missingOrUnapproved = MANDATORY_CREDENTIAL_TYPES.filter(
       (credentialType) => {
-        const credential = account.credentials.find(
+        const credential = credentials.find(
           (item) => item.credentialType === credentialType && item.isCurrent,
         );
         return !credential || credential.credentialStatus !== 'approved';
@@ -235,6 +251,26 @@ export class AdminStaffService {
       throw new BadRequestException(
         `Required credentials are not approved: ${missingOrUnapproved.join(', ')}`,
       );
+    }
+
+    for (const skill of account.skills || []) {
+      if (!SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS.includes(skill.categoryId)) {
+        continue;
+      }
+      const hasApprovedCert = credentials.some(
+        (cred) =>
+          cred.credentialType === 'skill_cert' &&
+          cred.credentialStatus === 'approved' &&
+          cred.isCurrent &&
+          (cred.credentialSkills || []).some(
+            (cs: any) => cs.staffSkillId === skill.id,
+          ),
+      );
+      if (!hasApprovedCert) {
+        throw new BadRequestException(
+          `Skill "${skill.categoryName}" requires an approved skill certificate`,
+        );
+      }
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -470,7 +506,13 @@ export class AdminStaffService {
       where: { staffId, deletedAt: null },
       include: {
         intakeStatus: true,
-        credentials: { where: { isCurrent: true } },
+        skills: true,
+        credentials: {
+          where: { isCurrent: true },
+          include: {
+            credentialSkills: true,
+          },
+        },
       },
     });
     if (!account) throw new NotFoundException('Staff not found');

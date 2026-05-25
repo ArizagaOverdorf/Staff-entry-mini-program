@@ -14,16 +14,36 @@ export class CredentialService {
   async listByAccount(accountId: string) {
     const credentials = await this.prisma.staffCredential.findMany({
       where: { staffAccountId: accountId },
-      include: { files: { include: { fileAsset: true } } },
+      include: {
+        files: { include: { fileAsset: true } },
+        credentialSkills: {
+          include: { staffSkill: true },
+        },
+      },
       orderBy: [{ isCurrent: 'desc' }, { version: 'desc' }],
     });
     return { list: credentials.map((c) => this.formatCredential(c)) };
   }
 
+  async findById(accountId: string, id: string) {
+    const credential = await this.prisma.staffCredential.findFirst({
+      where: { id, staffAccountId: accountId },
+      include: {
+        files: { include: { fileAsset: true } },
+        credentialSkills: {
+          include: { staffSkill: true },
+        },
+      },
+    });
+    if (!credential) {
+      throw new BadRequestException('Credential not found');
+    }
+    return this.formatCredential(credential);
+  }
+
   async create(accountId: string, dto: UpsertCredentialDto) {
     const credentialType = dto.credentialType ?? dto.typeId;
     const credentialName = dto.credentialName ?? dto.name ?? dto.typeName;
-    const expiryDate = dto.expiryDate ?? dto.expireDate;
 
     if (!credentialType) {
       throw new BadRequestException('credentialType is required');
@@ -32,11 +52,17 @@ export class CredentialService {
       throw new BadRequestException('credentialName is required');
     }
     this.validateCredentialType(credentialType);
+    this.validateSkillIds(credentialType, dto.staffSkillIds);
 
     const fileIds = await this.assertFilesBelongToAccount(
       accountId,
       dto.fileIds ?? [],
     );
+
+    if (credentialType === 'skill_cert' && dto.staffSkillIds?.length) {
+      await this.assertSkillsBelongToAccount(accountId, dto.staffSkillIds);
+    }
+
     const nextVersion = await this.getNextVersion(accountId, credentialType);
 
     const credential = await this.prisma.$transaction(async (tx) => {
@@ -57,7 +83,11 @@ export class CredentialService {
           credentialNumber: dto.credentialNumber,
           issuingAuthority: dto.issuingAuthority,
           issueDate: dto.issueDate ? new Date(dto.issueDate) : undefined,
-          expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+          expiryDate: dto.expiryDate
+            ? new Date(dto.expiryDate)
+            : dto.expireDate
+              ? new Date(dto.expireDate)
+              : undefined,
           credentialStatus: 'pending',
           version: nextVersion,
           isCurrent: true,
@@ -67,12 +97,19 @@ export class CredentialService {
 
       await this.createFileLinks(tx, created.id, fileIds);
 
+      if (dto.staffSkillIds?.length) {
+        await this.createSkillLinks(tx, created.id, dto.staffSkillIds);
+      }
+
       return created;
     });
 
     const created = await this.prisma.staffCredential.findUniqueOrThrow({
       where: { id: credential.id },
-      include: { files: { include: { fileAsset: true } } },
+      include: {
+        files: { include: { fileAsset: true } },
+        credentialSkills: { include: { staffSkill: true } },
+      },
     });
     return this.formatCredential(created);
   }
@@ -93,11 +130,17 @@ export class CredentialService {
     const expiryDate = dto.expiryDate ?? dto.expireDate;
 
     this.validateCredentialType(credentialType);
+    this.validateSkillIds(credentialType, dto.staffSkillIds);
 
     const fileIds = await this.assertFilesBelongToAccount(
       accountId,
       dto.fileIds ?? credential.files.map((file) => file.fileAssetId),
     );
+
+    if (credentialType === 'skill_cert' && dto.staffSkillIds?.length) {
+      await this.assertSkillsBelongToAccount(accountId, dto.staffSkillIds);
+    }
+
     const nextVersion = await this.getNextVersion(accountId, credentialType);
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -152,12 +195,19 @@ export class CredentialService {
 
       await this.createFileLinks(tx, created.id, fileIds);
 
+      if (dto.staffSkillIds?.length) {
+        await this.createSkillLinks(tx, created.id, dto.staffSkillIds);
+      }
+
       return created;
     });
 
     const current = await this.prisma.staffCredential.findUniqueOrThrow({
       where: { id: updated.id },
-      include: { files: { include: { fileAsset: true } } },
+      include: {
+        files: { include: { fileAsset: true } },
+        credentialSkills: { include: { staffSkill: true } },
+      },
     });
     return this.formatCredential(current);
   }
@@ -176,6 +226,35 @@ export class CredentialService {
     if (!Object.values(CredentialType).includes(credentialType as any)) {
       throw new BadRequestException(
         `Invalid credential type: ${credentialType}`,
+      );
+    }
+  }
+
+  private validateSkillIds(credentialType: string, staffSkillIds?: string[]) {
+    if (credentialType !== 'skill_cert' && staffSkillIds?.length) {
+      throw new BadRequestException(
+        'staffSkillIds is only allowed for skill_cert credential type',
+      );
+    }
+    if (credentialType === 'skill_cert' && (!staffSkillIds || staffSkillIds.length === 0)) {
+      throw new BadRequestException(
+        'staffSkillIds is required for skill_cert: please select at least one service skill',
+      );
+    }
+  }
+
+  private async assertSkillsBelongToAccount(
+    accountId: string,
+    skillIds: string[],
+  ) {
+    const uniqueIds = [...new Set(skillIds)];
+    const skills = await this.prisma.staffSkill.findMany({
+      where: { id: { in: uniqueIds }, staffAccountId: accountId },
+      select: { id: true },
+    });
+    if (skills.length !== uniqueIds.length) {
+      throw new BadRequestException(
+        'Some staffSkillIds are invalid or do not belong to your account',
       );
     }
   }
@@ -248,10 +327,31 @@ export class CredentialService {
     });
   }
 
+  private async createSkillLinks(
+    tx: any,
+    credentialId: string,
+    skillIds: string[],
+  ) {
+    const uniqueIds = [...new Set(skillIds)];
+    await tx.staffCredentialSkill.createMany({
+      data: uniqueIds.map((skillId) => ({
+        staffCredentialId: credentialId,
+        staffSkillId: skillId,
+      })),
+    });
+  }
+
   private formatCredential(c: any) {
     const expiryDate = c.expiryDate
       ? new Date(c.expiryDate).toISOString().slice(0, 10)
       : undefined;
+
+    const linkedSkills = (c.credentialSkills || []).map((cs: any) => ({
+      id: cs.staffSkill?.id ?? cs.staffSkillId,
+      categoryId: cs.staffSkill?.categoryId,
+      categoryName: cs.staffSkill?.categoryName,
+    }));
+
     return {
       id: c.id,
       name: c.credentialName,
@@ -282,6 +382,8 @@ export class CredentialService {
           size: Number(f.fileAsset.size),
         },
       })),
+      linkedSkills,
+      staffSkillIds: linkedSkills.map((s: any) => s.id),
       createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : c.createdAt,
       updatedAt: c.updatedAt instanceof Date ? c.updatedAt.toISOString() : c.updatedAt,
     };

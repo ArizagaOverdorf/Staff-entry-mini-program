@@ -111,11 +111,22 @@ const CREDENTIAL_BADGE = {
 const CREDENTIAL_TYPES = [
   { value: 'id_card', label: '身份证' },
   { value: 'health_cert', label: '健康证' },
-  { value: 'no_crime_cert', label: '无犯罪证明' },
+  { value: 'no_crime_cert', label: '无犯罪记录证明' },
+  { value: 'credit_report', label: '征信报告' },
+  { value: 'medical_report', label: '体检报告' },
   { value: 'insurance', label: '保险' },
   { value: 'skill_cert', label: '技能证书' },
   { value: 'education', label: '学历' },
   { value: 'other', label: '其他' }
+];
+
+// 强准入证件类型
+const MANDATORY_CREDENTIAL_TYPES = [
+  'id_card',
+  'health_cert',
+  'no_crime_cert',
+  'credit_report',
+  'medical_report'
 ];
 
 // 消息状态
@@ -141,6 +152,7 @@ module.exports = {
   CREDENTIAL_STATUS_LABEL,
   CREDENTIAL_BADGE,
   CREDENTIAL_TYPES,
+  MANDATORY_CREDENTIAL_TYPES,
   MESSAGE_STATUS,
   GENDER_OPTIONS
 };

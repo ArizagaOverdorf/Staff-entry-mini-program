@@ -32,6 +32,7 @@ export interface CredentialRecord {
   id: string;
   staffId?: string;
   credentialType: string;
+  credentialTypeLabel?: string;
   credentialName?: string;
   credentialNumber?: string;
   issueDate?: string;
@@ -42,6 +43,7 @@ export interface CredentialRecord {
   version?: number;
   isCurrent?: boolean;
   remark?: string;
+  linkedSkills?: { id: string; categoryId: string; categoryName: string }[];
   files?: CredentialFileRecord[];
 }
 

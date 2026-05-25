@@ -53,4 +53,9 @@ export class UpsertCredentialDto {
   @IsString()
   @IsOptional()
   fileUrl?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  staffSkillIds?: string[];
 }

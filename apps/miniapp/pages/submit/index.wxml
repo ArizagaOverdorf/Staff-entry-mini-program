@@ -36,6 +36,46 @@
       </view>
     </view>
 
+    <!-- 强准入证件状态 -->
+    <view class="card" wx:if="{{mandatoryCredentials.length > 0}}">
+      <view class="card-header">
+        <text class="card-title">强准入证件</text>
+        <text class="card-action" bindtap="goToEditCredential">上传</text>
+      </view>
+      <view class="mandatory-list">
+        <view
+          class="mandatory-item"
+          wx:for="{{mandatoryCredentials}}"
+          wx:key="credentialType"
+        >
+          <text class="mandatory-label">{{item.credentialTypeLabel}}</text>
+          <text class="mandatory-status {{item.hasCredential ? (item.credentialStatus === 'approved' ? 'status-approved' : (item.credentialStatus === 'pending' ? 'status-pending' : 'status-rejected')) : 'status-missing'}}">
+            {{item.hasCredential ? (item.credentialStatus === 'approved' ? '已通过' : (item.credentialStatus === 'pending' ? '待审核' : '已驳回')) : '未上传'}}
+          </text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 技能证书要求 -->
+    <view class="card" wx:if="{{skillCredentialRequirements.length > 0}}">
+      <view class="card-header">
+        <text class="card-title">技能证书要求</text>
+        <text class="card-action" bindtap="goToEditCredential">上传</text>
+      </view>
+      <view class="mandatory-list">
+        <view
+          class="mandatory-item"
+          wx:for="{{skillCredentialRequirements}}"
+          wx:key="skillId"
+        >
+          <text class="mandatory-label">{{item.categoryName}}</text>
+          <text class="mandatory-status {{item.hasSkillCert ? (item.coveringCredentialStatus === 'approved' ? 'status-approved' : (item.coveringCredentialStatus === 'pending' ? 'status-pending' : 'status-rejected')) : 'status-missing'}}">
+            {{item.hasSkillCert ? (item.coveringCredentialStatus === 'approved' ? '已通过' : (item.coveringCredentialStatus === 'pending' ? '待审核' : '已驳回')) : '缺少'}}
+          </text>
+        </view>
+      </view>
+    </view>
+
     <!-- 证件摘要 -->
     <view class="card">
       <view class="card-header">
