@@ -6,6 +6,15 @@
   </view>
 
   <view class="phone-bind-body">
+    <input
+      class="phone-input"
+      type="number"
+      maxlength="11"
+      value="{{phone}}"
+      bindinput="handlePhoneInput"
+      placeholder="请输入手机号"
+    />
+
     <button
       class="btn-primary"
       open-type="getPhoneNumber"

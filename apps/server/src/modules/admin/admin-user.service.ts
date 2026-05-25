@@ -11,7 +11,7 @@ export class AdminUserService {
 
   async list(pagination: PaginationDto): Promise<PaginatedResult<any>> {
     const { page = 1, pageSize = 20 } = pagination;
-    const [items, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.adminUser.findMany({
         where: { deletedAt: null },
         skip: (page - 1) * pageSize,
@@ -32,6 +32,10 @@ export class AdminUserService {
       }),
       this.prisma.adminUser.count({ where: { deletedAt: null } }),
     ]);
+    const items = rows.map(({ userRoles, ...rest }) => ({
+      ...rest,
+      roles: userRoles.map((ur) => ur.adminRole),
+    }));
     return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
@@ -45,7 +49,11 @@ export class AdminUserService {
       },
     });
     if (!user) throw new NotFoundException('Admin user not found');
-    return user;
+    const { userRoles, ...rest } = user;
+    return {
+      ...rest,
+      roles: userRoles.map((ur) => ur.adminRole),
+    };
   }
 
   async create(dto: CreateAdminUserDto) {
@@ -73,7 +81,7 @@ export class AdminUserService {
   async update(id: string, dto: UpdateAdminUserDto) {
     await this.prisma.adminUser.findFirstOrThrow({ where: { id, deletedAt: null } });
 
-    const { roleIds, ...data } = dto;
+    const { roleIds, password, ...data } = dto;
 
     if (roleIds) {
       await this.prisma.adminUserRole.deleteMany({ where: { adminUserId: id } });
@@ -82,7 +90,12 @@ export class AdminUserService {
       });
     }
 
-    return this.prisma.adminUser.update({ where: { id }, data });
+    const updateData: any = { ...data };
+    if (password) {
+      updateData.passwordHash = hashPassword(password);
+    }
+
+    return this.prisma.adminUser.update({ where: { id }, data: updateData });
   }
 
   async softDelete(id: string) {

@@ -3,6 +3,10 @@ import { IsString, IsOptional } from 'class-validator';
 export class BindPhoneDto {
   @IsString()
   @IsOptional()
+  code?: string;
+
+  @IsString()
+  @IsOptional()
   encryptedData?: string;
 
   @IsString()

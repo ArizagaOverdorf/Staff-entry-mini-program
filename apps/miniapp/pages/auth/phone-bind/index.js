@@ -5,19 +5,18 @@ const constants = require('../../../utils/constants');
 Page({
   data: {
     isBinding: false,
-    canBind: true
+    canBind: true,
+    phone: ''
   },
 
   onLoad() {
-    // 如果已经登录并且绑定了手机号，直接跳转
-    if (authUtil.isLoggedIn()) {
-      const staffId = authUtil.getStaffId();
-      if (staffId) {
-        wx.redirectTo({
-          url: '/pages/privacy/index'
-        });
-      }
-    }
+    // 登录后仍需要完成手机号绑定，不在这里按 staffId 自动跳过。
+  },
+
+  handlePhoneInput(e) {
+    this.setData({
+      phone: (e.detail.value || '').trim()
+    });
   },
 
   // 获取手机号回调
@@ -26,9 +25,11 @@ Page({
 
     if (this.data.isBinding) return;
 
-    if (e.detail.errMsg !== 'getPhoneNumber:ok') {
+    const phone = (this.data.phone || '').trim();
+
+    if (e.detail.errMsg !== 'getPhoneNumber:ok' && !phone) {
       wx.showToast({
-        title: '需要绑定手机号才能继续',
+        title: '请输入手机号后继续',
         icon: 'none'
       });
       return;
@@ -43,10 +44,10 @@ Page({
     // 获取微信登录 code
     authUtil.wxLogin().then((loginCode) => {
       return request.post(constants.API.PHONE_BIND, {
-        loginCode: loginCode,
-        phoneCode: code,
+        code: code,
         encryptedData: encryptedData,
-        iv: iv
+        iv: iv,
+        phone: phone
       });
     }).then((res) => {
       if (res.token) {

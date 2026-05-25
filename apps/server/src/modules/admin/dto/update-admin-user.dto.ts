@@ -1,4 +1,4 @@
-import { IsString, IsBoolean, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsArray, MinLength } from 'class-validator';
 
 export class UpdateAdminUserDto {
   @IsString()
@@ -8,6 +8,11 @@ export class UpdateAdminUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @IsString()
+  @IsOptional()
+  @MinLength(6)
+  password?: string;
 
   @IsBoolean()
   @IsOptional()

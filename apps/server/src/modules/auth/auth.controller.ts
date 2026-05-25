@@ -24,4 +24,10 @@ export class AuthController {
   ) {
     return this.authService.bindPhone(accountId, dto);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout() {
+    return { message: 'ok' };
+  }
 }

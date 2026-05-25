@@ -12,19 +12,21 @@ const APP_API_PREFIX = '/app';
 // 完整的 API 地址映射
 const API = {
   // 认证相关
-  LOGIN: APP_API_PREFIX + '/auth/login',
-  PHONE_BIND: APP_API_PREFIX + '/auth/phone-bind',
+  LOGIN: APP_API_PREFIX + '/auth/wechat-login',
+  PHONE_BIND: APP_API_PREFIX + '/auth/bind-phone',
+  LOGOUT: APP_API_PREFIX + '/auth/logout',
 
   // 隐私确认
-  PRIVACY_CONFIRM: APP_API_PREFIX + '/privacy/confirm',
+  PRIVACY_CONFIRM: APP_API_PREFIX + '/account/privacy-agree',
 
   // 个人信息
   PROFILE: APP_API_PREFIX + '/profile',
   PROFILE_UPDATE: APP_API_PREFIX + '/profile',
 
-  // 服务类别
-  SERVICE_CATEGORIES: APP_API_PREFIX + '/dictionary/service-categories',
-  SERVICE_AREAS: APP_API_PREFIX + '/dictionary/service-areas',
+  // 字典（服务类别/服务区域）
+  DICTS: APP_API_PREFIX + '/dicts',
+  SERVICE_CATEGORIES: APP_API_PREFIX + '/dicts',
+  SERVICE_AREAS: APP_API_PREFIX + '/dicts',
 
   // 证件
   CREDENTIALS: APP_API_PREFIX + '/credentials',
@@ -47,8 +49,7 @@ const API = {
   MESSAGE_READ: APP_API_PREFIX + '/messages/read',
 
   // 账号
-  ACCOUNT_INFO: APP_API_PREFIX + '/account/info',
-  LOGOUT: APP_API_PREFIX + '/auth/logout'
+  ACCOUNT_INFO: APP_API_PREFIX + '/account/me'
 };
 
 // 入驻状态

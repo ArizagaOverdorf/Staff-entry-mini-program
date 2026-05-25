@@ -43,9 +43,9 @@ Page({
           authUtil.setStaffId(res.staffId);
         }
         // 检查是否需要绑定手机号
-        if (res.phoneBound) {
+        if (res.mobileBound) {
           // 检查是否已确认隐私
-          if (res.privacyConfirmed) {
+          if (res.privacyAgreed) {
             wx.redirectTo({
               url: '/pages/home/index'
             });

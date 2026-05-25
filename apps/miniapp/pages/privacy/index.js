@@ -17,8 +17,8 @@ Page({
     if (!authUtil.isLoggedIn()) {
       return;
     }
-    request.get(constants.API.PRIVACY_CONFIRM).then((res) => {
-      if (res.confirmed) {
+    request.get(constants.API.ACCOUNT_INFO).then((res) => {
+      if (res.privacyAgreed) {
         wx.redirectTo({
           url: '/pages/home/index'
         });

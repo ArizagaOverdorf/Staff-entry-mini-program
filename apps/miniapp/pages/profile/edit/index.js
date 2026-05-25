@@ -58,16 +58,16 @@ Page({
   loadDictionaries() {
     const that = this;
     // 加载服务类别
-    request.get(constants.API.SERVICE_CATEGORIES).then((res) => {
+    request.get(constants.API.SERVICE_CATEGORIES, { groups: 'service_category' }).then((res) => {
       that.setData({
-        serviceCategories: res.list || []
+        serviceCategories: res.service_category || []
       });
     }).catch(() => {});
 
     // 加载服务区域
-    request.get(constants.API.SERVICE_AREAS).then((res) => {
+    request.get(constants.API.SERVICE_AREAS, { groups: 'service_area' }).then((res) => {
       that.setData({
-        serviceAreas: res.list || []
+        serviceAreas: res.service_area || []
       });
     }).catch(() => {});
   },
