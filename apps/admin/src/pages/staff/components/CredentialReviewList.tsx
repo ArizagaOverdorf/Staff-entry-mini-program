@@ -21,7 +21,8 @@ const credentialTypeLabels: Record<string, string> = {
   medical_report: '体检报告',
   insurance: '保险',
   skill_cert: '技能证书',
-  education: '学历',
+  education: '学历/毕业证',
+  student_card: '学生证',
   other: '其他',
 };
 
@@ -190,6 +191,9 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                     <Descriptions size="small" column={2}>
                       {item.credentialNumber && (
                         <Descriptions.Item label="证件编号">{item.credentialNumber}</Descriptions.Item>
+                      )}
+                      {item.skillLevel && (
+                        <Descriptions.Item label="技能等级">{item.skillLevel}</Descriptions.Item>
                       )}
                       {item.issueDate && (
                         <Descriptions.Item label="发证日期">{item.issueDate}</Descriptions.Item>

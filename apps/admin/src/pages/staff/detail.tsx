@@ -15,20 +15,28 @@ import {
   type AuditRecordItem,
 } from './services/staff';
 
+const VALID_TABS = ['profile', 'review', 'credentials'];
+
 const StaffDetail: React.FC = () => {
   const { staffId } = useParams<{ staffId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'profile';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = VALID_TABS.includes(searchParams.get('tab') ?? '') ? searchParams.get('tab')! : 'profile';
 
   const [staff, setStaff] = useState<StaffRecord | null>(null);
   const [credentials, setCredentials] = useState<CredentialRecord[]>([]);
   const [auditRecords, setAuditRecords] = useState<AuditRecordItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState(initialTab);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isInitial: boolean) => {
     if (!staffId) return;
-    setLoading(true);
+    if (isInitial) {
+      setInitialLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     try {
       const [staffData, credentialsData, auditData] = await Promise.all([
         getStaffDetail(staffId),
@@ -41,15 +49,25 @@ const StaffDetail: React.FC = () => {
     } catch {
       // handled by interceptor
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   }, [staffId]);
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
   }, [fetchData]);
 
-  if (loading) {
+  const refresh = useCallback(() => {
+    fetchData(false);
+  }, [fetchData]);
+
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    setSearchParams({ tab: key }, { replace: true });
+  };
+
+  if (initialLoading) {
     return (
       <div style={{ textAlign: 'center', padding: 80 }}>
         <Spin size="large" />
@@ -87,49 +105,51 @@ const StaffDetail: React.FC = () => {
           返回列表
         </Button>
       </Space>
-      <Tabs defaultActiveKey={defaultTab}>
-        <Tabs.TabPane tab="基本信息" key="profile">
-          <StaffProfileCard staff={staff} />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab="审核" key="review">
-          <Card title="入驻审核" style={{ marginBottom: 16 }}>
-            <ReviewActions
-              staffId={staff.staffId}
-              intakeStatus={staff.intakeStatus}
-              onActionComplete={fetchData}
-            />
-          </Card>
-          <Card title={`证件审核 (${credentials.length})`} style={{ marginBottom: 16 }}>
-            {credentials.length > 0 ? (
-              <CredentialReviewList
+      <Spin spinning={refreshing}>
+        <Tabs activeKey={activeTab} onChange={handleTabChange}>
+          <Tabs.TabPane tab="基本信息" key="profile">
+            <StaffProfileCard staff={staff} />
+          </Tabs.TabPane>
+          <Tabs.TabPane tab="审核" key="review">
+            <Card title="入驻审核" style={{ marginBottom: 16 }}>
+              <ReviewActions
                 staffId={staff.staffId}
-                credentials={credentials}
-                onActionComplete={fetchData}
+                intakeStatus={staff.intakeStatus}
+                onActionComplete={refresh}
               />
-            ) : (
-              <Empty description="暂无证件" />
-            )}
-          </Card>
-          <Card title="审核记录">
-            <AuditHistory records={auditRecords} />
-          </Card>
-        </Tabs.TabPane>
-        <Tabs.TabPane tab="证件信息" key="credentials">
-          <Card title="证件列表">
-            {credentials.length > 0 ? (
-              <CredentialReviewList
-                staffId={staff.staffId}
-                credentials={credentials}
-                onActionComplete={fetchData}
-              />
-            ) : (
-              <div style={{ textAlign: 'center', padding: 20, color: '#999' }}>
-                暂无证件信息
-              </div>
-            )}
-          </Card>
-        </Tabs.TabPane>
-      </Tabs>
+            </Card>
+            <Card title={`证件审核 (${credentials.length})`} style={{ marginBottom: 16 }}>
+              {credentials.length > 0 ? (
+                <CredentialReviewList
+                  staffId={staff.staffId}
+                  credentials={credentials}
+                  onActionComplete={refresh}
+                />
+              ) : (
+                <Empty description="暂无证件" />
+              )}
+            </Card>
+            <Card title="审核记录">
+              <AuditHistory records={auditRecords} />
+            </Card>
+          </Tabs.TabPane>
+          <Tabs.TabPane tab="证件信息" key="credentials">
+            <Card title="证件列表">
+              {credentials.length > 0 ? (
+                <CredentialReviewList
+                  staffId={staff.staffId}
+                  credentials={credentials}
+                  onActionComplete={refresh}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: 20, color: '#999' }}>
+                  暂无证件信息
+                </div>
+              )}
+            </Card>
+          </Tabs.TabPane>
+        </Tabs>
+      </Spin>
     </div>
   );
 };

@@ -189,21 +189,23 @@ model StaffServiceArea {
 // ============================================================
 
 model StaffCredential {
-  id               String    @id @default(uuid()) @db.Uuid
-  staffAccountId   String    @map("staff_account_id") @db.Uuid
-  credentialType   String    @map("credential_type") @db.VarChar(32)
-  credentialName   String    @map("credential_name") @db.VarChar(128)
-  credentialNumber String?   @map("credential_number") @db.VarChar(128)
-  issuingAuthority String?   @map("issuing_authority") @db.VarChar(128)
-  issueDate        DateTime? @map("issue_date") @db.Date
-  expiryDate       DateTime? @map("expiry_date") @db.Date
-  credentialStatus String    @default("pending") @map("credential_status") @db.VarChar(32)
-  credentialBadge  String?   @map("credential_badge") @db.VarChar(32)
-  version          Int       @default(1)
-  isCurrent        Boolean   @default(true) @map("is_current")
-  remark           String?   @db.VarChar(500)
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid()) @db.Uuid
+  staffAccountId    String    @map("staff_account_id") @db.Uuid
+  credentialType    String    @map("credential_type") @db.VarChar(32)
+  credentialGroupId String?   @map("credential_group_id") @db.Uuid
+  credentialName    String    @map("credential_name") @db.VarChar(128)
+  credentialNumber  String?   @map("credential_number") @db.VarChar(128)
+  issuingAuthority  String?   @map("issuing_authority") @db.VarChar(128)
+  issueDate         DateTime? @map("issue_date") @db.Date
+  expiryDate        DateTime? @map("expiry_date") @db.Date
+  credentialStatus  String    @default("pending") @map("credential_status") @db.VarChar(32)
+  credentialBadge   String?   @map("credential_badge") @db.VarChar(32)
+  skillLevel        String?   @map("skill_level") @db.VarChar(64)
+  version           Int       @default(1)
+  isCurrent         Boolean   @default(true) @map("is_current")
+  remark            String?   @db.VarChar(500)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   staffAccount   StaffAccount            @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
   files          StaffCredentialFile[]
@@ -212,6 +214,7 @@ model StaffCredential {
   @@index([staffAccountId])
   @@index([credentialStatus])
   @@index([expiryDate])
+  @@index([credentialGroupId])
   @@map("staff_credential")
 }
 

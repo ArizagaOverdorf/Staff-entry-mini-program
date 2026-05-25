@@ -10,6 +10,7 @@ Page({
     typeId: '',
     expireDate: '',
     credentialNumber: '',
+    skillLevel: '',
     remark: '',
     fileUrl: '',
     fileIds: [],
@@ -19,6 +20,7 @@ Page({
     credTypes: [],
     // Skill linking for skill_cert
     showSkillPicker: false,
+    showSkillLevel: false,
     staffSkills: [],
     selectedSkillIds: [],
     selectedSkillNames: []
@@ -44,11 +46,13 @@ Page({
         typeId: cred.typeId || cred.credentialType || '',
         expireDate: cred.expireDate || cred.expiryDate || '',
         credentialNumber: cred.credentialNumber || '',
+        skillLevel: cred.skillLevel || '',
         remark: cred.remark || '',
         fileUrl: cred.fileUrl || '',
         status: cred.status || 'pending',
         fileIds: cred.files ? cred.files.map(f => f.fileAsset.id) : [],
         showSkillPicker: isSkillCert,
+        showSkillLevel: isSkillCert,
         selectedSkillIds: cred.staffSkillIds || [],
         selectedSkillNames: (cred.linkedSkills || []).map(s => s.categoryName)
       });
@@ -83,6 +87,7 @@ Page({
       typeId: type.value,
       typeName: type.label,
       showSkillPicker: isSkillCert,
+      showSkillLevel: isSkillCert,
       selectedSkillIds: isSkillCert ? this.data.selectedSkillIds : [],
       selectedSkillNames: isSkillCert ? this.data.selectedSkillNames : []
     });
@@ -115,6 +120,10 @@ Page({
 
   onNumberInput(e) {
     this.setData({ credentialNumber: e.detail.value });
+  },
+
+  onSkillLevelInput(e) {
+    this.setData({ skillLevel: e.detail.value });
   },
 
   onExpireDateInput(e) {
@@ -176,6 +185,7 @@ Page({
       typeName: this.data.typeName,
       credentialNumber: this.data.credentialNumber,
       expireDate: this.data.expireDate,
+      skillLevel: this.data.skillLevel,
       remark: this.data.remark,
       fileIds: this.data.fileIds
     };

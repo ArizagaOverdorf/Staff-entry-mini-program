@@ -117,7 +117,8 @@ const CREDENTIAL_TYPES = [
   { value: 'medical_report', label: '体检报告' },
   { value: 'insurance', label: '保险' },
   { value: 'skill_cert', label: '技能证书' },
-  { value: 'education', label: '学历' },
+  { value: 'education', label: '学历/毕业证' },
+  { value: 'student_card', label: '学生证' },
   { value: 'other', label: '其他' }
 ];
 

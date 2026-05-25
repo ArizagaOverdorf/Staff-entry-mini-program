@@ -63,22 +63,25 @@ export class CredentialService {
       await this.assertSkillsBelongToAccount(accountId, dto.staffSkillIds);
     }
 
-    const nextVersion = await this.getNextVersion(accountId, credentialType);
-
     const credential = await this.prisma.$transaction(async (tx) => {
-      await tx.staffCredential.updateMany({
-        where: {
-          staffAccountId: accountId,
-          credentialType,
-          isCurrent: true,
-        },
-        data: { isCurrent: false },
-      });
+      // For skill_cert, allow multiple current credentials (different groups).
+      // For non-skill_cert, keep one current per credential type.
+      if (credentialType !== 'skill_cert') {
+        await tx.staffCredential.updateMany({
+          where: {
+            staffAccountId: accountId,
+            credentialType,
+            isCurrent: true,
+          },
+          data: { isCurrent: false },
+        });
+      }
 
       const created = await tx.staffCredential.create({
         data: {
           staffAccountId: accountId,
           credentialType,
+          credentialGroupId: null, // will be set to own id below
           credentialName,
           credentialNumber: dto.credentialNumber,
           issuingAuthority: dto.issuingAuthority,
@@ -89,10 +92,17 @@ export class CredentialService {
               ? new Date(dto.expireDate)
               : undefined,
           credentialStatus: 'pending',
-          version: nextVersion,
+          skillLevel: dto.skillLevel,
+          version: 1,
           isCurrent: true,
           remark: dto.remark,
         },
+      });
+
+      // Set credentialGroupId to own id for new credential groups
+      await tx.staffCredential.update({
+        where: { id: created.id },
+        data: { credentialGroupId: created.id },
       });
 
       await this.createFileLinks(tx, created.id, fileIds);
@@ -141,19 +151,23 @@ export class CredentialService {
       await this.assertSkillsBelongToAccount(accountId, dto.staffSkillIds);
     }
 
-    const nextVersion = await this.getNextVersion(accountId, credentialType);
+    // Reuse existing credential group, or fall back to credential id for migration
+    const groupId = credential.credentialGroupId || credential.id;
+    const nextVersion = credential.version + 1;
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      // Only mark credentials in the same group as not current
       await tx.staffCredential.updateMany({
         where: {
           staffAccountId: accountId,
-          credentialType,
+          credentialGroupId: groupId,
           isCurrent: true,
         },
         data: { isCurrent: false },
       });
 
-      if (credential.credentialType !== credentialType) {
+      // Migration compatibility: older rows may not have credentialGroupId yet.
+      if (!credential.credentialGroupId || credential.credentialType !== credentialType) {
         await tx.staffCredential.update({
           where: { id },
           data: { isCurrent: false },
@@ -164,6 +178,7 @@ export class CredentialService {
         data: {
           staffAccountId: accountId,
           credentialType,
+          credentialGroupId: groupId,
           credentialName,
           credentialNumber:
             dto.credentialNumber !== undefined
@@ -187,6 +202,10 @@ export class CredentialService {
               : credential.expiryDate,
           credentialStatus: 'pending',
           credentialBadge: null,
+          skillLevel:
+            dto.skillLevel !== undefined
+              ? dto.skillLevel
+              : credential.skillLevel,
           version: nextVersion,
           isCurrent: true,
           remark: dto.remark !== undefined ? dto.remark : credential.remark,
@@ -366,6 +385,8 @@ export class CredentialService {
       expireDate: expiryDate,
       status: c.credentialStatus,
       badge: c.credentialBadge,
+      credentialGroupId: c.credentialGroupId,
+      skillLevel: c.skillLevel,
       version: c.version,
       isCurrent: c.isCurrent,
       remark: c.remark,

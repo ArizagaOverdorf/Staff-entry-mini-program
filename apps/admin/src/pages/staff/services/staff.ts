@@ -33,6 +33,7 @@ export interface CredentialRecord {
   staffId?: string;
   credentialType: string;
   credentialTypeLabel?: string;
+  credentialGroupId?: string;
   credentialName?: string;
   credentialNumber?: string;
   issueDate?: string;
@@ -40,6 +41,7 @@ export interface CredentialRecord {
   issuingAuthority?: string;
   status: string;
   badge?: string;
+  skillLevel?: string;
   version?: number;
   isCurrent?: boolean;
   remark?: string;

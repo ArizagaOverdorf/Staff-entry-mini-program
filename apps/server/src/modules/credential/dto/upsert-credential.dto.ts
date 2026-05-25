@@ -43,6 +43,10 @@ export class UpsertCredentialDto {
 
   @IsString()
   @IsOptional()
+  skillLevel?: string;
+
+  @IsString()
+  @IsOptional()
   remark?: string;
 
   @IsArray()

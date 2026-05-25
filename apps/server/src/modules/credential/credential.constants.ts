@@ -20,6 +20,7 @@ export const CredentialType = {
   INSURANCE: 'insurance',
   SKILL_CERT: 'skill_cert',
   EDUCATION: 'education',
+  STUDENT_CARD: 'student_card',
   OTHER: 'other',
 } as const;
 
@@ -31,7 +32,8 @@ export const CredentialTypeLabels: Record<string, string> = {
   medical_report: '体检报告',
   insurance: '保险',
   skill_cert: '技能证书',
-  education: '学历',
+  education: '学历/毕业证',
+  student_card: '学生证',
   other: '其他',
 };
 

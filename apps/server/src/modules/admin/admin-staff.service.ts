@@ -212,6 +212,7 @@ export class AdminStaffService {
       credentialType: credential.credentialType,
       credentialTypeLabel:
         CredentialTypeLabels[credential.credentialType] ?? credential.credentialType,
+      credentialGroupId: credential.credentialGroupId,
       credentialName: credential.credentialName,
       credentialNumber: credential.credentialNumber,
       issuingAuthority: credential.issuingAuthority,
@@ -220,6 +221,7 @@ export class AdminStaffService {
         credential.expiryDate?.toISOString?.() ?? credential.expiryDate,
       status: credential.credentialStatus,
       badge: credential.credentialBadge,
+      skillLevel: credential.skillLevel,
       version: credential.version,
       isCurrent: credential.isCurrent,
       remark: credential.remark,

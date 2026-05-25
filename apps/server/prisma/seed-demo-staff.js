@@ -86,7 +86,8 @@ const CREDENTIAL_TYPE_LABELS = {
   medical_report: '体检报告',
   insurance: '保险',
   skill_cert: '技能证书',
-  education: '学历',
+  education: '学历/毕业证',
+  student_card: '学生证',
   other: '其他',
 };
 
@@ -256,24 +257,52 @@ async function createDemoStaff(prisma, item) {
     }
   }
 
-  // Create skill_cert linked to nanny skill for select demo staff
+  // Create skill_cert entries for select demo staff
+  // DEMO1001 gets two skill certs linked to different skills
   if (item.includeSkillCert) {
     const nannySkill = account.skills.find((s) => s.categoryId === 'nanny');
+    const cleaningSkill = account.skills.find((s) => s.categoryId === 'cleaning');
+
+    const skillCertDefs = [];
+
     if (nannySkill) {
-      const fileAsset = ensureDemoFile(item.staffId, 'skill_cert', account.id);
+      skillCertDefs.push({
+        credentialName: '住家保姆技能证书',
+        credentialNumber: `SKILL-NANNY-${item.staffId}`,
+        skillLevel: '高级',
+        skill: nannySkill,
+      });
+    }
+
+    // DEMO1001 gets a second skill cert for cleaning
+    if (cleaningSkill && item.staffId === 'DEMO1001') {
+      skillCertDefs.push({
+        credentialName: '家庭保洁技能证书',
+        credentialNumber: `SKILL-CLEANING-${item.staffId}`,
+        skillLevel: '中级',
+        skill: cleaningSkill,
+      });
+    } else if (cleaningSkill && item.staffId !== 'DEMO1001') {
+      // For DEMO1003, just one skill cert for nanny is fine
+    }
+
+    for (const def of skillCertDefs) {
+      const fileAsset = ensureDemoFile(item.staffId, `skill_cert_${def.skill.categoryId}`, account.id);
       await prisma.fileAsset.create({ data: fileAsset });
 
       const skillCert = await prisma.staffCredential.create({
         data: {
           staffAccountId: account.id,
           credentialType: 'skill_cert',
-          credentialName: '住家保姆技能证书',
-          credentialNumber: `SKILL-${item.staffId}`,
+          credentialGroupId: null, // set to own id below
+          credentialName: def.credentialName,
+          credentialNumber: def.credentialNumber,
           issuingAuthority: '家政行业协会',
           issueDate: new Date('2025-03-01'),
           expiryDate: new Date('2028-03-01'),
           credentialStatus: item.credentialStatus,
           credentialBadge: item.credentialStatus === 'approved' ? 'valid' : null,
+          skillLevel: def.skillLevel,
           version: 1,
           isCurrent: true,
           files: {
@@ -285,10 +314,16 @@ async function createDemoStaff(prisma, item) {
         },
       });
 
+      // Set credentialGroupId to own id
+      await prisma.staffCredential.update({
+        where: { id: skillCert.id },
+        data: { credentialGroupId: skillCert.id },
+      });
+
       await prisma.staffCredentialSkill.create({
         data: {
           staffCredentialId: skillCert.id,
-          staffSkillId: nannySkill.id,
+          staffSkillId: def.skill.id,
         },
       });
 
