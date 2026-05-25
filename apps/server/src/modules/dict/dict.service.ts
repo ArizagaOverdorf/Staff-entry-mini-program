@@ -91,6 +91,28 @@ export class DictService {
       },
     });
   }
+
+  async listGroups() {
+    const groups = await this.prisma.dictItem.groupBy({
+      by: ['dictGroup'],
+      _count: { id: true },
+    });
+
+    return groups.map((g) => ({
+      id: g.dictGroup,
+      name: g.dictGroup,
+      code: g.dictGroup,
+      description: `${g._count.id} items`,
+      itemCount: g._count.id,
+    }));
+  }
+
+  async listByGroup(dictGroup: string) {
+    return this.prisma.dictItem.findMany({
+      where: { dictGroup },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
 }
 
 function buildTree(items: DictTreeNode[]): DictTreeNode[] {

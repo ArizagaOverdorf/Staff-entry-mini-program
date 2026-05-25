@@ -1,10 +1,9 @@
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
-const PASSWORD_HASH_ALGORITHM = 'scrypt';
-const PASSWORD_HASH_KEY_LENGTH = 64;
+const BCRYPT_SALT_ROUNDS = 10;
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -32,10 +31,22 @@ function loadEnvFile(filePath) {
 }
 
 function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.scryptSync(password, salt, PASSWORD_HASH_KEY_LENGTH).toString('hex');
-  return `${PASSWORD_HASH_ALGORITHM}:${salt}:${hash}`;
+  return bcrypt.hashSync(password, BCRYPT_SALT_ROUNDS);
 }
+
+const PERMISSIONS = [
+  { code: 'admin_user.manage', name: '管理员管理', description: '创建、编辑、删除管理员账号', parentCode: null },
+  { code: 'role.manage', name: '角色权限管理', description: '管理角色和分配权限', parentCode: null },
+  { code: 'dict.manage', name: '字典管理', description: '维护系统字典数据', parentCode: null },
+  { code: 'staff.view', name: '查看服务人员', description: '查看服务人员列表和详情', parentCode: null },
+  { code: 'staff.audit', name: '审核服务人员', description: '审核服务人员入驻申请', parentCode: null },
+];
+
+const ROLES = [
+  { code: 'super_admin', name: '超级管理员', description: '拥有所有权限，系统自动绕过权限校验' },
+  { code: 'admin', name: '管理员', description: '日常管理权限' },
+  { code: 'auditor', name: '审核员', description: '仅查看和审核服务人员' },
+];
 
 async function main() {
   loadEnvFile(path.resolve(__dirname, '../../../.env'));
@@ -51,7 +62,59 @@ async function main() {
   const prisma = new PrismaClient();
 
   try {
-    await prisma.adminUser.upsert({
+    // Create permissions
+    const permissionIds = {};
+    for (const perm of PERMISSIONS) {
+      const created = await prisma.adminPermission.upsert({
+        where: { code: perm.code },
+        update: { name: perm.name, description: perm.description },
+        create: {
+          code: perm.code,
+          name: perm.name,
+          description: perm.description,
+          sortOrder: PERMISSIONS.indexOf(perm),
+        },
+      });
+      permissionIds[perm.code] = created.id;
+    }
+    console.log(`${PERMISSIONS.length} permissions seeded.`);
+
+    // Create roles — super_admin gets all permissions, auditor gets view+audit
+    const rolePermMap = {
+      super_admin: PERMISSIONS.map((p) => p.code),
+      admin: ['admin_user.manage', 'role.manage', 'dict.manage', 'staff.view', 'staff.audit'],
+      auditor: ['staff.view', 'staff.audit'],
+    };
+
+    for (const roleDef of ROLES) {
+      const role = await prisma.adminRole.upsert({
+        where: { code: roleDef.code },
+        update: { name: roleDef.name, description: roleDef.description },
+        create: {
+          code: roleDef.code,
+          name: roleDef.name,
+          description: roleDef.description,
+        },
+      });
+
+      // Assign permissions to role
+      const permCodes = rolePermMap[roleDef.code] || [];
+      await prisma.adminRolePermission.deleteMany({ where: { adminRoleId: role.id } });
+      if (permCodes.length > 0) {
+        await prisma.adminRolePermission.createMany({
+          data: permCodes.map((code) => ({
+            adminRoleId: role.id,
+            adminPermissionId: permissionIds[code],
+          })),
+        });
+      }
+    }
+    console.log(`${ROLES.length} roles seeded.`);
+
+    // Create super admin user
+    const superAdminRole = await prisma.adminRole.findUnique({ where: { code: 'super_admin' } });
+
+    const adminUser = await prisma.adminUser.upsert({
       where: { username },
       update: {
         passwordHash: hashPassword(password),
@@ -67,7 +130,19 @@ async function main() {
       },
     });
 
-    console.log(`Admin user "${username}" is ready.`);
+    // Assign super_admin role
+    if (superAdminRole) {
+      const existing = await prisma.adminUserRole.findUnique({
+        where: { adminUserId_adminRoleId: { adminUserId: adminUser.id, adminRoleId: superAdminRole.id } },
+      });
+      if (!existing) {
+        await prisma.adminUserRole.create({
+          data: { adminUserId: adminUser.id, adminRoleId: superAdminRole.id },
+        });
+      }
+    }
+
+    console.log(`Admin user "${username}" is ready (isSuper=true, role=super_admin).`);
   } finally {
     await prisma.$disconnect();
   }

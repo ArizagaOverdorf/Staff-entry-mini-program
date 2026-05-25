@@ -20,7 +20,7 @@ const DictManagement: React.FC = () => {
   }, [fetchGroups]);
 
   const collapseItems = groups.map((group) => ({
-    key: String(group.id),
+    key: group.code,
     label: (
       <span>
         {group.name}
@@ -32,7 +32,7 @@ const DictManagement: React.FC = () => {
         )}
       </span>
     ),
-    children: <DictTable group={group} />,
+    children: <DictTable groupCode={group.code} />,
   }));
 
   return (

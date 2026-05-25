@@ -1,41 +1,40 @@
 import request from '../../../services/request';
 
 export interface DictGroup {
-  id: number;
+  id: string;
   name: string;
   code: string;
   description?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  itemCount?: number;
 }
 
 export interface DictItem {
-  id: number;
-  groupId: number;
-  label: string;
-  value: string;
-  sort: number;
-  status: number;
+  id: string;
+  dictGroup: string;
+  dictKey: string;
+  dictValue: string;
+  parentId: string | null;
+  sortOrder: number;
+  isActive: boolean;
   remark?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface CreateDictItemParams {
-  groupId: number;
-  label: string;
-  value: string;
-  sort?: number;
-  status?: number;
+  dictGroup: string;
+  dictKey: string;
+  dictValue: string;
+  parentId?: string;
+  sortOrder?: number;
   remark?: string;
 }
 
 export interface UpdateDictItemParams {
-  id: number;
-  label?: string;
-  value?: string;
-  sort?: number;
-  status?: number;
+  id: string;
+  dictValue?: string;
+  sortOrder?: number;
+  isActive?: boolean;
   remark?: string;
 }
 
@@ -43,14 +42,15 @@ export async function listDictGroups(): Promise<DictGroup[]> {
   return request.get('/dict/groups');
 }
 
-export async function listDictItems(groupId: number): Promise<DictItem[]> {
-  return request.get(`/dict/groups/${groupId}/items`);
+export async function listDictItems(dictGroup: string): Promise<DictItem[]> {
+  return request.get(`/dict/groups/${encodeURIComponent(dictGroup)}/items`);
 }
 
 export async function createDictItem(params: CreateDictItemParams): Promise<DictItem> {
-  return request.post('/dict/items', params);
+  return request.post('/dicts', params);
 }
 
 export async function updateDictItem(params: UpdateDictItemParams): Promise<DictItem> {
-  return request.put(`/dict/items/${params.id}`, params);
+  const { id, ...data } = params;
+  return request.put(`/dicts/${id}`, data);
 }

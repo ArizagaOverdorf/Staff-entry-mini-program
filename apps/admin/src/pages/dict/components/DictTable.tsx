@@ -1,20 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Space, Tag, Modal, Form, Input, InputNumber, Switch, message } from 'antd';
+import { Table, Button, Tag, Modal, Form, Input, InputNumber, Switch, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import {
   listDictItems,
   createDictItem,
   updateDictItem,
   type DictItem,
-  type DictGroup,
 } from '../services/dict';
 import type { ColumnsType } from 'antd/es/table';
 
 interface DictTableProps {
-  group: DictGroup;
+  groupCode: string;
 }
 
-const DictTable: React.FC<DictTableProps> = ({ group }) => {
+const DictTable: React.FC<DictTableProps> = ({ groupCode }) => {
   const [data, setData] = useState<DictItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,14 +24,14 @@ const DictTable: React.FC<DictTableProps> = ({ group }) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await listDictItems(group.id);
+      const result = await listDictItems(groupCode);
       setData(Array.isArray(result) ? result : []);
     } catch {
       // handled by interceptor
     } finally {
       setLoading(false);
     }
-  }, [group.id]);
+  }, [groupCode]);
 
   useEffect(() => {
     fetchData();
@@ -41,13 +40,19 @@ const DictTable: React.FC<DictTableProps> = ({ group }) => {
   const handleAdd = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ groupId: group.id, sort: 0, status: true });
+    form.setFieldsValue({ sortOrder: 0, isActive: true });
     setModalOpen(true);
   };
 
   const handleEdit = (record: DictItem) => {
     setEditingRecord(record);
-    form.setFieldsValue({ ...record, status: record.status === 1 });
+    form.setFieldsValue({
+      dictKey: record.dictKey,
+      dictValue: record.dictValue,
+      sortOrder: record.sortOrder,
+      isActive: record.isActive,
+      remark: record.remark,
+    });
     setModalOpen(true);
   };
 
@@ -55,15 +60,23 @@ const DictTable: React.FC<DictTableProps> = ({ group }) => {
     setConfirmLoading(true);
     try {
       const rawValues = await form.validateFields();
-      const values = {
-        ...rawValues,
-        status: rawValues.status ? 1 : 0,
-      };
       if (editingRecord) {
-        await updateDictItem({ id: editingRecord.id, ...values });
+        await updateDictItem({
+          id: editingRecord.id,
+          dictValue: rawValues.dictValue,
+          sortOrder: rawValues.sortOrder,
+          isActive: rawValues.isActive,
+          remark: rawValues.remark,
+        });
         message.success('更新成功');
       } else {
-        await createDictItem(values);
+        await createDictItem({
+          dictGroup: groupCode,
+          dictKey: rawValues.dictKey,
+          dictValue: rawValues.dictValue,
+          sortOrder: rawValues.sortOrder,
+          remark: rawValues.remark,
+        });
         message.success('创建成功');
       }
       setModalOpen(false);
@@ -77,34 +90,28 @@ const DictTable: React.FC<DictTableProps> = ({ group }) => {
 
   const columns: ColumnsType<DictItem> = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 60,
-    },
-    {
-      title: '标签',
-      dataIndex: 'label',
-      key: 'label',
+      title: '键',
+      dataIndex: 'dictKey',
+      key: 'dictKey',
     },
     {
       title: '值',
-      dataIndex: 'value',
-      key: 'value',
+      dataIndex: 'dictValue',
+      key: 'dictValue',
     },
     {
       title: '排序',
-      dataIndex: 'sort',
-      key: 'sort',
+      dataIndex: 'sortOrder',
+      key: 'sortOrder',
       width: 80,
     },
     {
       title: '状态',
-      dataIndex: 'status',
-      key: 'status',
+      dataIndex: 'isActive',
+      key: 'isActive',
       width: 80,
-      render: (status: number) =>
-        status === 1 ? <Tag color="green">启用</Tag> : <Tag color="red">禁用</Tag>,
+      render: (v: boolean) =>
+        v ? <Tag color="green">启用</Tag> : <Tag color="red">禁用</Tag>,
     },
     {
       title: '备注',
@@ -148,19 +155,24 @@ const DictTable: React.FC<DictTableProps> = ({ group }) => {
         destroyOnClose
       >
         <Form form={form} layout="vertical" autoComplete="off">
-          <Form.Item name="groupId" hidden>
-            <Input />
+          <Form.Item
+            name="dictKey"
+            label="键"
+            rules={[{ required: true, message: '请输入字典键' }]}
+          >
+            <Input placeholder="例如：pending" disabled={!!editingRecord} />
           </Form.Item>
-          <Form.Item name="label" label="标签" rules={[{ required: true, message: '请输入标签' }]}>
+          <Form.Item
+            name="dictValue"
+            label="值"
+            rules={[{ required: true, message: '请输入字典值' }]}
+          >
             <Input placeholder="例如：待审核" />
           </Form.Item>
-          <Form.Item name="value" label="值" rules={[{ required: true, message: '请输入值' }]}>
-            <Input placeholder="例如：pending" />
-          </Form.Item>
-          <Form.Item name="sort" label="排序">
+          <Form.Item name="sortOrder" label="排序">
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="status" label="状态" valuePropName="checked">
+          <Form.Item name="isActive" label="状态" valuePropName="checked">
             <Switch />
           </Form.Item>
           <Form.Item name="remark" label="备注">

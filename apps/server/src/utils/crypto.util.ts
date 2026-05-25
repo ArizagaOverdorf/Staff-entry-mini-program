@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
-const PASSWORD_HASH_ALGORITHM = 'scrypt';
-const PASSWORD_HASH_KEY_LENGTH = 64;
+const BCRYPT_SALT_ROUNDS = 10;
 
 export function encrypt(text: string, key: string): string {
   const iv = crypto.randomBytes(16);
@@ -21,25 +21,9 @@ export function decrypt(encryptedText: string, key: string): string {
 }
 
 export function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.scryptSync(password, salt, PASSWORD_HASH_KEY_LENGTH).toString('hex');
-
-  return `${PASSWORD_HASH_ALGORITHM}:${salt}:${hash}`;
+  return bcrypt.hashSync(password, BCRYPT_SALT_ROUNDS);
 }
 
 export function verifyPassword(password: string, storedHash: string): boolean {
-  const [algorithm, salt, hash] = storedHash.split(':');
-
-  if (algorithm !== PASSWORD_HASH_ALGORITHM || !salt || !hash) {
-    return false;
-  }
-
-  const passwordHash = crypto.scryptSync(password, salt, PASSWORD_HASH_KEY_LENGTH);
-  const storedPasswordHash = Buffer.from(hash, 'hex');
-
-  if (storedPasswordHash.length !== PASSWORD_HASH_KEY_LENGTH) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(passwordHash, storedPasswordHash);
+  return bcrypt.compareSync(password, storedHash);
 }

@@ -24,7 +24,15 @@ request.interceptors.request.use(
 
 request.interceptors.response.use(
   (response) => {
-    return response.data;
+    const body = response.data;
+    if (body && typeof body === 'object' && 'code' in body) {
+      if (body.code === 0) {
+        return body.data;
+      }
+      message.error(body.message || '请求失败');
+      return Promise.reject(new Error(body.message || '请求失败'));
+    }
+    return body;
   },
   (error: AxiosError<{ message?: string }>) => {
     if (error.response) {

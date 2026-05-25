@@ -1,4 +1,5 @@
 import request from './request';
+import type { AdminUser } from '../utils/auth';
 
 export interface LoginParams {
   username: string;
@@ -7,20 +8,13 @@ export interface LoginParams {
 
 export interface LoginResult {
   accessToken: string;
-  adminUser: {
-    id: number;
-    username: string;
-    realName: string;
-    phone: string;
-    roleId?: number;
-    roleName?: string;
-  };
+  adminUser: AdminUser;
 }
 
 export async function login(params: LoginParams): Promise<LoginResult> {
   return request.post('/auth/login', params);
 }
 
-export async function getCurrentAdmin(): Promise<LoginResult['adminUser']> {
-  return request.get('/auth/current');
+export async function getCurrentAdmin(): Promise<AdminUser> {
+  return request.get('/auth/me');
 }

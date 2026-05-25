@@ -5,8 +5,8 @@ import type { PermissionNode } from '../services/role';
 
 interface PermissionTreeProps {
   treeData: PermissionNode[];
-  checkedKeys: number[];
-  onCheck: (keys: number[]) => void;
+  checkedKeys: string[];
+  onCheck: (keys: string[]) => void;
 }
 
 function convertToTreeData(nodes: PermissionNode[]): DataNode[] {
@@ -24,7 +24,7 @@ const PermissionTree: React.FC<PermissionTreeProps> = ({
 }) => {
   const handleCheck: TreeProps['onCheck'] = (checked) => {
     if (Array.isArray(checked)) {
-      onCheck(checked as number[]);
+      onCheck(checked as string[]);
     }
   };
 
@@ -37,8 +37,8 @@ const PermissionTree: React.FC<PermissionTreeProps> = ({
     onCheck([]);
   };
 
-  function flattenIds(nodes: PermissionNode[]): number[] {
-    const ids: number[] = [];
+  function flattenIds(nodes: PermissionNode[]): string[] {
+    const ids: string[] = [];
     for (const node of nodes) {
       ids.push(node.id);
       if (node.children) {

@@ -9,22 +9,32 @@ import { RequirePermissions } from '../admin/decorators/permissions.decorator';
 
 @UseGuards(AdminJwtAuthGuard, PermissionsGuard)
 @RequirePermissions('dict.manage')
-@Controller('admin/dicts')
+@Controller('admin')
 export class DictController {
   constructor(private readonly dictService: DictService) {}
 
-  @Get()
+  @Get('dicts')
   async list(@Query() query: QueryDictDto) {
     return this.dictService.list(query);
   }
 
-  @Post()
+  @Post('dicts')
   async create(@Body() dto: CreateDictItemDto) {
     return this.dictService.create(dto);
   }
 
-  @Put(':id')
+  @Put('dicts/:id')
   async update(@Param('id') id: string, @Body() dto: UpdateDictItemDto) {
     return this.dictService.update(id, dto);
+  }
+
+  @Get('dict/groups')
+  async listGroups() {
+    return this.dictService.listGroups();
+  }
+
+  @Get('dict/groups/:dictGroup/items')
+  async listItemsByGroup(@Param('dictGroup') dictGroup: string) {
+    return this.dictService.listByGroup(dictGroup);
   }
 }

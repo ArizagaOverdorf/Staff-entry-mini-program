@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Spin, message, Descriptions } from 'antd';
+import { Card, Button, Spin, message } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons';
 import PermissionTree from './components/PermissionTree';
 import {
@@ -17,7 +17,7 @@ const PermissionConfig: React.FC = () => {
 
   const [roleName, setRoleName] = useState('');
   const [treeData, setTreeData] = useState<PermissionNode[]>([]);
-  const [checkedKeys, setCheckedKeys] = useState<number[]>([]);
+  const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -26,9 +26,9 @@ const PermissionConfig: React.FC = () => {
     setLoading(true);
     try {
       const [roleDetail, permissionTree, rolePerms] = await Promise.all([
-        getRoleDetail(Number(roleId)),
+        getRoleDetail(roleId),
         getPermissionTree(),
-        getRolePermissions(Number(roleId)),
+        getRolePermissions(roleId),
       ]);
       setRoleName(roleDetail.name);
       setTreeData(Array.isArray(permissionTree) ? permissionTree : []);
@@ -48,10 +48,7 @@ const PermissionConfig: React.FC = () => {
     if (!roleId) return;
     setSaving(true);
     try {
-      await assignPermissions({
-        roleId: Number(roleId),
-        permissionIds: checkedKeys,
-      });
+      await assignPermissions(roleId, checkedKeys);
       message.success('权限配置保存成功');
     } catch {
       // handled by interceptor

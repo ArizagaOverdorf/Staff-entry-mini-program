@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Space, Tag, message, Popconfirm } from 'antd';
+import { Table, Button, Space, Tag, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import AdminUserForm from './components/AdminUserForm';
 import {
@@ -17,12 +17,14 @@ const AdminUser: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AdminUserRecord | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0 });
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (page = 1, pageSize = 10) => {
     setLoading(true);
     try {
-      const result = await listAdminUsers();
-      setData(Array.isArray(result) ? result : []);
+      const result = await listAdminUsers({ page, pageSize });
+      setData(result.items ?? []);
+      setPagination({ page: result.page, pageSize: result.pageSize, total: result.total });
     } catch {
       // handled by interceptor
     } finally {
@@ -55,7 +57,7 @@ const AdminUser: React.FC = () => {
         message.success('创建成功');
       }
       setModalOpen(false);
-      fetchData();
+      fetchData(pagination.page, pagination.pageSize);
     } catch {
       // handled by interceptor
     } finally {
@@ -64,12 +66,6 @@ const AdminUser: React.FC = () => {
   };
 
   const columns: ColumnsType<AdminUserRecord> = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 60,
-    },
     {
       title: '用户名',
       dataIndex: 'username',
@@ -87,9 +83,23 @@ const AdminUser: React.FC = () => {
     },
     {
       title: '角色',
-      dataIndex: 'roleName',
-      key: 'roleName',
-      render: (text: string) => (text ? <Tag color="blue">{text}</Tag> : '-'),
+      dataIndex: 'roles',
+      key: 'roles',
+      render: (roles: AdminUserRecord['roles']) =>
+        roles?.length
+          ? roles.map((r) => (
+              <Tag color="blue" key={r.code}>
+                {r.name}
+              </Tag>
+            ))
+          : '-',
+    },
+    {
+      title: '状态',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (v: boolean) =>
+        v ? <Tag color="green">启用</Tag> : <Tag color="red">禁用</Tag>,
     },
     {
       title: '创建时间',
@@ -123,7 +133,14 @@ const AdminUser: React.FC = () => {
         dataSource={data}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
+        pagination={{
+          current: pagination.page,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (page, pageSize) => fetchData(page, pageSize),
+        }}
       />
       <AdminUserForm
         open={modalOpen}

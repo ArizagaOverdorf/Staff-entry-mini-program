@@ -14,10 +14,37 @@ export class AdminAuthService {
   async login(dto: AdminLoginDto) {
     const user = await this.prisma.adminUser.findUnique({
       where: { username: dto.username },
+      include: {
+        userRoles: {
+          include: {
+            adminRole: {
+              include: {
+                rolePermissions: {
+                  include: { adminPermission: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!user || !user.isActive || !verifyPassword(dto.password, user.passwordHash)) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const roles: string[] = [];
+    const permissions: string[] = [];
+
+    for (const ur of user.userRoles) {
+      if (ur.adminRole.isActive) {
+        roles.push(ur.adminRole.code);
+        for (const rp of ur.adminRole.rolePermissions) {
+          if (rp.adminPermission.isActive && !permissions.includes(rp.adminPermission.code)) {
+            permissions.push(rp.adminPermission.code);
+          }
+        }
+      }
     }
 
     const token = this.jwtService.sign({
@@ -26,7 +53,18 @@ export class AdminAuthService {
       isSuper: user.isSuper,
     });
 
-    return { token, username: user.username };
+    return {
+      accessToken: token,
+      adminUser: {
+        id: user.id,
+        username: user.username,
+        realName: user.realName,
+        phone: user.phone,
+        isSuper: user.isSuper,
+        roles,
+        permissions,
+      },
+    };
   }
 
   async getMe(adminUserId: string) {

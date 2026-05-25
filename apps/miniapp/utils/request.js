@@ -59,7 +59,22 @@ const request = {
           }
 
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(res.data);
+            const body = res.data;
+            if (body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'code')) {
+              if (body.code === 0) {
+                resolve(body.data);
+              } else {
+                const errMsg = body.message || '请求失败';
+                wx.showToast({
+                  title: errMsg,
+                  icon: 'none',
+                  duration: 2000
+                });
+                reject(new Error(errMsg));
+              }
+              return;
+            }
+            resolve(body);
           } else {
             const errMsg = (res.data && res.data.message) || '请求失败';
             wx.showToast({

@@ -1,12 +1,13 @@
 import { TOKEN_KEY, USER_KEY } from './constants';
 
 export interface AdminUser {
-  id: number;
+  id: string;
   username: string;
   realName: string;
   phone: string;
-  roleId?: number;
-  roleName?: string;
+  isSuper: boolean;
+  roles: string[];
+  permissions: string[];
 }
 
 export function getToken(): string | null {

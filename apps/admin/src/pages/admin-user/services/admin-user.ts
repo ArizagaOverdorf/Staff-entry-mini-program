@@ -1,12 +1,13 @@
 import request from '../../../services/request';
 
 export interface AdminUserRecord {
-  id: number;
+  id: string;
   username: string;
   realName: string;
   phone: string;
-  roleId?: number;
-  roleName?: string;
+  isActive: boolean;
+  isSuper: boolean;
+  roles?: { id: string; code: string; name: string }[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -16,25 +17,34 @@ export interface CreateAdminUserParams {
   realName: string;
   phone: string;
   password: string;
-  roleId?: number;
+  roleIds?: string[];
 }
 
 export interface UpdateAdminUserParams {
-  id: number;
+  id: string;
   realName?: string;
   phone?: string;
   password?: string;
-  roleId?: number;
+  isActive?: boolean;
+  roleIds?: string[];
 }
 
-export async function listAdminUsers(): Promise<AdminUserRecord[]> {
-  return request.get('/admin-users');
+export async function listAdminUsers(params?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ items: AdminUserRecord[]; total: number; page: number; pageSize: number }> {
+  return request.get('/users', { params });
 }
 
-export async function createAdminUser(params: CreateAdminUserParams): Promise<AdminUserRecord> {
-  return request.post('/admin-users', params);
+export async function createAdminUser(
+  params: CreateAdminUserParams,
+): Promise<AdminUserRecord> {
+  return request.post('/users', params);
 }
 
-export async function updateAdminUser(params: UpdateAdminUserParams): Promise<AdminUserRecord> {
-  return request.put(`/admin-users/${params.id}`, params);
+export async function updateAdminUser(
+  params: UpdateAdminUserParams,
+): Promise<AdminUserRecord> {
+  const { id, ...data } = params;
+  return request.put(`/users/${id}`, data);
 }
