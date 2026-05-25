@@ -27,9 +27,19 @@ try {
 }
 
 Write-Host "Validating JSON files..." -ForegroundColor Cyan
-$jsonFiles = & rg --files -g "*.json" -g "!node_modules" -g "!.git" -g "!dist"
+$jsonFiles = Get-ChildItem -Recurse -File -Filter "*.json" |
+  Where-Object {
+    $_.FullName -notlike "*\node_modules\*" -and
+    $_.FullName -notlike "*\.git\*" -and
+    $_.FullName -notlike "*\dist\*"
+  }
 foreach ($file in $jsonFiles) {
-  Get-Content -LiteralPath $file -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
+  try {
+    Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
+  } catch {
+    Write-Host "Invalid JSON: $($file.FullName)" -ForegroundColor Red
+    throw
+  }
 }
 
 Write-Host "Checking for empty source files..." -ForegroundColor Cyan
@@ -60,8 +70,21 @@ $requiredMarkers = @(
 )
 
 foreach ($marker in $requiredMarkers) {
-  $matches = & rg -n -F $marker "apps\server\src" "apps\server\prisma" "apps\admin\src" "apps\miniapp" 2>$null
-  if (-not $matches) {
+  $found = $false
+  $searchPaths = @("apps\server\src", "apps\server\prisma", "apps\admin\src", "apps\miniapp")
+  foreach ($sp in $searchPaths) {
+    if (-not (Test-Path $sp)) { continue }
+    $files = Get-ChildItem -Path $sp -Recurse -File -ErrorAction SilentlyContinue |
+      Where-Object { $_.FullName -notlike "*\node_modules\*" }
+    foreach ($f in $files) {
+      if ((Select-String -LiteralPath $f.FullName -Pattern $marker -SimpleMatch -ErrorAction SilentlyContinue)) {
+        $found = $true
+        break
+      }
+    }
+    if ($found) { break }
+  }
+  if (-not $found) {
     throw "Missing expected Stage 4 marker: $marker"
   }
 }

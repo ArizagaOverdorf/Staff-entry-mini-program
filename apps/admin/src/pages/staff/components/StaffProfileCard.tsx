@@ -22,16 +22,17 @@ const StaffProfileCard: React.FC<StaffProfileCardProps> = ({ staff }) => {
 
   const intakeStatusMap: Record<string, { color: string; text: string }> = {
     draft: { color: 'default', text: '草稿' },
-    pending: { color: 'orange', text: '待审核' },
+    pending_review: { color: 'orange', text: '待审核' },
     approved: { color: 'green', text: '已通过' },
     rejected: { color: 'red', text: '已拒绝' },
-    info_required: { color: 'purple', text: '待补充' },
+    needs_more_info: { color: 'purple', text: '待补充' },
   };
 
   const listingStatusMap: Record<string, { color: string; text: string }> = {
-    listed: { color: 'green', text: '已上架' },
+    on: { color: 'green', text: '已上架' },
     paused: { color: 'orange', text: '已暂停' },
-    unlisted: { color: 'default', text: '未上架' },
+    off: { color: 'default', text: '未上架' },
+    offline: { color: 'default', text: '未上架' },
   };
 
   return (
@@ -67,9 +68,16 @@ const StaffProfileCard: React.FC<StaffProfileCardProps> = ({ staff }) => {
         <Descriptions.Item label="地址" span={2}>{staff.address || '-'}</Descriptions.Item>
         <Descriptions.Item label="紧急联系人">{staff.emergencyContact || '-'}</Descriptions.Item>
         <Descriptions.Item label="紧急电话">{staff.emergencyPhone ? maskPhone(staff.emergencyPhone) : '-'}</Descriptions.Item>
-        <Descriptions.Item label="从业经验" span={2}>{staff.experience || '-'}</Descriptions.Item>
-        <Descriptions.Item label="学历">{staff.education || '-'}</Descriptions.Item>
-        <Descriptions.Item label="个人介绍" span={2}>{staff.introduction || '-'}</Descriptions.Item>
+        <Descriptions.Item label="服务类别" span={2}>
+          {staff.serviceCategories && staff.serviceCategories.length > 0
+            ? staff.serviceCategories.join(', ')
+            : '-'}
+        </Descriptions.Item>
+        <Descriptions.Item label="服务区域" span={2}>
+          {staff.serviceAreas && staff.serviceAreas.length > 0
+            ? staff.serviceAreas.join(', ')
+            : '-'}
+        </Descriptions.Item>
       </Descriptions>
     </Card>
   );

@@ -31,23 +31,58 @@
 
 ## 当前状态
 
-当前仓库中 `apps/**` 下已有部分 0 字节文件，这些只视为目录占位，不代表已完成编码。
+Stage 0–4 已完成。数据库模型、后端 API、管理后台前端和微信小程序均已实现基础功能。
 
-Claude Code 开始编码时，应先完成：
+### 本地开发快速开始
 
-1. 补齐根工程和各子应用 package/config。
-2. 补齐 `apps/server/prisma/schema.prisma`。
-3. 让 `pnpm install`、`pnpm --filter @staff-entry/server dev`、`pnpm --filter @staff-entry/admin dev` 有明确可执行目标。
-4. 再进入阶段 1 和阶段 2 功能编码。
+**前置条件：** PostgreSQL 数据库已启动，`.env` 文件已配置（参考 `.env.example`）。
 
-## 推荐命令
-
-```bash
+```powershell
+# 1. 安装依赖
 pnpm install
+
+# 2. 初始化数据库（迁移）
+.\apps\server\node_modules\.bin\prisma.CMD migrate deploy --schema apps\server\prisma\schema.prisma
+
+# 3. 初始化管理员账号（需要 .env 中配置 ADMIN_SEED_PASSWORD）
+pnpm --filter @staff-entry/server seed:admin
+
+# 4. 初始化演示服务人员
+.\seed-demo-staff.cmd
+
+# 5. 启动后端服务
 pnpm dev:server
+
+# 6. 另开终端，启动管理后台
 pnpm dev:admin
-pnpm lint
-pnpm format:check
 ```
 
-上述命令需要在 Claude Code 补齐子项目配置后才能全部运行。
+### 演示数据
+
+运行 `seed-demo-staff.cmd` 或手动执行种子脚本后，数据库中会有 3 位演示服务人员：
+
+| staffId | 姓名 | 入驻状态 |
+|---------|------|----------|
+| DEMO1001 | 王小梅 | 待审核 |
+| DEMO1002 | 李师傅 | 需补充资料 |
+| DEMO1003 | 张阿姨 | 已通过 |
+
+### 管理后台本地访问
+
+1. 浏览器打开管理后台地址（默认 http://localhost:5173）。
+2. 使用管理员账号登录。管理员账号由 `pnpm --filter @staff-entry/server seed:admin` 创建，用户名看 `.env` 的 `ADMIN_SEED_USERNAME`，密码看本地 `.env` 的 `ADMIN_SEED_PASSWORD`。
+3. 进入「服务人员管理」查看演示人员列表。
+4. 点击「查看详情」进入详情页，可进行证件审核和入驻审核。
+
+### 验证
+
+```powershell
+# 运行 Stage 4 集成验证（需数据库在线）
+.\verify-stage4.cmd
+```
+
+### 微信小程序本地开发
+
+1. 使用微信开发者工具打开 `apps/miniapp` 目录。
+2. 在 `apps/miniapp/utils/constants.js` 中确认 `API_BASE_URL` 指向本地后端（默认 `http://localhost:3000/api`）。
+3. 在开发者工具中预览小程序，完成资料填写、证件上传、提交入驻流程。

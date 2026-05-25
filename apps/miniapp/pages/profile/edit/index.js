@@ -158,8 +158,8 @@ Page({
       if (this.data.selectedCategories.length > 0) {
         const skillsData = {
           skills: this.data.selectedCategories.map(c => ({
-            categoryId: c.categoryId || c.id || c.value,
-            categoryName: c.categoryName || c.label || c.name,
+            categoryId: c.categoryId || c.dictKey || c.id || c.value,
+            categoryName: c.categoryName || c.dictValue || c.label || c.name,
             skillLevel: c.skillLevel || c.level,
             description: c.description || ''
           }))
@@ -171,7 +171,7 @@ Page({
       if (this.data.selectedAreas.length > 0) {
         const areasData = {
           areas: this.data.selectedAreas.map(a => ({
-            province: a.province || a.name || '',
+            province: a.province || a.dictValue || a.label || a.name || '',
             city: a.city || '',
             district: a.district || ''
           }))

@@ -24,7 +24,7 @@ Page({
     const that = this;
 
     // 加载入驻预览（包含资料摘要 + 证件统计 + 强制证件 + 技能证书要求）
-    request.get(constants.API.SUBMIT_INTAKE + '/preview').then((res) => {
+    request.get(constants.API.INTAKE_PREVIEW).then((res) => {
       that.setData({
         profileSummary: {
           name: res.profileCompleted ? '已填写' : '未填写',

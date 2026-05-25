@@ -12,6 +12,11 @@ import { AuditCredentialDto, AuditIntakeDto } from './dto/audit.dto';
 export class AdminStaffController {
   constructor(private readonly adminStaffService: AdminStaffService) {}
 
+  @Get('stats')
+  async dashboardStats() {
+    return this.adminStaffService.getDashboardStats();
+  }
+
   @Get()
   async list(
     @Query('page') page?: string,

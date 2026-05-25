@@ -38,6 +38,29 @@ interface StaffListParams {
 export class AdminStaffService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getDashboardStats() {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const [totalStaff, pendingReview, approved, todaySubmitted] = await Promise.all([
+      this.prisma.staffAccount.count({ where: { deletedAt: null } }),
+      this.prisma.staffIntakeStatus.count({
+        where: { intakeStatus: 'pending_review' },
+      }),
+      this.prisma.staffIntakeStatus.count({
+        where: { intakeStatus: 'approved' },
+      }),
+      this.prisma.staffAccount.count({
+        where: {
+          deletedAt: null,
+          createdAt: { gte: todayStart },
+        },
+      }),
+    ]);
+
+    return { totalStaff, pendingReview, approved, todaySubmitted };
+  }
+
   async list(params: StaffListParams) {
     const { page, pageSize, name, phone, intakeStatus, listingStatus } = params;
     const where: Record<string, any> = { deletedAt: null };

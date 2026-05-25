@@ -37,6 +37,7 @@ const API = {
 
   // 入驻提交
   SUBMIT_INTAKE: APP_API_PREFIX + '/intake/submit',
+  INTAKE_PREVIEW: APP_API_PREFIX + '/intake/preview',
   INTAKE_STATUS: APP_API_PREFIX + '/intake/status',
 
   // 上架状态

@@ -80,6 +80,17 @@ export interface StaffListResult {
   total: number;
 }
 
+export interface DashboardStats {
+  totalStaff: number;
+  pendingReview: number;
+  approved: number;
+  todaySubmitted: number;
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  return request.get('/staff/stats');
+}
+
 export async function listStaff(params?: StaffListParams): Promise<StaffListResult> {
   return request.get('/staff', { params });
 }
