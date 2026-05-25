@@ -12,7 +12,7 @@ Page({
     credentialNumber: '',
     remark: '',
     fileUrl: '',
-    filePath: '',
+    fileIds: [],
     status: 'pending',
     isSubmitting: false,
     isEdit: false,
@@ -35,30 +35,22 @@ Page({
         name: cred.name || '',
         typeName: cred.typeName || '',
         typeId: cred.typeId || '',
-        expireDate: cred.expireDate || '',
+        expireDate: cred.expireDate || cred.expiryDate || '',
         credentialNumber: cred.credentialNumber || '',
         remark: cred.remark || '',
         fileUrl: cred.fileUrl || '',
         status: cred.status || 'pending',
-        statusLabel: constants.CREDENTIAL_STATUS_LABEL[cred.status] || '待上传'
+        fileIds: cred.files ? cred.files.map(f => f.fileAsset.id) : []
       });
     }).catch(() => {});
   },
 
   loadCredTypes() {
-    // 从字典加载证件类型
-    // 实际项目中需要从 API 获取
     this.setData({
-      credTypes: [
-        { value: 'id_card', label: '身份证' },
-        { value: 'health_cert', label: '健康证' },
-        { value: 'skill_cert', label: '技能证书' },
-        { value: 'other', label: '其他' }
-      ]
+      credTypes: constants.CREDENTIAL_TYPES
     });
   },
 
-  // 证件类型选择
   onTypeChange(e) {
     const index = parseInt(e.detail.value);
     const type = this.data.credTypes[index];
@@ -84,18 +76,23 @@ Page({
     this.setData({ remark: e.detail.value });
   },
 
-  // 选择并上传图片
+  // 选择并上传图片（两步：先上传文件，获得 fileId 后关联到证件）
   handleUploadImage() {
     const that = this;
     uploadUtil.chooseAndUpload(
-      constants.API.CREDENTIAL_UPLOAD,
-      'file',
-      { typeId: this.data.typeId }
+      constants.API.FILES_UPLOAD,
+      'file'
     ).then((res) => {
-      that.setData({
-        fileUrl: res.url || res.fileUrl || '',
-        filePath: res.path || ''
-      });
+      const fileId = res.data?.id || res.id || '';
+      const fileUrl = res.data?.fileUrl || res.fileUrl || '';
+      if (fileId) {
+        const fileIds = that.data.fileIds || [];
+        fileIds.push(fileId);
+        that.setData({
+          fileIds: fileIds,
+          fileUrl: fileUrl || fileId
+        });
+      }
       wx.showToast({
         title: '上传成功',
         icon: 'success'
@@ -113,8 +110,8 @@ Page({
       wx.showToast({ title: '请输入证件名称', icon: 'none' });
       return;
     }
-    if (!this.data.fileUrl && !this.data.filePath) {
-      wx.showToast({ title: '请上传证件图片', icon: 'none' });
+    if (!this.data.typeId) {
+      wx.showToast({ title: '请选择证件类型', icon: 'none' });
       return;
     }
 
@@ -127,7 +124,7 @@ Page({
       credentialNumber: this.data.credentialNumber,
       expireDate: this.data.expireDate,
       remark: this.data.remark,
-      fileUrl: this.data.fileUrl
+      fileIds: this.data.fileIds
     };
 
     const url = this.data.isEdit

@@ -1,30 +1,42 @@
-import { Controller, Get, Put, Param, Body } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { StaffService } from './staff.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateSkillsDto } from './dto/update-skills.dto';
 import { UpdateServiceAreasDto } from './dto/update-service-areas.dto';
 
-@Controller('app/staff')
+@UseGuards(JwtAuthGuard)
+@Controller('app/profile')
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 
-  @Get(':staffId')
-  async getProfile(@Param('staffId') staffId: string) {
-    return this.staffService.getProfile(staffId);
+  @Get()
+  async getProfile(@CurrentUser() user: { id: string; staffId: string }) {
+    return this.staffService.getProfile(user.id, user.staffId);
   }
 
-  @Put(':staffId/profile')
-  async updateProfile(@Param('staffId') staffId: string, @Body() dto: UpdateProfileDto) {
-    return this.staffService.updateProfile(staffId, dto);
+  @Put()
+  async updateProfile(
+    @CurrentUser() user: { id: string; staffId: string },
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.staffService.updateProfile(user.id, user.staffId, dto);
   }
 
-  @Put(':staffId/skills')
-  async updateSkills(@Param('staffId') staffId: string, @Body() dto: UpdateSkillsDto) {
-    return this.staffService.updateSkills(staffId, dto);
+  @Put('skills')
+  async updateSkills(
+    @CurrentUser() user: { id: string; staffId: string },
+    @Body() dto: UpdateSkillsDto,
+  ) {
+    return this.staffService.updateSkills(user.id, dto);
   }
 
-  @Put(':staffId/service-areas')
-  async updateServiceAreas(@Param('staffId') staffId: string, @Body() dto: UpdateServiceAreasDto) {
-    return this.staffService.updateServiceAreas(staffId, dto);
+  @Put('service-areas')
+  async updateServiceAreas(
+    @CurrentUser() user: { id: string; staffId: string },
+    @Body() dto: UpdateServiceAreasDto,
+  ) {
+    return this.staffService.updateServiceAreas(user.id, dto);
   }
 }

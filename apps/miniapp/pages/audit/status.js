@@ -26,7 +26,6 @@ Page({
       const intakeStatus = res.intakeStatus || constants.INTAKE_STATUS.DRAFT;
       const listingStatus = res.listingStatus || constants.LISTING_STATUS.OFF;
 
-      // 构建审核时间线
       const auditRecords = that.buildAuditRecords(intakeStatus, res.auditLog || []);
 
       that.setData({
@@ -48,7 +47,6 @@ Page({
   buildAuditRecords(status, logs) {
     const records = [];
 
-    // 添加"提交申请"步骤
     records.push({
       title: '提交入驻申请',
       time: '',
@@ -56,7 +54,6 @@ Page({
       desc: '提交个人信息和证件资料'
     });
 
-    // 添加"审核中"步骤
     if (status === constants.INTAKE_STATUS.PENDING_REVIEW) {
       records.push({
         title: '审核中',
@@ -87,7 +84,6 @@ Page({
       });
     }
 
-    // 如果已通过或已驳回，添加最终状态
     if (status === constants.INTAKE_STATUS.APPROVED) {
       records.push({
         title: '审核通过',
@@ -111,7 +107,6 @@ Page({
       });
     }
 
-    // 如果已有审核日志，覆盖时间
     if (logs.length > 0) {
       logs.forEach((log, index) => {
         if (records[index]) {
@@ -128,21 +123,19 @@ Page({
     const map = {
       draft: 0,
       pending_review: 1,
-      info_required: 1,
+      needs_more_info: 1,
       approved: 2,
       rejected: 2
     };
     return map[status] !== undefined ? map[status] : 0;
   },
 
-  // 如果被驳回，重新提交
   handleResubmit() {
     wx.navigateTo({
       url: '/pages/submit/index'
     });
   },
 
-  // 补充资料
   handleSupplement() {
     wx.navigateTo({
       url: '/pages/profile/edit/index'

@@ -9,7 +9,9 @@ Page({
     serviceCategories: [],
     serviceAreas: [],
     loaded: false,
-    isSubmitting: false
+    isSubmitting: false,
+    canSubmit: false,
+    issues: []
   },
 
   onLoad() {
@@ -18,33 +20,56 @@ Page({
 
   loadSummary() {
     const that = this;
-    // 加载个人资料摘要
-    request.get(constants.API.PROFILE).then((res) => {
-      that.setData({
-        profileSummary: res.profile || res,
-        serviceCategories: res.serviceCategoryNames || [],
-        serviceAreas: res.serviceAreaNames || []
-      });
-    }).catch(() => {});
 
-    // 加载证件摘要
-    request.get(constants.API.CREDENTIALS).then((res) => {
-      const list = res.list || res.credentials || [];
-      const approved = list.filter(c => c.status === 'approved').length;
+    // 加载入驻预览（包含资料摘要 + 证件统计）
+    request.get(constants.API.SUBMIT_INTAKE + '/preview').then((res) => {
       that.setData({
-        credentialCount: list.length,
-        approvedCredentialCount: approved,
+        profileSummary: {
+          name: res.profileCompleted ? '已填写' : '未填写',
+          skillsCount: res.skillsCount || 0,
+          serviceAreasCount: res.serviceAreasCount || 0
+        },
+        credentialCount: res.credentialsCount || 0,
+        canSubmit: res.canSubmit || false,
+        issues: res.issues || [],
         loaded: true
       });
     }).catch(() => {
-      that.setData({ loaded: true });
+      // 回退：分别加载
+      request.get(constants.API.PROFILE).then((res) => {
+        that.setData({
+          profileSummary: res.profile || res,
+          serviceCategories: res.serviceCategoryNames || [],
+          serviceAreas: res.serviceAreaNames || []
+        });
+      }).catch(() => {});
+
+      request.get(constants.API.CREDENTIALS).then((res) => {
+        const list = res.list || res.credentials || [];
+        const approved = list.filter(c => c.status === 'approved').length;
+        that.setData({
+          credentialCount: list.length,
+          approvedCredentialCount: approved,
+          loaded: true
+        });
+      }).catch(() => {
+        that.setData({ loaded: true });
+      });
     });
   },
 
-  // 提交入驻申请
   handleSubmit() {
     const that = this;
     if (this.data.isSubmitting) return;
+
+    if (!this.data.canSubmit) {
+      wx.showModal({
+        title: '资料不完整',
+        content: '请先完善个人资料和证件信息后再提交。',
+        showCancel: false
+      });
+      return;
+    }
 
     wx.showModal({
       title: '确认提交',
@@ -78,14 +103,12 @@ Page({
     });
   },
 
-  // 返回编辑资料
   goToEditProfile() {
     wx.navigateTo({
       url: '/pages/profile/edit/index'
     });
   },
 
-  // 返回编辑证件
   goToEditCredential() {
     wx.navigateTo({
       url: '/pages/credential/index'

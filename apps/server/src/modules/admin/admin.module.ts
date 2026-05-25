@@ -7,6 +7,8 @@ import { AdminUserService } from './admin-user.service';
 import { AdminUserController } from './admin-user.controller';
 import { AdminRoleService } from './admin-role.service';
 import { AdminRoleController } from './admin-role.controller';
+import { AdminStaffService } from './admin-staff.service';
+import { AdminStaffController } from './admin-staff.controller';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
@@ -21,11 +23,12 @@ import { PermissionsGuard } from './guards/permissions.guard';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AdminAuthController, AdminUserController, AdminRoleController],
+  controllers: [AdminAuthController, AdminUserController, AdminRoleController, AdminStaffController],
   providers: [
     AdminAuthService,
     AdminUserService,
     AdminRoleService,
+    AdminStaffService,
     AdminJwtStrategy,
     AdminJwtAuthGuard,
     PermissionsGuard,

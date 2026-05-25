@@ -45,8 +45,7 @@ Page({
 
   getStatusClass(status) {
     const map = {
-      pending: 'tag-info',
-      uploaded: 'tag-warning',
+      pending: 'tag-warning',
       approved: 'tag-success',
       rejected: 'tag-error',
       expired: 'tag-error'

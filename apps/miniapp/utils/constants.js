@@ -28,9 +28,12 @@ const API = {
   SERVICE_CATEGORIES: APP_API_PREFIX + '/dicts',
   SERVICE_AREAS: APP_API_PREFIX + '/dicts',
 
+  // 文件上传
+  FILES_UPLOAD: APP_API_PREFIX + '/files/upload',
+
   // 证件
   CREDENTIALS: APP_API_PREFIX + '/credentials',
-  CREDENTIAL_UPLOAD: APP_API_PREFIX + '/credentials/upload',
+  CREDENTIAL_UPLOAD: APP_API_PREFIX + '/files/upload',
 
   // 入驻提交
   SUBMIT_INTAKE: APP_API_PREFIX + '/intake/submit',
@@ -54,11 +57,11 @@ const API = {
 
 // 入驻状态
 const INTAKE_STATUS = {
-  DRAFT: 'draft',               // 草稿
-  PENDING_REVIEW: 'pending_review', // 待审核
-  APPROVED: 'approved',         // 已通过
-  REJECTED: 'rejected',         // 已驳回
-  INFO_REQUIRED: 'info_required' // 需补充资料
+  DRAFT: 'draft',
+  PENDING_REVIEW: 'pending_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  INFO_REQUIRED: 'needs_more_info'
 };
 
 const INTAKE_STATUS_LABEL = {
@@ -66,14 +69,14 @@ const INTAKE_STATUS_LABEL = {
   pending_review: '待审核',
   approved: '已通过',
   rejected: '已驳回',
-  info_required: '需补充资料'
+  needs_more_info: '需补充资料'
 };
 
 // 上架状态
 const LISTING_STATUS = {
-  ON: 'on',         // 已上架
-  OFF: 'off',       // 未上架
-  PAUSED: 'paused'  // 已暂停
+  ON: 'on',
+  OFF: 'off',
+  PAUSED: 'paused'
 };
 
 const LISTING_STATUS_LABEL = {
@@ -84,16 +87,14 @@ const LISTING_STATUS_LABEL = {
 
 // 证件状态
 const CREDENTIAL_STATUS = {
-  PENDING: 'pending',         // 待上传
-  UPLOADED: 'uploaded',       // 已上传待审核
-  APPROVED: 'approved',       // 已通过
-  REJECTED: 'rejected',       // 已驳回
-  EXPIRED: 'expired'          // 已过期
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  EXPIRED: 'expired'
 };
 
 const CREDENTIAL_STATUS_LABEL = {
-  pending: '待上传',
-  uploaded: '待审核',
+  pending: '待审核',
   approved: '已通过',
   rejected: '已驳回',
   expired: '已过期'
@@ -101,9 +102,20 @@ const CREDENTIAL_STATUS_LABEL = {
 
 // 证件 badges
 const CREDENTIAL_BADGE = {
-  EXPIRING_SOON: 'expiring_soon', // 即将过期
-  EXPIRED: 'expired'              // 已过期
+  EXPIRING_SOON: 'expiring_soon',
+  EXPIRED: 'expired'
 };
+
+// 证件类型
+const CREDENTIAL_TYPES = [
+  { value: 'id_card', label: '身份证' },
+  { value: 'health_cert', label: '健康证' },
+  { value: 'no_crime_cert', label: '无犯罪证明' },
+  { value: 'insurance', label: '保险' },
+  { value: 'skill_cert', label: '技能证书' },
+  { value: 'education', label: '学历' },
+  { value: 'other', label: '其他' }
+];
 
 // 消息状态
 const MESSAGE_STATUS = {
@@ -127,6 +139,7 @@ module.exports = {
   CREDENTIAL_STATUS,
   CREDENTIAL_STATUS_LABEL,
   CREDENTIAL_BADGE,
+  CREDENTIAL_TYPES,
   MESSAGE_STATUS,
   GENDER_OPTIONS
 };

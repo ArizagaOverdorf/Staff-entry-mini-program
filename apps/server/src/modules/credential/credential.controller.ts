@@ -1,28 +1,50 @@
-import { Controller, Get, Post, Put, Param, Body, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CredentialService } from './credential.service';
 import { UpsertCredentialDto } from './dto/upsert-credential.dto';
 
-@Controller('app/credential')
+@UseGuards(JwtAuthGuard)
+@Controller('app/credentials')
 export class CredentialController {
   constructor(private readonly credentialService: CredentialService) {}
 
-  @Get(':staffId')
-  async listByStaff(@Param('staffId') staffId: string) {
-    return this.credentialService.listByStaff(staffId);
+  @Get()
+  async list(@CurrentUser() user: { id: string; staffId: string }) {
+    return this.credentialService.listByAccount(user.id);
   }
 
-  @Post(':staffId')
-  async create(@Param('staffId') staffId: string, @Body() dto: UpsertCredentialDto) {
-    return this.credentialService.create(staffId, dto);
+  @Post()
+  async create(
+    @CurrentUser() user: { id: string; staffId: string },
+    @Body() dto: UpsertCredentialDto,
+  ) {
+    return this.credentialService.create(user.id, dto);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpsertCredentialDto) {
-    return this.credentialService.update(id, dto);
+  async update(
+    @CurrentUser() user: { id: string; staffId: string },
+    @Param('id') id: string,
+    @Body() dto: UpsertCredentialDto,
+  ) {
+    return this.credentialService.update(user.id, id, dto);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.credentialService.remove(id);
+  async remove(
+    @CurrentUser() user: { id: string; staffId: string },
+    @Param('id') id: string,
+  ) {
+    return this.credentialService.remove(user.id, id);
   }
 }

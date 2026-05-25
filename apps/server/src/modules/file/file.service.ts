@@ -1,11 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
+import { Readable } from 'stream';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '../../config/config.service';
 import { IFileStorage } from './storage/storage.interface';
 import { LocalStorage } from './storage/local.storage';
 import { OssStorage } from './storage/oss.storage';
-import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class FileService {
@@ -17,13 +21,18 @@ export class FileService {
     private readonly localStorage: LocalStorage,
     private readonly ossStorage: OssStorage,
   ) {
-    this.storage = config.storageProvider === 'oss' ? ossStorage : localStorage;
+    this.storage =
+      config.storageProvider === 'oss' ? ossStorage : localStorage;
   }
 
-  async upload(file: Express.Multer.File) {
+  async upload(file: Express.Multer.File, accountId: string) {
     const ext = path.extname(file.originalname);
     const storedName = `${uuidv4()}${ext}`;
-    const storagePath = await this.storage.save(file.buffer, storedName, file.mimetype);
+    const storagePath = await this.storage.save(
+      file.buffer,
+      storedName,
+      file.mimetype,
+    );
 
     return this.prisma.fileAsset.create({
       data: {
@@ -34,12 +43,43 @@ export class FileService {
         storageProvider: this.config.storageProvider,
         storagePath,
         accessLevel: 'private',
+        uploadedByStaffAccountId: accountId,
       },
     });
   }
 
-  async getPreviewStream(id: string) {
-    const fileAsset = await this.prisma.fileAsset.findUniqueOrThrow({ where: { id } });
+  async getPreviewStream(
+    fileId: string,
+    accountId: string,
+  ): Promise<{ stream: Readable; mimeType: string }> {
+    const fileAsset = await this.prisma.fileAsset.findUniqueOrThrow({
+      where: { id: fileId },
+    });
+    if (fileAsset.accessLevel !== 'private') {
+      const stream = await this.storage.getReadStream(fileAsset.storedName);
+      return { stream, mimeType: fileAsset.mimeType };
+    }
+
+    if (fileAsset.uploadedByStaffAccountId === accountId) {
+      const stream = await this.storage.getReadStream(fileAsset.storedName);
+      return { stream, mimeType: fileAsset.mimeType };
+    }
+
+    // Legacy private files without uploader metadata are verified by credential link.
+    const credentialFile = await this.prisma.staffCredentialFile.findFirst({
+      where: { fileAssetId: fileId },
+      include: {
+        staffCredential: { select: { staffAccountId: true } },
+      },
+    });
+
+    if (
+      !credentialFile ||
+      credentialFile.staffCredential.staffAccountId !== accountId
+    ) {
+      throw new ForbiddenException('Access denied');
+    }
+
     const stream = await this.storage.getReadStream(fileAsset.storedName);
     return { stream, mimeType: fileAsset.mimeType };
   }

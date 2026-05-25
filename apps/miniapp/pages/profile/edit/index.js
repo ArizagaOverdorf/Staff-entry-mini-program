@@ -41,7 +41,7 @@ Page({
           gender: p.gender || '',
           genderIndex: genderIndex,
           birthday: p.birthday || '',
-          phone: p.phone || '',
+          phone: p.phone || res.phone || '',
           address: p.address || '',
           emergencyContact: p.emergencyContact || '',
           emergencyPhone: p.emergencyPhone || '',
@@ -57,14 +57,12 @@ Page({
 
   loadDictionaries() {
     const that = this;
-    // 加载服务类别
     request.get(constants.API.SERVICE_CATEGORIES, { groups: 'service_category' }).then((res) => {
       that.setData({
         serviceCategories: res.service_category || []
       });
     }).catch(() => {});
 
-    // 加载服务区域
     request.get(constants.API.SERVICE_AREAS, { groups: 'service_area' }).then((res) => {
       that.setData({
         serviceAreas: res.service_area || []
@@ -72,7 +70,6 @@ Page({
     }).catch(() => {});
   },
 
-  // 输入处理
   onNameInput(e) {
     this.setData({ name: e.detail.value });
   },
@@ -97,7 +94,6 @@ Page({
     this.setData({ emergencyPhone: e.detail.value });
   },
 
-  // 性别选择
   onGenderChange(e) {
     const index = parseInt(e.detail.value);
     this.setData({
@@ -106,21 +102,18 @@ Page({
     });
   },
 
-  // 类别选择
   onCategoryChange(e) {
     this.setData({
       selectedCategories: e.detail.selectedValues || []
     });
   },
 
-  // 区域选择
   onAreaChange(e) {
     this.setData({
       selectedAreas: e.detail.selectedValues || []
     });
   },
 
-  // 表单校验
   validate() {
     if (!this.data.name) {
       wx.showToast({ title: '请输入姓名', icon: 'none' });
@@ -141,28 +134,51 @@ Page({
     return true;
   },
 
-  // 保存提交
-  handleSave() {
+  async handleSave() {
     if (this.data.isSubmitting) return;
-
     if (!this.validate()) return;
 
     this.setData({ isSubmitting: true });
 
-    const profileData = {
-      name: this.data.name,
-      idNumber: this.data.idNumber,
-      gender: this.data.gender,
-      birthday: this.data.birthday,
-      address: this.data.address,
-      emergencyContact: this.data.emergencyContact,
-      emergencyPhone: this.data.emergencyPhone,
-      serviceCategories: this.data.selectedCategories,
-      serviceAreas: this.data.selectedAreas
-    };
-
     const that = this;
-    request.post(constants.API.PROFILE_UPDATE, profileData).then((res) => {
+    try {
+      // 1. Update profile
+      const profileData = {
+        name: this.data.name,
+        idNumber: this.data.idNumber,
+        gender: this.data.gender,
+        birthday: this.data.birthday,
+        address: this.data.address,
+        emergencyContact: this.data.emergencyContact,
+        emergencyPhone: this.data.emergencyPhone
+      };
+      await request.put(constants.API.PROFILE_UPDATE, profileData);
+
+      // 2. Update skills
+      if (this.data.selectedCategories.length > 0) {
+        const skillsData = {
+          skills: this.data.selectedCategories.map(c => ({
+            categoryId: c.categoryId || c.id || c.value,
+            categoryName: c.categoryName || c.label || c.name,
+            skillLevel: c.skillLevel || c.level,
+            description: c.description || ''
+          }))
+        };
+        await request.put(constants.API.PROFILE + '/skills', skillsData);
+      }
+
+      // 3. Update service areas
+      if (this.data.selectedAreas.length > 0) {
+        const areasData = {
+          areas: this.data.selectedAreas.map(a => ({
+            province: a.province || a.name || '',
+            city: a.city || '',
+            district: a.district || ''
+          }))
+        };
+        await request.put(constants.API.PROFILE + '/service-areas', areasData);
+      }
+
       wx.showToast({
         title: '保存成功',
         icon: 'success',
@@ -171,10 +187,10 @@ Page({
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
-    }).catch((err) => {
+    } catch (err) {
       console.error('保存失败', err);
-    }).finally(() => {
+    } finally {
       that.setData({ isSubmitting: false });
-    });
+    }
   }
 });

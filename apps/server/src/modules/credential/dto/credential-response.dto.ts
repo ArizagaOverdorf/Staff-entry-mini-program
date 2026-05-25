@@ -8,6 +8,9 @@ export interface CredentialResponse {
   expiryDate?: string;
   credentialStatus: string;
   credentialBadge?: string;
+  version: number;
+  isCurrent: boolean;
+  remark?: string;
   files: CredentialFileResponse[];
   createdAt: string;
   updatedAt: string;

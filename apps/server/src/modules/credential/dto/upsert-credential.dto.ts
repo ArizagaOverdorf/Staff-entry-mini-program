@@ -1,13 +1,25 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsArray } from 'class-validator';
 
 export class UpsertCredentialDto {
   @IsString()
-  @IsNotEmpty()
-  credentialType: string;
+  @IsOptional()
+  credentialType?: string;
 
   @IsString()
-  @IsNotEmpty()
-  credentialName: string;
+  @IsOptional()
+  typeId?: string;
+
+  @IsString()
+  @IsOptional()
+  credentialName?: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  typeName?: string;
 
   @IsString()
   @IsOptional()
@@ -24,4 +36,21 @@ export class UpsertCredentialDto {
   @IsString()
   @IsOptional()
   expiryDate?: string;
+
+  @IsString()
+  @IsOptional()
+  expireDate?: string;
+
+  @IsString()
+  @IsOptional()
+  remark?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  fileIds?: string[];
+
+  @IsString()
+  @IsOptional()
+  fileUrl?: string;
 }
