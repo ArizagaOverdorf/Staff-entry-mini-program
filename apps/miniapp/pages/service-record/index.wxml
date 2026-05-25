@@ -1,0 +1,49 @@
+<view class="service-record-container">
+  <!-- 列表标题 -->
+  <view class="list-header">
+    <text class="list-header-title">服务记录</text>
+    <text class="list-header-count" wx:if="{{records.length > 0}}">共 {{records.length}} 条</text>
+  </view>
+
+  <!-- 记录列表 -->
+  <view class="record-list" wx:if="{{records.length > 0}}">
+    <view
+      class="record-card"
+      wx:for="{{records}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="viewDetail"
+    >
+      <view class="record-card-top">
+        <text class="record-client">{{item.clientName || '客户'}}</text>
+        <text class="record-status tag tag-success" wx:if="{{item.status === 'completed'}}">已完成</text>
+        <text class="record-status tag tag-warning" wx:elif="{{item.status === 'in_progress'}}">进行中</text>
+        <text class="record-status tag tag-info" wx:else>{{item.statusLabel || '未知'}}</text>
+      </view>
+      <view class="record-card-body">
+        <text class="record-service">{{item.serviceTypeName || item.serviceType || '家政服务'}}</text>
+        <text class="record-address">{{item.address || ''}}</text>
+      </view>
+      <view class="record-card-bottom">
+        <text class="record-date">{{formatDate(item.serviceDate) || item.serviceDate}}</text>
+        <text class="record-duration" wx:if="{{item.duration}}">{{item.duration}}小时</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{loaded && records.length === 0}}">
+    <image src="/images/empty.png" mode="aspectFit"></image>
+    <text>暂无服务记录</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{!loaded}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{hasMore}}">
+    <text>上拉加载更多</text>
+  </view>
+</view>

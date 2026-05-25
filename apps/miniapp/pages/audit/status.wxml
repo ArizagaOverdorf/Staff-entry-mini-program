@@ -1,0 +1,61 @@
+<view class="audit-container">
+  <!-- 当前状态卡片 -->
+  <view class="status-banner {{intakeStatus}}">
+    <text class="banner-icon" wx:if="{{intakeStatus === 'approved'}}">&#10003;</text>
+    <text class="banner-icon" wx:elif="{{intakeStatus === 'rejected'}}">&#10007;</text>
+    <text class="banner-icon" wx:else>&#8987;</text>
+    <text class="banner-title">{{intakeStatusLabel}}</text>
+    <text class="banner-desc" wx:if="{{intakeStatus === 'pending_review'}}">您的申请正在审核中，请耐心等待</text>
+    <text class="banner-desc" wx:elif="{{intakeStatus === 'approved'}}">恭喜您已通过审核</text>
+    <text class="banner-desc" wx:elif="{{intakeStatus === 'rejected'}}">{{rejectReason || '您的申请未通过审核'}}</text>
+    <text class="banner-desc" wx:elif="{{intakeStatus === 'info_required'}}">{{reviewerRemark || '需要您补充资料'}}</text>
+    <text class="banner-desc" wx:else>请先提交入驻申请</text>
+  </view>
+
+  <!-- 审核时间线 -->
+  <view class="timeline-card card">
+    <text class="timeline-title">审核进度</text>
+    <view class="timeline">
+      <view
+        class="timeline-item {{item.status}}"
+        wx:for="{{auditRecords}}"
+        wx:for-index="index"
+        wx:key="index"
+      >
+        <view class="timeline-dot"></view>
+        <view class="timeline-content" wx:if="{{index < auditRecords.length - 1}}">
+          <text class="timeline-item-title">{{item.title}}</text>
+          <text class="timeline-item-desc">{{item.desc}}</text>
+          <text class="timeline-item-time" wx:if="{{item.time}}">{{item.time}}</text>
+        </view>
+        <view class="timeline-content" wx:else>
+          <text class="timeline-item-title">{{item.title}}</text>
+          <text class="timeline-item-desc {{intakeStatus === 'rejected' ? 'error' : ''}}">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-bar">
+    <button
+      wx:if="{{intakeStatus === 'rejected' || intakeStatus === 'draft'}}"
+      class="btn-primary"
+      bindtap="handleResubmit"
+    >
+      重新提交
+    </button>
+    <button
+      wx:if="{{intakeStatus === 'info_required'}}"
+      class="btn-primary"
+      bindtap="handleSupplement"
+    >
+      补充资料
+    </button>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{!loaded}}">
+    <text>加载中...</text>
+  </view>
+</view>

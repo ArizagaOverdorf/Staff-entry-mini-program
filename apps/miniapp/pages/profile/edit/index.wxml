@@ -1,0 +1,77 @@
+<view class="profile-edit-container">
+  <scroll-view class="form-scroll" scroll-y>
+    <!-- 基本信息 -->
+    <view class="form-section">
+      <view class="form-section-header">基本信息</view>
+      <view class="form-group">
+        <view class="form-item">
+          <text class="form-label">姓名</text>
+          <input class="form-input" type="text" placeholder="请输入姓名" value="{{name}}" bindinput="onNameInput" maxlength="30" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">身份证号</text>
+          <input class="form-input" type="idcard" placeholder="请输入身份证号" value="{{idNumber}}" bindinput="onIdNumberInput" maxlength="18" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">性别</text>
+          <picker range="{{genderOptions}}" range-key="label" value="{{genderIndex}}" bindchange="onGenderChange">
+            <view class="form-value">{{genderOptions[genderIndex].label || '请选择性别'}}</view>
+          </picker>
+        </view>
+        <view class="form-item">
+          <text class="form-label">出生日期</text>
+          <input class="form-input" type="text" placeholder="如：1990-01-01" value="{{birthday}}" bindinput="onBirthdayInput" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">手机号</text>
+          <text class="form-value">{{phone || '暂无'}}</text>
+        </view>
+        <view class="form-item">
+          <text class="form-label">家庭住址</text>
+          <input class="form-input" type="text" placeholder="请输入家庭住址" value="{{address}}" bindinput="onAddressInput" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 服务信息 -->
+    <view class="form-section">
+      <view class="form-section-header">服务信息</view>
+      <view class="form-group">
+        <view class="form-item">
+          <text class="form-label">服务类别</text>
+          <view class="form-value">
+            <category-picker categories="{{serviceCategories}}" selectedValues="{{selectedCategories}}" bind:change="onCategoryChange" />
+          </view>
+        </view>
+        <view class="form-item">
+          <text class="form-label">服务区域</text>
+          <view class="form-value">
+            <area-picker areas="{{serviceAreas}}" selectedValues="{{selectedAreas}}" bind:change="onAreaChange" />
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 紧急联系人 -->
+    <view class="form-section">
+      <view class="form-section-header">紧急联系人</view>
+      <view class="form-group">
+        <view class="form-item">
+          <text class="form-label">联系人姓名</text>
+          <input class="form-input" type="text" placeholder="请输入紧急联系人" value="{{emergencyContact}}" bindinput="onEmergencyContactInput" maxlength="30" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">联系人电话</text>
+          <input class="form-input" type="number" placeholder="请输入紧急联系电话" value="{{emergencyPhone}}" bindinput="onEmergencyPhoneInput" maxlength="11" />
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 提交按钮 -->
+  <view class="form-submit-bar">
+    <button class="btn-primary" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="handleSave">
+      保存
+    </button>
+  </view>
+</view>

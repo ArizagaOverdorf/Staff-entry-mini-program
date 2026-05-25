@@ -1,0 +1,20 @@
+<view class="detail-container" wx:if="{{message}}">
+  <view class="detail-header">
+    <text class="detail-title">{{message.title}}</text>
+    <text class="detail-time">{{formatTime(message.createdAt)}}</text>
+  </view>
+  <view class="detail-body">
+    <text class="detail-content">{{message.content}}</text>
+  </view>
+</view>
+
+<!-- 加载状态 -->
+<view class="loading-container" wx:if="{{!loaded}}">
+  <text>加载中...</text>
+</view>
+
+<!-- 空状态 -->
+<view class="empty-state" wx:if="{{loaded && !message}}">
+  <image src="/images/empty.png" mode="aspectFit"></image>
+  <text>消息不存在</text>
+</view>

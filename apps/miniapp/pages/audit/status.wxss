@@ -1,0 +1,155 @@
+.audit-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 30px;
+}
+
+/* 状态横幅 */
+.status-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  color: #fff;
+  text-align: center;
+}
+
+.status-banner.draft {
+  background-color: #999;
+}
+
+.status-banner.pending_review,
+.status-banner.info_required {
+  background-color: #faad14;
+}
+
+.status-banner.approved {
+  background-color: #07c160;
+}
+
+.status-banner.rejected {
+  background-color: #f56c6c;
+}
+
+.banner-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.banner-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.banner-desc {
+  font-size: 13px;
+  opacity: 0.85;
+  max-width: 80%;
+}
+
+/* 时间线 */
+.timeline-card {
+  margin: 0 15px 15px;
+}
+
+.timeline-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.timeline {
+  padding-left: 10px;
+}
+
+.timeline-item {
+  display: flex;
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ddd;
+  margin-right: 12px;
+  margin-top: 4px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-item.completed .timeline-dot {
+  background-color: #07c160;
+}
+
+.timeline-item.active .timeline-dot {
+  background-color: #faad14;
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 3px rgba(250, 173, 20, 0.3);
+}
+
+.timeline-item.rejected .timeline-dot {
+  background-color: #f56c6c;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 16px;
+  bottom: -4px;
+  width: 2px;
+  background-color: #eee;
+}
+
+.timeline-item:last-child::before {
+  display: none;
+}
+
+.timeline-item.completed::before {
+  background-color: #07c160;
+}
+
+.timeline-content {
+  flex: 1;
+}
+
+.timeline-item-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.timeline-item-desc {
+  display: block;
+  font-size: 12px;
+  color: #999;
+}
+
+.timeline-item-desc.error {
+  color: #f56c6c;
+}
+
+.timeline-item-time {
+  display: block;
+  font-size: 11px;
+  color: #ccc;
+  margin-top: 2px;
+}
+
+/* 操作按钮 */
+.action-bar {
+  padding: 0 15px;
+}

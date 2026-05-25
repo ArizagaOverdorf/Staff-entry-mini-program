@@ -1,0 +1,79 @@
+<view class="submit-container">
+  <scroll-view class="submit-scroll" scroll-y>
+    <!-- 提交说明 -->
+    <view class="submit-notice">
+      <text class="notice-icon">i</text>
+      <text class="notice-text">请确认以下信息无误后提交入驻申请</text>
+    </view>
+
+    <!-- 个人信息摘要 -->
+    <view class="card">
+      <view class="card-header">
+        <text class="card-title">个人信息</text>
+        <text class="card-action" bindtap="goToEditProfile">修改</text>
+      </view>
+      <view class="summary-info" wx:if="{{profileSummary}}">
+        <view class="summary-row">
+          <text class="summary-label">姓名</text>
+          <text class="summary-value">{{profileSummary.name || '未填写'}}</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">身份证号</text>
+          <text class="summary-value">{{profileSummary.idNumber || '未填写'}}</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">手机号</text>
+          <text class="summary-value">{{profileSummary.phone || '未绑定'}}</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">服务类别</text>
+          <text class="summary-value">{{serviceCategories || '未选择'}}</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">服务区域</text>
+          <text class="summary-value">{{serviceAreas || '未选择'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 证件摘要 -->
+    <view class="card">
+      <view class="card-header">
+        <text class="card-title">证件信息</text>
+        <text class="card-action" bindtap="goToEditCredential">修改</text>
+      </view>
+      <view class="summary-info">
+        <view class="summary-row">
+          <text class="summary-label">证件数量</text>
+          <text class="summary-value">{{credentialCount}} 个</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">已审核通过</text>
+          <text class="summary-value success">{{approvedCredentialCount}} 个</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交须知 -->
+    <view class="card">
+      <view class="card-title">提交须知</view>
+      <view class="rules">
+        <text class="rule-item">1. 提交后将进入审核流程，请耐心等待</text>
+        <text class="rule-item">2. 审核通过后即可上线提供服务</text>
+        <text class="rule-item">3. 您可以在审核进度页面查看审核状态</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-footer">
+    <button
+      class="btn-primary"
+      loading="{{isSubmitting}}"
+      disabled="{{isSubmitting}}"
+      bindtap="handleSubmit"
+    >
+      确认提交入驻申请
+    </button>
+  </view>
+</view>

@@ -1,0 +1,43 @@
+<view class="account-container">
+  <!-- 用户信息卡片 -->
+  <view class="user-card">
+    <view class="user-avatar">
+      <image src="/images/avatar.png" mode="aspectFill"></image>
+    </view>
+    <view class="user-info">
+      <text class="user-name">{{accountInfo.name || '家政人员'}}</text>
+      <text class="user-phone">{{accountInfo.phone || '未绑定手机号'}}</text>
+    </view>
+  </view>
+
+  <!-- 设置列表 -->
+  <view class="settings-section">
+    <view class="list-item" bindtap="goToProfile">
+      <text class="list-item-label">个人资料</text>
+      <text class="list-item-value">查看详情</text>
+      <image class="list-item-arrow" src="/images/arrow.png" mode="aspectFit"></image>
+    </view>
+    <view class="list-item" bindtap="goToEditProfile">
+      <text class="list-item-label">编辑资料</text>
+      <text class="list-item-value">修改信息</text>
+      <image class="list-item-arrow" src="/images/arrow.png" mode="aspectFit"></image>
+    </view>
+  </view>
+
+  <view class="settings-section">
+    <view class="list-item" bindtap="handleAbout">
+      <text class="list-item-label">关于我们</text>
+      <image class="list-item-arrow" src="/images/arrow.png" mode="aspectFit"></image>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-section">
+    <button class="btn-secondary logout-btn" bindtap="handleLogout">退出登录</button>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{!loaded}}">
+    <text>加载中...</text>
+  </view>
+</view>

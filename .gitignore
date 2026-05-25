@@ -1,0 +1,39 @@
+node_modules/
+.pnpm-store/
+
+dist/
+build/
+.turbo/
+.cache/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+uploads/
+storage/
+tmp/
+temp/
+
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+.claude/settings.local.json
+
+# Mini program local files
+*.wxss.map
+project.private.config.json
+
+# Generated Prisma artifacts that should not be edited manually
+apps/server/prisma/migrations/*/migration_lock.toml

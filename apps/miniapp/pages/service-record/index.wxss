@@ -1,0 +1,94 @@
+.service-record-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 20px;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px 6px;
+}
+
+.list-header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.list-header-count {
+  font-size: 12px;
+  color: #999;
+}
+
+.record-list {
+  padding: 0 15px;
+}
+
+.record-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.record-card:active {
+  background-color: #fafafa;
+}
+
+.record-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.record-client {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+}
+
+.record-card-body {
+  margin-bottom: 8px;
+}
+
+.record-service {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.record-address {
+  display: block;
+  font-size: 12px;
+  color: #999;
+}
+
+.record-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f5f5f5;
+  padding-top: 8px;
+}
+
+.record-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.record-duration {
+  font-size: 12px;
+  color: #07c160;
+}
+
+.load-more {
+  text-align: center;
+  padding: 16px;
+  color: #999;
+  font-size: 13px;
+}

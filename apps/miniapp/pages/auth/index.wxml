@@ -1,0 +1,26 @@
+<view class="auth-container">
+  <view class="auth-header">
+    <image class="auth-logo" src="/images/logo.png" mode="aspectFit"></image>
+    <text class="auth-title">家政服务人员入驻</text>
+    <text class="auth-desc">微信授权登录，轻松入驻</text>
+  </view>
+
+  <view class="auth-body">
+    <button
+      class="btn-primary"
+      type="primary"
+      loading="{{isLogging}}"
+      disabled="{{!canLogin || isLogging}}"
+      bindtap="handleWechatLogin"
+    >
+      微信一键登录
+    </button>
+
+    <view class="auth-agreement">
+      <text class="agreement-text">登录即表示您同意</text>
+      <text class="agreement-link">《用户服务协议》</text>
+      <text class="agreement-text">和</text>
+      <text class="agreement-link">《隐私政策》</text>
+    </view>
+  </view>
+</view>

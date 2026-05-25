@@ -1,0 +1,52 @@
+<view class="privacy-container">
+  <view class="privacy-header">
+    <image class="privacy-icon" src="/images/privacy.png" mode="aspectFit"></image>
+    <text class="privacy-title">隐私政策确认</text>
+  </view>
+
+  <view class="privacy-content">
+    <view class="privacy-section">
+      <text class="privacy-section-title">信息收集与使用</text>
+      <text class="privacy-section-text">
+        我们收集您的个人信息（包括姓名、身份证号、手机号、地址等）仅用于家政服务人员入驻审核和服务管理。我们承诺不会将您的个人信息用于其他用途。
+      </text>
+    </view>
+
+    <view class="privacy-section">
+      <text class="privacy-section-title">证件信息</text>
+      <text class="privacy-section-text">
+        您上传的身份证、健康证、资格证等证件图片将仅用于资质审核，审核通过后将按规定保存，不会对外公开。
+      </text>
+    </view>
+
+    <view class="privacy-section">
+      <text class="privacy-section-title">信息共享</text>
+      <text class="privacy-section-text">
+        您的信息仅在必要范围内与相关合作方共享，未经您的同意，我们不会向第三方提供您的个人信息。
+      </text>
+    </view>
+
+    <view class="privacy-section">
+      <text class="privacy-section-title">数据安全</text>
+      <text class="privacy-section-text">
+        我们采用行业标准的安全措施保护您的个人信息，包括加密传输、访问控制等。
+      </text>
+    </view>
+  </view>
+
+  <view class="privacy-footer">
+    <button
+      class="btn-primary"
+      loading="{{isSubmitting}}"
+      bindtap="handleAgree"
+    >
+      同意并继续
+    </button>
+    <button
+      class="btn-secondary"
+      bindtap="handleDisagree"
+    >
+      不同意
+    </button>
+  </view>
+</view>

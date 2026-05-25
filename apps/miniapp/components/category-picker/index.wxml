@@ -1,0 +1,31 @@
+<view class="category-picker">
+  <!-- 触发器 -->
+  <view class="picker-trigger" bindtap="openPicker">
+    <text class="picker-text {{selectedValues.length > 0 ? '' : 'placeholder'}}">
+      {{selectedValues.length > 0 ? displayText : '请选择服务类别'}}
+    </text>
+    <image class="picker-arrow" src="/images/arrow-down.png" mode="aspectFit"></image>
+  </view>
+
+  <!-- 选择弹窗 -->
+  <view class="picker-mask" wx:if="{{showPopup}}" catchtouchmove="noop" bindtap="closePicker"></view>
+  <view class="picker-popup" wx:if="{{showPopup}}">
+    <view class="popup-header">
+      <text class="popup-cancel" bindtap="clear">清空</text>
+      <text class="popup-title">选择服务类别</text>
+      <text class="popup-confirm" bindtap="confirm">确定</text>
+    </view>
+    <scroll-view class="popup-list" scroll-y>
+      <view
+        class="popup-item {{selected.indexOf(item.value) > -1 ? 'selected' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="toggleItem"
+      >
+        <text class="item-label">{{item.label}}</text>
+        <text class="item-check" wx:if="{{selected.indexOf(item.value) > -1}}">&#10003;</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>

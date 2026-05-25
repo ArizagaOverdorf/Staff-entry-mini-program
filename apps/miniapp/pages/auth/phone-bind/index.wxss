@@ -1,0 +1,50 @@
+.phone-bind-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #fff;
+}
+
+.phone-bind-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 30px 40px;
+}
+
+.phone-bind-icon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
+  border-radius: 36px;
+  background-color: #e8f8e8;
+}
+
+.phone-bind-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.phone-bind-desc {
+  font-size: 14px;
+  color: #999;
+  text-align: center;
+}
+
+.phone-bind-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px 80px;
+}
+
+.phone-bind-tip {
+  text-align: center;
+  font-size: 12px;
+  color: #ccc;
+  margin-top: 10px;
+  padding: 0 20px;
+}

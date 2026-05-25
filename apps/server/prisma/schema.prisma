@@ -1,0 +1,469 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Admin — admin user, role, permission
+// ============================================================
+
+model AdminUser {
+  id           String    @id @default(uuid()) @db.Uuid
+  username     String    @unique @db.VarChar(64)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  realName     String?   @map("real_name") @db.VarChar(64)
+  phone        String?   @db.VarChar(32)
+  email        String?   @db.VarChar(128)
+  isActive     Boolean   @default(true) @map("is_active")
+  isSuper      Boolean   @default(false) @map("is_super")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  userRoles         AdminUserRole[]
+  auditRecords      AuditRecord[]
+  operationLogs     OperationLog[]
+  listingStatusLogs StaffListingStatusLog[]
+  serviceRecordLogs StaffServiceRecordLog[]
+
+  @@map("admin_user")
+}
+
+model AdminRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(64)
+  code        String   @unique @db.VarChar(64)
+  description String?  @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userRoles       AdminUserRole[]
+  rolePermissions AdminRolePermission[]
+
+  @@map("admin_role")
+}
+
+model AdminPermission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(64)
+  code        String   @unique @db.VarChar(128)
+  description String?  @db.VarChar(255)
+  parentId    String?  @map("parent_id") @db.Uuid
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent          AdminPermission?      @relation("PermissionHierarchy", fields: [parentId], references: [id])
+  children        AdminPermission[]     @relation("PermissionHierarchy")
+  rolePermissions AdminRolePermission[]
+
+  @@map("admin_permission")
+}
+
+model AdminUserRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  adminUserId String   @map("admin_user_id") @db.Uuid
+  adminRoleId String   @map("admin_role_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminRole AdminRole @relation(fields: [adminRoleId], references: [id], onDelete: Cascade)
+
+  @@unique([adminUserId, adminRoleId])
+  @@map("admin_user_role")
+}
+
+model AdminRolePermission {
+  id                String   @id @default(uuid()) @db.Uuid
+  adminRoleId       String   @map("admin_role_id") @db.Uuid
+  adminPermissionId String   @map("admin_permission_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  adminRole       AdminRole       @relation(fields: [adminRoleId], references: [id], onDelete: Cascade)
+  adminPermission AdminPermission @relation(fields: [adminPermissionId], references: [id], onDelete: Cascade)
+
+  @@unique([adminRoleId, adminPermissionId])
+  @@map("admin_role_permission")
+}
+
+// ============================================================
+// Staff — account, profile, skills, service areas
+// ============================================================
+
+model StaffAccount {
+  id              String    @id @default(uuid()) @db.Uuid
+  staffId         String    @unique @map("staff_id") @db.VarChar(32)
+  openid          String?   @unique @db.VarChar(64)
+  unionid         String?   @db.VarChar(64)
+  phoneEncrypted  String?   @map("phone_encrypted") @db.VarChar(255)
+  phoneMasked     String?   @map("phone_masked") @db.VarChar(20)
+  wechatNickname  String?   @map("wechat_nickname") @db.VarChar(128)
+  wechatAvatar    String?   @map("wechat_avatar") @db.VarChar(512)
+  privacyAgreed   Boolean   @default(false) @map("privacy_agreed")
+  privacyAgreedAt DateTime? @map("privacy_agreed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  profile           StaffProfile?
+  skills            StaffSkill[]
+  serviceAreas      StaffServiceArea[]
+  credentials       StaffCredential[]
+  intakeStatus      StaffIntakeStatus?
+  listingStatus     StaffListingStatus?
+  listingStatusLogs StaffListingStatusLog[]
+  serviceRecords    StaffServiceRecord[]
+  serviceRecordLogs StaffServiceRecordLog[]
+  auditRecords      AuditRecord[]
+  messages          Message[]
+
+  @@index([openid])
+  @@index([phoneMasked])
+  @@map("staff_account")
+}
+
+model StaffProfile {
+  id                    String    @id @default(uuid()) @db.Uuid
+  staffAccountId        String    @unique @map("staff_account_id") @db.Uuid
+  staffId               String    @map("staff_id") @db.VarChar(32)
+  realNameEncrypted     String?   @map("real_name_encrypted") @db.VarChar(255)
+  realNameMasked        String?   @map("real_name_masked") @db.VarChar(32)
+  idNumberEncrypted     String?   @map("id_number_encrypted") @db.VarChar(255)
+  idNumberMasked        String?   @map("id_number_masked") @db.VarChar(32)
+  gender                Int?      @db.SmallInt
+  birthday              DateTime? @db.Date
+  avatarUrl             String?   @map("avatar_url") @db.VarChar(512)
+  address               String?   @db.VarChar(255)
+  emergencyContactName  String?   @map("emergency_contact_name") @db.VarChar(64)
+  emergencyContactPhone String?   @map("emergency_contact_phone") @db.VarChar(255)
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@map("staff_profile")
+}
+
+model StaffSkill {
+  id             String   @id @default(uuid()) @db.Uuid
+  staffAccountId String   @map("staff_account_id") @db.Uuid
+  categoryId     String   @map("category_id") @db.VarChar(64)
+  categoryName   String   @map("category_name") @db.VarChar(128)
+  skillLevel     Int?     @map("skill_level") @db.SmallInt
+  description    String?  @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+
+  @@index([staffAccountId])
+  @@map("staff_skill")
+}
+
+model StaffServiceArea {
+  id             String   @id @default(uuid()) @db.Uuid
+  staffAccountId String   @map("staff_account_id") @db.Uuid
+  province       String   @db.VarChar(32)
+  city           String   @db.VarChar(32)
+  district       String?  @db.VarChar(32)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+
+  @@index([staffAccountId])
+  @@map("staff_service_area")
+}
+
+// ============================================================
+// Credential
+// ============================================================
+
+model StaffCredential {
+  id               String    @id @default(uuid()) @db.Uuid
+  staffAccountId   String    @map("staff_account_id") @db.Uuid
+  credentialType   String    @map("credential_type") @db.VarChar(32)
+  credentialName   String    @map("credential_name") @db.VarChar(128)
+  credentialNumber String?   @map("credential_number") @db.VarChar(128)
+  issuingAuthority String?   @map("issuing_authority") @db.VarChar(128)
+  issueDate        DateTime? @map("issue_date") @db.Date
+  expiryDate       DateTime? @map("expiry_date") @db.Date
+  credentialStatus String    @default("pending") @map("credential_status") @db.VarChar(32)
+  credentialBadge  String?   @map("credential_badge") @db.VarChar(32)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount          @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  files        StaffCredentialFile[]
+
+  @@index([staffAccountId])
+  @@index([credentialStatus])
+  @@index([expiryDate])
+  @@map("staff_credential")
+}
+
+model StaffCredentialFile {
+  id                String   @id @default(uuid()) @db.Uuid
+  staffCredentialId String   @map("staff_credential_id") @db.Uuid
+  fileAssetId       String   @map("file_asset_id") @db.Uuid
+  fileType          String   @map("file_type") @db.VarChar(32)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  staffCredential StaffCredential @relation(fields: [staffCredentialId], references: [id], onDelete: Cascade)
+  fileAsset       FileAsset       @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+
+  @@index([staffCredentialId])
+  @@map("staff_credential_file")
+}
+
+// ============================================================
+// Intake & Audit
+// ============================================================
+
+model StaffIntakeStatus {
+  id             String    @id @default(uuid()) @db.Uuid
+  staffAccountId String    @unique @map("staff_account_id") @db.Uuid
+  intakeStatus   String    @default("draft") @map("intake_status") @db.VarChar(32)
+  submittedAt    DateTime? @map("submitted_at")
+  reviewedAt     DateTime? @map("reviewed_at")
+  reviewRemark   String?   @map("review_remark") @db.VarChar(500)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+
+  @@index([intakeStatus])
+  @@map("staff_intake_status")
+}
+
+model AuditRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  staffAccountId String   @map("staff_account_id") @db.Uuid
+  adminUserId    String   @map("admin_user_id") @db.Uuid
+  action         String   @db.VarChar(32)
+  remark         String?  @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  adminUser    AdminUser    @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([staffAccountId])
+  @@index([adminUserId])
+  @@map("audit_record")
+}
+
+// ============================================================
+// Listing status
+// ============================================================
+
+model StaffListingStatus {
+  id             String    @id @default(uuid()) @db.Uuid
+  staffAccountId String    @unique @map("staff_account_id") @db.Uuid
+  listingStatus  String    @default("offline") @map("listing_status") @db.VarChar(32)
+  isAvailable    Boolean   @default(false) @map("is_available")
+  pauseReason    String?   @map("pause_reason") @db.VarChar(255)
+  pausedAt       DateTime? @map("paused_at")
+  resumedAt      DateTime? @map("resumed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount            @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  logs         StaffListingStatusLog[]
+
+  @@index([listingStatus])
+  @@index([isAvailable])
+  @@map("staff_listing_status")
+}
+
+model StaffListingStatusLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  listingStatusId String?  @map("listing_status_id") @db.Uuid
+  staffAccountId  String   @map("staff_account_id") @db.Uuid
+  operatorId      String   @map("operator_id") @db.Uuid
+  oldStatus       String?  @map("old_status") @db.VarChar(32)
+  newStatus       String   @map("new_status") @db.VarChar(32)
+  oldIsAvailable  Boolean? @map("old_is_available")
+  newIsAvailable  Boolean  @map("new_is_available")
+  reason          String?  @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  listingStatus StaffListingStatus? @relation(fields: [listingStatusId], references: [id], onDelete: SetNull)
+  staffAccount  StaffAccount        @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  operator      AdminUser           @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([listingStatusId])
+  @@index([staffAccountId])
+  @@map("staff_listing_status_log")
+}
+
+// ============================================================
+// Service record (admin-maintained summary, not real orders)
+// ============================================================
+
+model StaffServiceRecord {
+  id                     String    @id @default(uuid()) @db.Uuid
+  staffAccountId         String    @map("staff_account_id") @db.Uuid
+  serviceDate            DateTime? @map("service_date") @db.Date
+  externalOrderNo        String?   @map("external_order_no") @db.VarChar(64)
+  serviceProject         String?   @map("service_project") @db.VarChar(128)
+  serviceDurationMinutes Int?      @map("service_duration_minutes")
+  customerName           String?   @map("customer_name") @db.VarChar(64)
+  serviceDesc            String?   @map("service_description") @db.VarChar(500)
+  rating                 Int?      @db.SmallInt
+  isDisputed             Boolean   @default(false) @map("is_disputed")
+  disputeResult          String?   @map("dispute_result") @db.VarChar(32)
+  disputeRemark          String?   @map("dispute_remark") @db.VarChar(500)
+  recordSource           String    @default("manual") @map("record_source") @db.VarChar(32)
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount            @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  logs         StaffServiceRecordLog[]
+
+  @@index([staffAccountId])
+  @@index([serviceDate])
+  @@index([externalOrderNo])
+  @@index([isDisputed])
+  @@map("staff_service_record")
+}
+
+model StaffServiceRecordLog {
+  id                   String   @id @default(uuid()) @db.Uuid
+  staffServiceRecordId String   @map("staff_service_record_id") @db.Uuid
+  staffAccountId       String   @map("staff_account_id") @db.Uuid
+  operatorId           String   @map("operator_id") @db.Uuid
+  fieldName            String   @map("field_name") @db.VarChar(64)
+  oldValue             String?  @map("old_value") @db.VarChar(500)
+  newValue             String?  @map("new_value") @db.VarChar(500)
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  staffServiceRecord StaffServiceRecord @relation(fields: [staffServiceRecordId], references: [id], onDelete: Cascade)
+  staffAccount       StaffAccount       @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  operator           AdminUser          @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([staffServiceRecordId])
+  @@map("staff_service_record_log")
+}
+
+// ============================================================
+// Message center
+// ============================================================
+
+model Message {
+  id             String    @id @default(uuid()) @db.Uuid
+  staffAccountId String    @map("staff_account_id") @db.Uuid
+  title          String    @db.VarChar(128)
+  content        String?   @db.Text
+  messageType    String    @default("system") @map("message_type") @db.VarChar(32)
+  isRead         Boolean   @default(false) @map("is_read")
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+
+  @@index([staffAccountId, isRead])
+  @@map("message")
+}
+
+// ============================================================
+// Operation log
+// ============================================================
+
+model OperationLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  operatorId   String   @map("operator_id") @db.Uuid
+  operatorType String   @default("admin") @map("operator_type") @db.VarChar(32)
+  targetType   String   @map("target_type") @db.VarChar(64)
+  targetId     String   @map("target_id") @db.VarChar(64)
+  action       String   @db.VarChar(64)
+  detail       String?  @db.Text
+  ipAddress    String?  @map("ip_address") @db.VarChar(64)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  operator AdminUser @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([operatorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("operation_log")
+}
+
+// ============================================================
+// External event log
+// ============================================================
+
+model ExternalEventLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  eventType   String   @map("event_type") @db.VarChar(64)
+  eventSource String   @map("event_source") @db.VarChar(64)
+  payload     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("external_event_log")
+}
+
+// ============================================================
+// File asset (private file storage)
+// ============================================================
+
+model FileAsset {
+  id              String   @id @default(uuid()) @db.Uuid
+  originalName    String   @map("original_name") @db.VarChar(255)
+  storedName      String   @map("stored_name") @db.VarChar(255)
+  mimeType        String   @map("mime_type") @db.VarChar(128)
+  size            BigInt
+  storageProvider String   @default("local") @map("storage_provider") @db.VarChar(32)
+  storagePath     String   @map("storage_path") @db.VarChar(512)
+  accessLevel     String   @default("private") @map("access_level") @db.VarChar(32)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  credentialFiles StaffCredentialFile[]
+
+  @@map("file_asset")
+}
+
+// ============================================================
+// Dictionary
+// ============================================================
+
+model DictItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  dictGroup String   @map("dict_group") @db.VarChar(64)
+  dictKey   String   @map("dict_key") @db.VarChar(64)
+  dictValue String   @map("dict_value") @db.VarChar(128)
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  remark    String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([dictGroup, dictKey])
+  @@index([dictGroup])
+  @@map("dict_item")
+}
+
+// ============================================================
+// App config
+// ============================================================
+
+model AppConfig {
+  id          String   @id @default(uuid()) @db.Uuid
+  configKey   String   @unique @map("config_key") @db.VarChar(128)
+  configValue String   @map("config_value") @db.Text
+  configType  String   @default("string") @map("config_type") @db.VarChar(32)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("app_config")
+}

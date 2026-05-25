@@ -1,0 +1,55 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
+import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
+import { PaginationDto, PaginatedResult } from '../../common/dto/pagination.dto';
+import { hashPassword } from '../../utils/crypto.util';
+
+@Injectable()
+export class AdminUserService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async list(pagination: PaginationDto): Promise<PaginatedResult<any>> {
+    const { page = 1, pageSize = 20 } = pagination;
+    const [items, total] = await Promise.all([
+      this.prisma.adminUser.findMany({
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          username: true,
+          realName: true,
+          phone: true,
+          isActive: true,
+          isSuper: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.adminUser.count({ where: { deletedAt: null } }),
+    ]);
+    return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+  }
+
+  async detail(id: string) {
+    const user = await this.prisma.adminUser.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Admin user not found');
+    return user;
+  }
+
+  async create(dto: CreateAdminUserDto) {
+    return this.prisma.adminUser.create({
+      data: {
+        username: dto.username,
+        passwordHash: hashPassword(dto.password),
+        realName: dto.realName,
+        phone: dto.phone,
+      },
+    });
+  }
+
+  async update(id: string, dto: UpdateAdminUserDto) {
+    await this.prisma.adminUser.findUniqueOrThrow({ where: { id } });
+    return this.prisma.adminUser.update({ where: { id }, data: dto });
+  }
+}
