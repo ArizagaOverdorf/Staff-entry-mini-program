@@ -437,18 +437,23 @@ model FileAsset {
 // ============================================================
 
 model DictItem {
-  id        String   @id @default(uuid()) @db.Uuid
-  dictGroup String   @map("dict_group") @db.VarChar(64)
-  dictKey   String   @map("dict_key") @db.VarChar(64)
-  dictValue String   @map("dict_value") @db.VarChar(128)
-  sortOrder Int      @default(0) @map("sort_order")
-  isActive  Boolean  @default(true) @map("is_active")
-  remark    String?  @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  dictGroup String    @map("dict_group") @db.VarChar(64)
+  dictKey   String    @map("dict_key") @db.VarChar(64)
+  dictValue String    @map("dict_value") @db.VarChar(128)
+  parentId  String?   @map("parent_id") @db.Uuid
+  sortOrder Int       @default(0) @map("sort_order")
+  isActive  Boolean   @default(true) @map("is_active")
+  remark    String?   @db.VarChar(255)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  parent   DictItem?  @relation("DictHierarchy", fields: [parentId], references: [id])
+  children DictItem[] @relation("DictHierarchy")
 
   @@unique([dictGroup, dictKey])
   @@index([dictGroup])
+  @@index([parentId])
   @@map("dict_item")
 }
 
