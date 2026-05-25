@@ -69,10 +69,10 @@ const StaffList: React.FC = () => {
               style={{ width: 140 }}
               options={[
                 { label: '草稿', value: 'draft' },
-                { label: '待审核', value: 'pending' },
+                { label: '待审核', value: 'pending_review' },
                 { label: '已通过', value: 'approved' },
                 { label: '已拒绝', value: 'rejected' },
-                { label: '待补充', value: 'info_required' },
+                { label: '待补充', value: 'needs_more_info' },
               ]}
             />
           </Form.Item>
@@ -82,9 +82,9 @@ const StaffList: React.FC = () => {
               allowClear
               style={{ width: 140 }}
               options={[
-                { label: '已上架', value: 'listed' },
+                { label: '已上架', value: 'on' },
                 { label: '已暂停', value: 'paused' },
-                { label: '未上架', value: 'unlisted' },
+                { label: '未上架', value: 'off' },
               ]}
             />
           </Form.Item>

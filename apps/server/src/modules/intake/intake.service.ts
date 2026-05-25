@@ -147,6 +147,12 @@ export class IntakeService {
 
     const intakeStatus = account.intakeStatus?.intakeStatus ?? 'draft';
 
+    const auditRecords = await this.prisma.auditRecord.findMany({
+      where: { staffAccountId: accountId },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
     return {
       intakeStatus,
       intakeStatusLabel: this.getStatusLabel(intakeStatus),
@@ -159,7 +165,12 @@ export class IntakeService {
           ? account.intakeStatus?.reviewRemark
           : undefined,
       reviewerRemark: account.intakeStatus?.reviewRemark,
-      auditLog: [],
+      auditLog: auditRecords.map((r) => ({
+        id: r.id,
+        action: r.action,
+        remark: r.remark,
+        createdAt: r.createdAt?.toISOString(),
+      })),
     };
   }
 

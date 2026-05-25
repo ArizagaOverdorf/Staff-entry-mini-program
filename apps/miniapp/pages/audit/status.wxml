@@ -8,7 +8,7 @@
     <text class="banner-desc" wx:if="{{intakeStatus === 'pending_review'}}">您的申请正在审核中，请耐心等待</text>
     <text class="banner-desc" wx:elif="{{intakeStatus === 'approved'}}">恭喜您已通过审核</text>
     <text class="banner-desc" wx:elif="{{intakeStatus === 'rejected'}}">{{rejectReason || '您的申请未通过审核'}}</text>
-    <text class="banner-desc" wx:elif="{{intakeStatus === 'info_required'}}">{{reviewerRemark || '需要您补充资料'}}</text>
+    <text class="banner-desc" wx:elif="{{intakeStatus === 'needs_more_info'}}">{{reviewerRemark || '需要您补充资料'}}</text>
     <text class="banner-desc" wx:else>请先提交入驻申请</text>
   </view>
 
@@ -46,7 +46,7 @@
       重新提交
     </button>
     <button
-      wx:if="{{intakeStatus === 'info_required'}}"
+      wx:if="{{intakeStatus === 'needs_more_info'}}"
       class="btn-primary"
       bindtap="handleSupplement"
     >

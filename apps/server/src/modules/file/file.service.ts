@@ -83,4 +83,24 @@ export class FileService {
     const stream = await this.storage.getReadStream(fileAsset.storedName);
     return { stream, mimeType: fileAsset.mimeType };
   }
+
+  async getAdminPreviewStream(
+    fileId: string,
+  ): Promise<{ stream: Readable; mimeType: string }> {
+    const fileAsset = await this.prisma.fileAsset.findUniqueOrThrow({
+      where: { id: fileId },
+    });
+    const stream = await this.storage.getReadStream(fileAsset.storedName);
+    return { stream, mimeType: fileAsset.mimeType };
+  }
+
+  async getFileStream(
+    fileId: string,
+  ): Promise<{ stream: any; mimeType: string }> {
+    const fileAsset = await this.prisma.fileAsset.findUniqueOrThrow({
+      where: { id: fileId },
+    });
+    const stream = await this.storage.getReadStream(fileAsset.storedName);
+    return { stream, mimeType: fileAsset.mimeType };
+  }
 }

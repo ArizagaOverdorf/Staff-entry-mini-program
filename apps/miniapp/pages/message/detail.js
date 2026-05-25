@@ -23,6 +23,7 @@ Page({
         message: msg,
         loaded: true
       });
+      request.post(constants.API.MESSAGES + '/' + id + '/read').catch(() => {});
     }).catch(() => {
       that.setData({ loaded: true });
     });

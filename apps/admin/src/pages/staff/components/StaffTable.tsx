@@ -15,16 +15,17 @@ interface StaffTableProps {
 
 const intakeStatusMap: Record<string, { color: string; text: string }> = {
   draft: { color: 'default', text: '草稿' },
-  pending: { color: 'orange', text: '待审核' },
+  pending_review: { color: 'orange', text: '待审核' },
   approved: { color: 'green', text: '已通过' },
   rejected: { color: 'red', text: '已拒绝' },
-  info_required: { color: 'purple', text: '待补充' },
+  needs_more_info: { color: 'purple', text: '待补充' },
 };
 
 const listingStatusMap: Record<string, { color: string; text: string }> = {
-  listed: { color: 'green', text: '已上架' },
+  on: { color: 'green', text: '已上架' },
   paused: { color: 'orange', text: '已暂停' },
-  unlisted: { color: 'default', text: '未上架' },
+  off: { color: 'default', text: '未上架' },
+  offline: { color: 'default', text: '未上架' },
 };
 
 const StaffTable: React.FC<StaffTableProps> = ({
@@ -91,11 +92,26 @@ const StaffTable: React.FC<StaffTableProps> = ({
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 180,
       render: (_: unknown, record: StaffRecord) => (
-        <Button type="link" size="small" onClick={() => navigate(`/staff/${record.staffId}`)}>
-          查看详情
-        </Button>
+        <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            onClick={() => navigate(`/staff/${record.staffId}`)}
+          >
+            查看详情
+          </Button>
+          {record.intakeStatus === 'pending_review' && (
+            <Button
+              type="link"
+              size="small"
+              onClick={() => navigate(`/staff/${record.staffId}?tab=review`)}
+            >
+              审核
+            </Button>
+          )}
+        </Space>
       ),
     },
   ];
@@ -104,7 +120,7 @@ const StaffTable: React.FC<StaffTableProps> = ({
     <Table
       columns={columns}
       dataSource={dataSource}
-      rowKey="id"
+      rowKey="staffId"
       loading={loading}
       pagination={{
         current: page,

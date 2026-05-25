@@ -53,7 +53,17 @@ $requiredMarkers = @(
   "review/reject",
   "request-more-info",
   "credentials/:credentialId/review",
-  "unread-count"
+  "unread-count",
+  "file_preview",
+  "intake_approve",
+  "intake_reject",
+  "intake_request_more_info",
+  "credential_approve",
+  "credential_reject",
+  "MessageController",
+  "ReviewActions",
+  "AuditHistory",
+  "CredentialReviewList"
 )
 
 foreach ($marker in $requiredMarkers) {

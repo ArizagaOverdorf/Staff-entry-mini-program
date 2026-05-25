@@ -37,9 +37,9 @@ Page({
 
   loadUnreadCount() {
     const that = this;
-    request.get(constants.API.MESSAGES, { unreadOnly: true, pageSize: 1 }).then((res) => {
+    request.get(constants.API.MESSAGE_UNREAD_COUNT).then((res) => {
       that.setData({
-        totalUnread: res.total || 0
+        totalUnread: res.unreadCount || res.count || 0
       });
     }).catch(() => {});
   },
@@ -55,7 +55,7 @@ Page({
   },
 
   markAsRead(id) {
-    request.post(constants.API.MESSAGE_READ, { id: id }).then(() => {
+    request.post(constants.API.MESSAGES + '/' + id + '/read').then(() => {
       // 更新本地状态
       const messages = this.data.messages.map(m => {
         if (m.id === id) {
