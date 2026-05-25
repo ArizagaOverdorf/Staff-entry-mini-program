@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
 
 export class CreateAdminUserDto {
   @IsString()
@@ -16,4 +16,9 @@ export class CreateAdminUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  roleIds?: string[];
 }

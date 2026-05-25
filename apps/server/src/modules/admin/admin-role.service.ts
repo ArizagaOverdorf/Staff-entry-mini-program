@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -12,16 +12,27 @@ export class AdminRoleService {
   }
 
   async detail(id: string) {
-    return this.prisma.adminRole.findUniqueOrThrow({
+    const role = await this.prisma.adminRole.findUnique({
       where: { id },
       include: { rolePermissions: { include: { adminPermission: true } } },
     });
+    if (!role) throw new NotFoundException('Role not found');
+    return role;
   }
 
   async assignPermissions(roleId: string, permissionIds: string[]) {
     await this.prisma.adminRolePermission.deleteMany({ where: { adminRoleId: roleId } });
-    await this.prisma.adminRolePermission.createMany({
-      data: permissionIds.map((pid) => ({ adminRoleId: roleId, adminPermissionId: pid })),
+    if (permissionIds.length > 0) {
+      await this.prisma.adminRolePermission.createMany({
+        data: permissionIds.map((pid) => ({ adminRoleId: roleId, adminPermissionId: pid })),
+      });
+    }
+  }
+
+  async listAllPermissions() {
+    return this.prisma.adminPermission.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
     });
   }
 }

@@ -1,7 +1,7 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsNotEmpty } from 'class-validator';
 
 export class PrivacyAgreeDto {
-  @IsString()
+  @IsBoolean()
   @IsNotEmpty()
-  staffAccountId: string;
+  agreed: boolean;
 }

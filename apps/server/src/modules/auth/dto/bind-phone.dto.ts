@@ -1,11 +1,15 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class BindPhoneDto {
   @IsString()
-  @IsNotEmpty()
-  staffAccountId: string;
+  @IsOptional()
+  encryptedData?: string;
 
   @IsString()
-  @IsNotEmpty()
-  phone: string;
+  @IsOptional()
+  iv?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
 }

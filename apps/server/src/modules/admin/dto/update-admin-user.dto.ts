@@ -1,4 +1,4 @@
-import { IsString, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsArray } from 'class-validator';
 
 export class UpdateAdminUserDto {
   @IsString()
@@ -12,4 +12,9 @@ export class UpdateAdminUserDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  roleIds?: string[];
 }

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateDictItemDto {
   @IsString()
@@ -12,6 +12,10 @@ export class CreateDictItemDto {
   @IsString()
   @IsNotEmpty()
   dictValue: string;
+
+  @IsUUID()
+  @IsOptional()
+  parentId?: string;
 
   @IsInt()
   @IsOptional()

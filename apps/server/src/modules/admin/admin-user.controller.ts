@@ -1,11 +1,14 @@
-import { Controller, Get, Post, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { AdminUserService } from './admin-user.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
+import { RequirePermissions } from './decorators/permissions.decorator';
 
-@UseGuards(AdminJwtAuthGuard)
+@UseGuards(AdminJwtAuthGuard, PermissionsGuard)
+@RequirePermissions('admin_user.manage')
 @Controller('admin/users')
 export class AdminUserController {
   constructor(private readonly adminUserService: AdminUserService) {}
@@ -28,5 +31,10 @@ export class AdminUserController {
   @Put(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateAdminUserDto) {
     return this.adminUserService.update(id, dto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.adminUserService.softDelete(id);
   }
 }

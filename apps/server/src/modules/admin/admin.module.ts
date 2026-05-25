@@ -8,6 +8,8 @@ import { AdminUserController } from './admin-user.controller';
 import { AdminRoleService } from './admin-role.service';
 import { AdminRoleController } from './admin-role.controller';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
+import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
 
 @Module({
   imports: [
@@ -20,6 +22,14 @@ import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
     }),
   ],
   controllers: [AdminAuthController, AdminUserController, AdminRoleController],
-  providers: [AdminAuthService, AdminUserService, AdminRoleService, AdminJwtStrategy],
+  providers: [
+    AdminAuthService,
+    AdminUserService,
+    AdminRoleService,
+    AdminJwtStrategy,
+    AdminJwtAuthGuard,
+    PermissionsGuard,
+  ],
+  exports: [AdminJwtAuthGuard, PermissionsGuard],
 })
 export class AdminModule {}
