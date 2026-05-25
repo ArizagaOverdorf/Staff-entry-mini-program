@@ -48,30 +48,23 @@ if ($emptyFiles) {
   throw "Empty source files found."
 }
 
-Write-Host "Checking Stage 3 route markers..." -ForegroundColor Cyan
+Write-Host "Checking Stage 3.5 credential rule markers..." -ForegroundColor Cyan
 $requiredMarkers = @(
-  "review/approve",
-  "review/reject",
-  "request-more-info",
-  "credentials/:credentialId/review",
-  "unread-count",
-  "file_preview",
-  "intake_approve",
-  "intake_reject",
-  "intake_request_more_info",
-  "credential_approve",
-  "credential_reject",
-  "MessageController",
-  "ReviewActions",
-  "AuditHistory",
-  "CredentialReviewList"
+  "credit_report",
+  "medical_report",
+  "no_crime_cert",
+  "StaffCredentialSkill",
+  "staffSkillIds",
+  "linkedSkills",
+  "SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS",
+  "skillCredentialRequirements"
 )
 
 foreach ($marker in $requiredMarkers) {
-  $matches = & rg -n -F $marker "apps\server\src" "apps\admin\src" "apps\miniapp" 2>$null
+  $matches = & rg -n -F $marker "apps\server\src" "apps\server\prisma" "apps\admin\src" "apps\miniapp" 2>$null
   if (-not $matches) {
-    throw "Missing expected Stage 3 marker: $marker"
+    throw "Missing expected Stage 3.5 marker: $marker"
   }
 }
 
-Write-Host "Stage 3 verification passed." -ForegroundColor Green
+Write-Host "Stage 3.5 verification passed." -ForegroundColor Green
