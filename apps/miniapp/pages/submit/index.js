@@ -6,6 +6,7 @@ Page({
     profileSummary: null,
     credentialCount: 0,
     approvedCredentialCount: 0,
+    educationCredentialsCount: 0,
     serviceCategories: [],
     serviceAreas: [],
     loaded: false,
@@ -32,6 +33,7 @@ Page({
           serviceAreasCount: res.serviceAreasCount || 0
         },
         credentialCount: res.credentialsCount || 0,
+        educationCredentialsCount: res.educationCredentialsCount || 0,
         canSubmit: res.canSubmit || false,
         issues: res.issues || [],
         mandatoryCredentials: res.mandatoryCredentials || [],

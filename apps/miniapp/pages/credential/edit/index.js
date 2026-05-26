@@ -10,6 +10,8 @@ Page({
     typeId: '',
     expireDate: '',
     credentialNumber: '',
+    issuingAuthority: '',
+    issuingAuthorityLabel: '签发机构',
     skillLevel: '',
     remark: '',
     fileUrl: '',
@@ -30,6 +32,24 @@ Page({
     if (options.id) {
       this.setData({ id: options.id, isEdit: true });
       this.loadCredential(options.id);
+    } else if (options.typeId) {
+      const typeId = options.typeId;
+      const matchedType = constants.CREDENTIAL_TYPES.find((item) => item.value === typeId);
+      const typeName = options.typeName
+        ? decodeURIComponent(options.typeName)
+        : matchedType
+          ? matchedType.label
+          : '';
+      const isSkillCert = typeId === 'skill_cert';
+      const isEducation = typeId === 'education' || typeId === 'student_card';
+      this.setData({
+        typeId,
+        typeName,
+        name: typeName,
+        issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
+        showSkillPicker: isSkillCert,
+        showSkillLevel: isSkillCert
+      });
     }
     this.loadCredTypes();
     this.loadStaffSkills();
@@ -40,12 +60,15 @@ Page({
     request.get(constants.API.CREDENTIALS + '/' + id).then((res) => {
       const cred = res.credential || res;
       const isSkillCert = (cred.typeId || cred.credentialType) === 'skill_cert';
+      const isEducation = (cred.typeId || cred.credentialType) === 'education' || (cred.typeId || cred.credentialType) === 'student_card';
       that.setData({
         name: cred.name || '',
         typeName: cred.typeName || '',
         typeId: cred.typeId || cred.credentialType || '',
         expireDate: cred.expireDate || cred.expiryDate || '',
         credentialNumber: cred.credentialNumber || '',
+        issuingAuthority: cred.issuingAuthority || '',
+        issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
         skillLevel: cred.skillLevel || '',
         remark: cred.remark || '',
         fileUrl: cred.fileUrl || '',
@@ -83,9 +106,11 @@ Page({
     const index = parseInt(e.detail.value);
     const type = this.data.credTypes[index];
     const isSkillCert = type.value === 'skill_cert';
+    const isEducation = type.value === 'education' || type.value === 'student_card';
     this.setData({
       typeId: type.value,
       typeName: type.label,
+      issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
       showSkillPicker: isSkillCert,
       showSkillLevel: isSkillCert,
       selectedSkillIds: isSkillCert ? this.data.selectedSkillIds : [],
@@ -120,6 +145,10 @@ Page({
 
   onNumberInput(e) {
     this.setData({ credentialNumber: e.detail.value });
+  },
+
+  onIssuingAuthorityInput(e) {
+    this.setData({ issuingAuthority: e.detail.value });
   },
 
   onSkillLevelInput(e) {
@@ -184,6 +213,7 @@ Page({
       typeId: this.data.typeId,
       typeName: this.data.typeName,
       credentialNumber: this.data.credentialNumber,
+      issuingAuthority: this.data.issuingAuthority,
       expireDate: this.data.expireDate,
       skillLevel: this.data.skillLevel,
       remark: this.data.remark,

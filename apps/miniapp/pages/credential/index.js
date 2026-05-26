@@ -4,7 +4,8 @@ const constants = require('../../utils/constants');
 Page({
   data: {
     credentials: [],
-    loaded: false
+    loaded: false,
+    educationCredentials: []
   },
 
   onLoad() {
@@ -19,12 +20,25 @@ Page({
     const that = this;
     request.get(constants.API.CREDENTIALS).then((res) => {
       const list = res.list || res.credentials || [];
+      const educationCredentials = list.filter(
+        c => (c.typeId || c.credentialType) === 'education' || (c.typeId || c.credentialType) === 'student_card'
+      );
       that.setData({
         credentials: list,
+        educationCredentials,
         loaded: true
       });
     }).catch(() => {
       that.setData({ loaded: true });
+    });
+  },
+
+  // 上传学历/学生证
+  goToEducationUpload(e) {
+    const typeId = e.currentTarget.dataset.type || 'education';
+    const typeName = typeId === 'student_card' ? '学生证' : '学历/毕业证';
+    wx.navigateTo({
+      url: `/pages/credential/edit/index?typeId=${typeId}&typeName=${encodeURIComponent(typeName)}`
     });
   },
 

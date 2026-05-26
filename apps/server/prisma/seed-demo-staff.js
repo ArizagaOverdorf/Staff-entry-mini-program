@@ -103,6 +103,7 @@ const DEMO_STAFF = [
     reviewRemark: null,
     credentialStatus: 'pending',
     includeSkillCert: true,
+    includeEducation: true,
   },
   {
     staffId: 'DEMO1002',
@@ -115,6 +116,7 @@ const DEMO_STAFF = [
     reviewRemark: '请补充健康证有效期照片。',
     credentialStatus: 'pending',
     includeSkillCert: false,
+    includeEducation: false,
   },
   {
     staffId: 'DEMO1003',
@@ -127,6 +129,7 @@ const DEMO_STAFF = [
     reviewRemark: '演示数据：已通过审核。',
     credentialStatus: 'approved',
     includeSkillCert: true,
+    includeEducation: true,
   },
 ];
 
@@ -333,6 +336,66 @@ async function createDemoStaff(prisma, item) {
             staffAccountId: account.id,
             title: '证件待审核',
             content: `${skillCert.credentialName} 已提交，等待后台审核。`,
+            messageType: 'audit',
+          },
+        });
+      }
+    }
+  }
+
+  // Create education/student-card credentials for select demo staff
+  if (item.includeEducation) {
+    const eduCredentialDefs = [
+      {
+        credentialType: 'education',
+        credentialName: '本科毕业证',
+        credentialNumber: `EDU-${item.staffId}-001`,
+        issuingAuthority: '广州大学',
+        issueDate: new Date('2018-06-30'),
+        expiryDate: null,
+      },
+      {
+        credentialType: 'student_card',
+        credentialName: '学生证',
+        credentialNumber: `STU-${item.staffId}-001`,
+        issuingAuthority: '华南师范大学',
+        issueDate: new Date('2025-09-01'),
+        expiryDate: new Date('2027-07-01'),
+      },
+    ];
+
+    for (const def of eduCredentialDefs) {
+      const fileAsset = ensureDemoFile(item.staffId, def.credentialType, account.id);
+      await prisma.fileAsset.create({ data: fileAsset });
+
+      const eduCred = await prisma.staffCredential.create({
+        data: {
+          staffAccountId: account.id,
+          credentialType: def.credentialType,
+          credentialName: def.credentialName,
+          credentialNumber: def.credentialNumber,
+          issuingAuthority: def.issuingAuthority,
+          issueDate: def.issueDate,
+          expiryDate: def.expiryDate,
+          credentialStatus: item.credentialStatus,
+          credentialBadge: item.credentialStatus === 'approved' ? 'valid' : null,
+          version: 1,
+          isCurrent: true,
+          files: {
+            create: {
+              fileAssetId: fileAsset.id,
+              fileType: 'credential_image',
+            },
+          },
+        },
+      });
+
+      if (item.credentialStatus === 'pending') {
+        await prisma.message.create({
+          data: {
+            staffAccountId: account.id,
+            title: '证件待审核',
+            content: `${eduCred.credentialName} 已提交，等待后台审核。`,
             messageType: 'audit',
           },
         });

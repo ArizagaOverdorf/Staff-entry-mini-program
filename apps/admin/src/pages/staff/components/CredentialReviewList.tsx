@@ -38,6 +38,9 @@ function getCredentialTag(credentialType: string): { color: string; text: string
   if (credentialType === 'skill_cert') {
     return { color: 'blue', text: '技能证书' };
   }
+  if (credentialType === 'education' || credentialType === 'student_card') {
+    return { color: 'green', text: '学历材料' };
+  }
   if (mandatoryCredentialTypes.includes(credentialType)) {
     return { color: 'red', text: '强准入' };
   }

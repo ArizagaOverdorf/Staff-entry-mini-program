@@ -44,6 +44,10 @@ export class IntakeService {
       };
     });
 
+    const educationCredentialsCount = account.credentials.filter(
+      (c) => c.credentialType === 'education' || c.credentialType === 'student_card',
+    ).length;
+
     const skillCredentialRequirements = account.skills
       .filter((skill) =>
         SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS.includes(skill.categoryId),
@@ -100,6 +104,7 @@ export class IntakeService {
       skillsCount: account.skills.length,
       serviceAreasCount: account.serviceAreas.length,
       credentialsCount: account.credentials.length,
+      educationCredentialsCount,
       mandatoryCredentials,
       skillCredentialRequirements,
       intakeStatus: account.intakeStatus?.intakeStatus ?? 'draft',

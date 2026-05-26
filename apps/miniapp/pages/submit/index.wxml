@@ -94,6 +94,20 @@
       </view>
     </view>
 
+    <!-- 学历/学生证摘要（选填，仅当已上传时显示） -->
+    <view class="card" wx:if="{{educationCredentialsCount > 0}}">
+      <view class="card-header">
+        <text class="card-title">学历/学生证</text>
+        <text class="card-action" bindtap="goToEditCredential">修改</text>
+      </view>
+      <view class="summary-info">
+        <view class="summary-row">
+          <text class="summary-label">已上传</text>
+          <text class="summary-value success">{{educationCredentialsCount}} 项</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 提交须知 -->
     <view class="card">
       <view class="card-title">提交须知</view>
