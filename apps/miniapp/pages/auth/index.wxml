@@ -1,6 +1,6 @@
 <view class="auth-container">
   <view class="auth-header">
-    <image class="auth-logo" src="/images/logo.png" mode="aspectFit"></image>
+    <view class="auth-logo icon-circle" style="background-color:#fff;color:#07c160;">家</view>
     <text class="auth-title">家政服务人员入驻</text>
     <text class="auth-desc">微信授权登录，轻松入驻</text>
   </view>

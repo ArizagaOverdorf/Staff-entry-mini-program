@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $ProjectRoot = $PSScriptRoot
 Set-Location -LiteralPath $ProjectRoot
@@ -27,7 +27,7 @@ function Assert-JsonFile {
 }
 
 Write-Host "Running Stage 4.2 baseline verification..." -ForegroundColor Cyan
-& ".\verify-stage4-2.cmd"
+& ".\verify-stage4-2.ps1"
 if ($LASTEXITCODE -ne 0) {
   throw "Stage 4.2 baseline verification failed."
 }
@@ -82,6 +82,13 @@ Assert-Contains ".\apps\miniapp\utils\request.js" "body\.code === 0" "Request wr
 Assert-Contains ".\apps\miniapp\utils\upload.js" "body\.code === 0" "Upload wrapper must handle unified success response"
 Assert-Contains ".\apps\miniapp\utils\upload.js" "Authorization" "Upload wrapper must send Authorization header"
 
+Write-Host "Checking WXML expression safety..." -ForegroundColor Cyan
+$unsafeWxml = Get-ChildItem ".\apps\miniapp" -Recurse -Filter "*.wxml" -File -ErrorAction SilentlyContinue | Select-String -Pattern "\.charAt\(|\.slice\(" | Select-Object -First 1
+if ($unsafeWxml) {
+  Write-Host $unsafeWxml
+  throw "Avoid method calls inside WXML bindings. Compute display values in page JS instead."
+}
+
 Write-Host "Checking broken local image references..." -ForegroundColor Cyan
 $imageReferences = @()
 Get-ChildItem -LiteralPath ".\apps\miniapp" -Recurse -Include "*.wxml","*.js","*.wxss","*.json" -File |
@@ -105,14 +112,22 @@ foreach ($ref in $imageReferences) {
 }
 
 Write-Host "Checking for common mojibake fragments in miniapp source..." -ForegroundColor Cyan
-$badText = & rg -n "瀹舶|瀹舵斂|寰俊|鐧诲綍|璇疯|鍏ラ|鎻愪氦|娑堟伅|绛惧彂|韬唤|鍋ュ悍|闅愮|鐘舵|浣撴|鎶€|瀛﹀巻|瀛︾敓|姣曚笟|鍦板潃|璐﹀彿|鏈|宸查|缂哄|鍖哄煙" ".\apps\miniapp" 2>$null
+$badText = Get-ChildItem ".\apps\miniapp" -Recurse -File -ErrorAction SilentlyContinue | Select-String -Pattern "瀹舶|瀹舵斂|寰俊|鐧诲綍|璇疯|鍏ラ|鎻愪氦|娑堟伅|绛惧彂|韬唤|鍋ュ悍|闅愮|鐘舵|浣撴|鎶€|瀛﹀巻|瀛︾敓|姣曚笟|鍦板潃|璐﹀彿|鏈|宸查|缂哄|鍖哄煙" | Select-Object -First 1
 if ($badText) {
   Write-Host $badText
   throw "Common mojibake fragments remain in miniapp source."
 }
 
+$emojiText = Get-ChildItem ".\apps\miniapp" -Recurse -Include "*.wxml","*.js","*.wxss","*.json" -File -ErrorAction SilentlyContinue |
+  Select-String -Pattern "[\uD800-\uDBFF][\uDC00-\uDFFF]|✉|⚙" |
+  Select-Object -First 1
+if ($emojiText) {
+  Write-Host $emojiText
+  throw "Emoji or platform-dependent symbol icons remain in miniapp source. Use stable text or CSS shapes."
+}
+
 Write-Host "Checking Stage 5 scope boundaries..." -ForegroundColor Cyan
-$forbidden = & rg -n "支付|派单|钱包|佣金|分销|大家评评理|投票|自动处罚|客户下单|订单支付" ".\apps\miniapp" ".\apps\server\src" 2>$null
+$forbidden = Get-ChildItem ".\apps\miniapp",".\apps\server\src" -Recurse -File -ErrorAction SilentlyContinue | Select-String -Pattern "支付|派单|钱包|佣金|分销|大家评评理|投票|自动处罚|客户下单|订单支付" | Select-Object -First 1
 if ($forbidden) {
   Write-Host $forbidden
   throw "Out-of-scope business terms were introduced."

@@ -13,6 +13,7 @@ Page({
     emergencyContact: '',
     emergencyPhone: '',
     genderOptions: constants.GENDER_OPTIONS,
+    genderLabel: '请选择性别',
     serviceCategories: [],
     selectedCategories: [],
     serviceAreas: [],
@@ -40,6 +41,7 @@ Page({
           idNumber: p.idNumber || '',
           gender: p.gender || '',
           genderIndex: genderIndex,
+          genderLabel: genderIndex >= 0 ? constants.GENDER_OPTIONS[genderIndex].label : '请选择性别',
           birthday: p.birthday || '',
           phone: p.phone || res.phone || '',
           address: p.address || '',
@@ -96,9 +98,11 @@ Page({
 
   onGenderChange(e) {
     const index = parseInt(e.detail.value);
+    const opt = constants.GENDER_OPTIONS[index];
     this.setData({
       genderIndex: index,
-      gender: constants.GENDER_OPTIONS[index].value
+      gender: opt ? opt.value : '',
+      genderLabel: opt ? opt.label : '请选择性别'
     });
   },
 

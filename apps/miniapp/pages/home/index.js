@@ -13,6 +13,7 @@ Page({
     hasProfile: false,
     hasCredentials: false,
     unreadMsgCount: 0,
+    staffAvatarText: '服',
     loaded: false
   },
 
@@ -41,9 +42,12 @@ Page({
     request.get(constants.API.INTAKE_STATUS).then((res) => {
       const intakeStatus = res.intakeStatus || constants.INTAKE_STATUS.DRAFT;
       const listingStatus = res.listingStatus || constants.LISTING_STATUS.OFF;
+      const staffInfo = res.staffInfo || null;
+      const staffName = staffInfo && staffInfo.name ? staffInfo.name : '';
 
       that.setData({
-        staffInfo: res.staffInfo || null,
+        staffInfo: staffInfo,
+        staffAvatarText: staffName ? staffName.slice(0, 1) : '服',
         intakeStatus: intakeStatus,
         intakeStatusLabel: constants.INTAKE_STATUS_LABEL[intakeStatus] || '未知',
         listingStatus: listingStatus,

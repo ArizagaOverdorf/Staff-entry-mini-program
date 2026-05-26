@@ -33,7 +33,7 @@
 
   <!-- 空状态 -->
   <view class="empty-state" wx:if="{{loaded && records.length === 0}}">
-    <image src="/images/empty.png" mode="aspectFit"></image>
+    <view class="icon-empty">空</view>
     <text>暂无服务记录</text>
   </view>
 

@@ -4,7 +4,7 @@
     <text class="picker-text {{selectedValues.length > 0 ? '' : 'placeholder'}}">
       {{selectedValues.length > 0 ? displayText : '请选择服务区域'}}
     </text>
-    <image class="picker-arrow" src="/images/arrow-down.png" mode="aspectFit"></image>
+    <view class="icon-arrow-down"></view>
   </view>
 
   <!-- 选择弹窗 -->

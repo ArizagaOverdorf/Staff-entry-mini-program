@@ -5,6 +5,7 @@ const constants = require('../../utils/constants');
 Page({
   data: {
     accountInfo: null,
+    accountAvatarText: '服',
     loaded: false
   },
 
@@ -19,8 +20,21 @@ Page({
   loadAccountInfo() {
     const that = this;
     request.get(constants.API.ACCOUNT_INFO).then((res) => {
+      const account = res.account || res;
+      const displayName =
+        account.name ||
+        account.wechatNickname ||
+        (account.profile && account.profile.realNameMasked) ||
+        '家政人员';
+      const phone = account.phone || account.phoneMasked || '未绑定手机号';
+
       that.setData({
-        accountInfo: res.account || res,
+        accountInfo: {
+          ...account,
+          name: displayName,
+          phone: phone
+        },
+        accountAvatarText: displayName ? displayName.slice(0, 1) : '服',
         loaded: true
       });
     }).catch(() => {

@@ -1,6 +1,6 @@
 <view class="privacy-container">
   <view class="privacy-header">
-    <image class="privacy-icon" src="/images/privacy.png" mode="aspectFit"></image>
+    <view class="privacy-icon icon-circle" style="background-color:#e8f0fe;color:#1989fa;">隐</view>
     <text class="privacy-title">隐私政策确认</text>
   </view>
 

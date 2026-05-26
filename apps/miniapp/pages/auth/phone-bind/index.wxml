@@ -1,6 +1,6 @@
 <view class="phone-bind-container">
   <view class="phone-bind-header">
-    <image class="phone-bind-icon" src="/images/phone.png" mode="aspectFit"></image>
+    <view class="phone-bind-icon icon-circle" style="background-color:#e8f8e8;color:#07c160;">机</view>
     <text class="phone-bind-title">绑定手机号</text>
     <text class="phone-bind-desc">为了保障您的账户安全，请绑定手机号</text>
   </view>

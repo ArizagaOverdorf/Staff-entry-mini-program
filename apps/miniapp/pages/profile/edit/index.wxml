@@ -15,7 +15,7 @@
         <view class="form-item">
           <text class="form-label">性别</text>
           <picker range="{{genderOptions}}" range-key="label" value="{{genderIndex}}" bindchange="onGenderChange">
-            <view class="form-value">{{genderOptions[genderIndex].label || '请选择性别'}}</view>
+            <view class="form-value">{{genderLabel}}</view>
           </picker>
         </view>
         <view class="form-item">

@@ -19,7 +19,7 @@
 }
 
 .status-banner.pending_review,
-.status-banner.info_required {
+.status-banner.needs_more_info {
   background-color: #faad14;
 }
 

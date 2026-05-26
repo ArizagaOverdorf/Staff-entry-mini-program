@@ -1,11 +1,11 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $ProjectRoot = $PSScriptRoot
 
 Set-Location -LiteralPath $ProjectRoot
 
 Write-Host "Running Stage 4 baseline verification..." -ForegroundColor Cyan
-& ".\verify-stage4.cmd"
+& ".\verify-stage4.ps1"
 if ($LASTEXITCODE -ne 0) {
   throw "Stage 4 baseline verification failed."
 }
@@ -19,7 +19,7 @@ $requiredMarkers = @(
 )
 
 foreach ($marker in $requiredMarkers) {
-  $matches = & rg -n -F $marker "apps\server\src" "apps\server\prisma" "apps\admin\src" "apps\miniapp" 2>$null
+  $matches = Get-ChildItem "apps\server\src","apps\server\prisma","apps\admin\src","apps\miniapp" -Recurse -File -ErrorAction SilentlyContinue | Select-String -Pattern $marker -SimpleMatch | Select-Object -First 1
   if (-not $matches) {
     throw "Missing expected Stage 4.1 marker: $marker"
   }

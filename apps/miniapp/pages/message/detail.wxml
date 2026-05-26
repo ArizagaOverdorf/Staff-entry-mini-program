@@ -15,6 +15,6 @@
 
 <!-- 空状态 -->
 <view class="empty-state" wx:if="{{loaded && !message}}">
-  <image src="/images/empty.png" mode="aspectFit"></image>
+  <view class="icon-empty">空</view>
   <text>消息不存在</text>
 </view>

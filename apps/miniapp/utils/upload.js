@@ -38,8 +38,18 @@ const upload = {
 
           if (res.statusCode >= 200 && res.statusCode < 300) {
             try {
-              const data = JSON.parse(res.data);
-              resolve(data);
+              const body = JSON.parse(res.data);
+              if (body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'code')) {
+                if (body.code === 0) {
+                  resolve(body.data);
+                } else {
+                  const errMsg = body.message || '上传失败';
+                  wx.showToast({ title: errMsg, icon: 'none' });
+                  reject(new Error(errMsg));
+                }
+                return;
+              }
+              resolve(body);
             } catch (e) {
               resolve(res.data);
             }

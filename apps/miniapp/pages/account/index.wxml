@@ -2,7 +2,7 @@
   <!-- 用户信息卡片 -->
   <view class="user-card">
     <view class="user-avatar">
-      <image src="/images/avatar.png" mode="aspectFill"></image>
+      <view class="user-avatar-text">{{accountAvatarText}}</view>
     </view>
     <view class="user-info">
       <text class="user-name">{{accountInfo.name || '家政人员'}}</text>
@@ -15,19 +15,19 @@
     <view class="list-item" bindtap="goToProfile">
       <text class="list-item-label">个人资料</text>
       <text class="list-item-value">查看详情</text>
-      <image class="list-item-arrow" src="/images/arrow.png" mode="aspectFit"></image>
+      <view class="icon-arrow"></view>
     </view>
     <view class="list-item" bindtap="goToEditProfile">
       <text class="list-item-label">编辑资料</text>
       <text class="list-item-value">修改信息</text>
-      <image class="list-item-arrow" src="/images/arrow.png" mode="aspectFit"></image>
+      <view class="icon-arrow"></view>
     </view>
   </view>
 
   <view class="settings-section">
     <view class="list-item" bindtap="handleAbout">
       <text class="list-item-label">关于我们</text>
-      <image class="list-item-arrow" src="/images/arrow.png" mode="aspectFit"></image>
+      <view class="icon-arrow"></view>
     </view>
   </view>
 
