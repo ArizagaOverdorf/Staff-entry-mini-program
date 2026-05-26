@@ -9,8 +9,9 @@ You are working in:
 Before coding, read and follow:
 
 - `claude-skills/self-review/SKILL.md`
+- `claude-skills/self-review/references/report-template.md`
 
-If verification fails after one focused repair attempt, write the self-review report under `claude-reports/`.
+Use the enhanced protocol: make at most two focused repair attempts, then always write a structured report under `claude-reports/`, whether verification passes or fails.
 
 ## Context
 
@@ -145,7 +146,7 @@ Run:
 .\verify-stage4-2.cmd
 ```
 
-If it fails, follow `claude-skills/self-review/SKILL.md`: repair once, rerun, and if it still fails write a report under `claude-reports/`.
+Follow `claude-skills/self-review/SKILL.md`: if verification fails, make at most two focused repair attempts, rerun after each attempt, and always write a structured report under `claude-reports/`.
 
 Report:
 
@@ -153,5 +154,4 @@ Report:
 2. Whether admin review displays these materials clearly.
 3. Whether they remain optional.
 4. Demo seed verification result.
-5. Self-review result or report path if unresolved.
-
+5. Self-review report path and final verification status.

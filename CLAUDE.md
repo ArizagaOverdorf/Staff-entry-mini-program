@@ -147,6 +147,7 @@ If a check cannot run because dependencies or environment variables are missing,
 For every coding task, read and follow:
 
 - `claude-skills/self-review/SKILL.md`
+- `claude-skills/self-review/references/report-template.md`
 
 The short version:
 
@@ -154,12 +155,14 @@ The short version:
 2. Run the task's baseline verification script before editing when one exists.
 3. Make focused changes only.
 4. Run the task's verification script after editing.
-5. If verification fails, analyze the failure, make one focused repair pass, and rerun verification.
-6. If verification still fails, stop broad editing and write a report under `claude-reports/` with:
-   - changed files
-   - commands run
-   - failure output summary
-   - suspected cause
-   - recommended next fix
+5. If verification fails, analyze the failure, make at most two focused repair attempts, and rerun the same verification after each attempt.
+6. If verification still fails after the second repair attempt, stop broad editing.
+7. Always write one structured self-review report under `claude-reports/`, even when verification passes.
+8. Use this status vocabulary in the report:
+   - `PASSED`
+   - `FAILED_AFTER_TWO_REPAIRS`
+   - `UNVERIFIED_ENV_BLOCKED`
+   - `PARTIAL_NEEDS_CODEX_REVIEW`
+9. In the final response, include the report path, verifier result, changed file groups, and any manual test gaps.
 
 Do not commit code, read `.env`, run `npx prisma`, or rewrite Git history unless the user explicitly asks.
