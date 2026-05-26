@@ -141,3 +141,25 @@ For each completed phase, run available checks:
 - Basic API smoke tests.
 
 If a check cannot run because dependencies or environment variables are missing, state that clearly and provide the exact missing item.
+
+## Mandatory Self-Review Protocol
+
+For every coding task, read and follow:
+
+- `claude-skills/self-review/SKILL.md`
+
+The short version:
+
+1. Check `git status` before editing.
+2. Run the task's baseline verification script before editing when one exists.
+3. Make focused changes only.
+4. Run the task's verification script after editing.
+5. If verification fails, analyze the failure, make one focused repair pass, and rerun verification.
+6. If verification still fails, stop broad editing and write a report under `claude-reports/` with:
+   - changed files
+   - commands run
+   - failure output summary
+   - suspected cause
+   - recommended next fix
+
+Do not commit code, read `.env`, run `npx prisma`, or rewrite Git history unless the user explicitly asks.
