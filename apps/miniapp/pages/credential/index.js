@@ -75,13 +75,17 @@ function normalizeCredential(credential) {
   const status = credential.status || credential.credentialStatus || 'pending';
   const typeId = credential.typeId || credential.credentialType;
   const linkedSkills = credential.linkedSkills || [];
+  const isExpired = credential.isExpired || credential.expiryStatusLabel === '证件过期';
+  const expiryStatusLabel = credential.expiryStatusLabel || (isExpired ? '证件过期' : undefined);
   return {
     ...credential,
     typeId,
     typeName: credential.typeName || getTypeLabel(typeId),
     status,
-    statusLabel: getStatusLabel(status),
-    statusClass: getStatusClass(status),
+    statusLabel: isExpired ? '证件过期' : getStatusLabel(status),
+    statusClass: isExpired ? 'tag-error' : getStatusClass(status),
+    isExpired,
+    expiryStatusLabel,
     fileCount: credential.files ? credential.files.length : 0,
     skillLevelText: credential.skillLevel
       ? `技能等级：${credential.skillLevel}`

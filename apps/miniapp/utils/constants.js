@@ -189,6 +189,14 @@ const MANDATORY_CREDENTIAL_TYPES = [
   'medical_report'
 ];
 
+const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
+  'health_cert',
+  'no_crime_cert',
+  'credit_report',
+  'medical_report',
+  'insurance'
+];
+
 const MESSAGE_STATUS = {
   UNREAD: 'unread',
   READ: 'read'
@@ -217,6 +225,7 @@ module.exports = {
   SERVICE_SKILL_OPTIONS,
   SERVICE_AREA_OPTIONS,
   MANDATORY_CREDENTIAL_TYPES,
+  CREDENTIAL_TYPES_REQUIRE_EXPIRY,
   MESSAGE_STATUS,
   GENDER_OPTIONS
 };

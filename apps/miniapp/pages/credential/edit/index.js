@@ -67,6 +67,7 @@ Page({
   applyTypeState(typeId, typeName, isLocked) {
     const isSkillCert = typeId === 'skill_cert';
     const isEducation = typeId === 'education' || typeId === 'student_card';
+    const requireExpiry = constants.CREDENTIAL_TYPES_REQUIRE_EXPIRY.indexOf(typeId) > -1;
 
     this.setData({
       typeId,
@@ -77,6 +78,7 @@ Page({
       isTypeLocked: !!isLocked,
       isSkillCert,
       showNormalCredentialFields: !isSkillCert,
+      requireExpiry,
       issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
       issuingAuthorityPlaceholder: isEducation ? '请输入学校名称' : '请输入签发机构'
     });
@@ -239,6 +241,14 @@ Page({
         title: this.data.isSkillCert ? '请输入名称' : '请输入证件名称',
         icon: 'none'
       });
+      return false;
+    }
+    if (this.data.requireExpiry && !this.data.expireDate) {
+      wx.showToast({ title: '请填写有效期', icon: 'none' });
+      return false;
+    }
+    if (this.data.requireExpiry && this.data.expireDate && isNaN(Date.parse(this.data.expireDate))) {
+      wx.showToast({ title: '有效期日期格式无效', icon: 'none' });
       return false;
     }
     if (this.data.isSkillCert && !this.data.skillLevel) {

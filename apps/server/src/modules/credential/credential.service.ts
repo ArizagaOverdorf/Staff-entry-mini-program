@@ -5,12 +5,30 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpsertCredentialDto } from './dto/upsert-credential.dto';
-import { CredentialType, CredentialTypeLabels } from './credential.constants';
+import { CredentialType, CredentialTypeLabels, CREDENTIAL_TYPES_REQUIRE_EXPIRY } from './credential.constants';
 
 type StaffSkillCategoryInput = {
   categoryId: string;
   categoryName: string;
 };
+
+function isDateBeforeToday(value: Date | string | null | undefined): boolean {
+  if (!value) return false;
+  const expiry = new Date(value);
+  if (Number.isNaN(expiry.getTime())) return false;
+  const today = new Date();
+  const expiryDate = new Date(
+    expiry.getFullYear(),
+    expiry.getMonth(),
+    expiry.getDate(),
+  );
+  const todayDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  return expiryDate < todayDate;
+}
 
 @Injectable()
 export class CredentialService {
@@ -57,6 +75,7 @@ export class CredentialService {
       throw new BadRequestException('credentialName is required');
     }
     this.validateCredentialType(credentialType);
+    this.validateExpiryDate(credentialType, dto.expiryDate ?? dto.expireDate);
     const staffSkillIds = await this.resolveSkillIdsForCredential(
       accountId,
       credentialType,
@@ -147,6 +166,7 @@ export class CredentialService {
     const expiryDate = dto.expiryDate ?? dto.expireDate;
 
     this.validateCredentialType(credentialType);
+    this.validateExpiryDate(credentialType, expiryDate);
     if (credentialType !== credential.credentialType) {
       throw new BadRequestException(
         'credential type cannot be changed after creation',
@@ -260,6 +280,20 @@ export class CredentialService {
       throw new BadRequestException(
         `Invalid credential type: ${credentialType}`,
       );
+    }
+  }
+
+  private validateExpiryDate(credentialType: string, expiryDate: string | undefined | null) {
+    if (!CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(credentialType)) {
+      return;
+    }
+    if (!expiryDate) {
+      throw new BadRequestException(
+        `证件「${CredentialTypeLabels[credentialType] || credentialType}」需要填写有效期`,
+      );
+    }
+    if (isNaN(Date.parse(expiryDate))) {
+      throw new BadRequestException('有效期日期格式无效');
     }
   }
 
@@ -485,6 +519,9 @@ export class CredentialService {
     const expiryDate = c.expiryDate
       ? new Date(c.expiryDate).toISOString().slice(0, 10)
       : undefined;
+    const isExpired = isDateBeforeToday(expiryDate);
+    const expiryStatusLabel = isExpired ? '证件过期' : undefined;
+    const badge = isExpired ? 'expired' : (c.credentialBadge ?? null);
 
     const linkedSkills = (c.credentialSkills || []).map((cs: any) => ({
       id: cs.staffSkill?.id ?? cs.staffSkillId,
@@ -505,7 +542,9 @@ export class CredentialService {
       expiryDate,
       expireDate: expiryDate,
       status: c.credentialStatus,
-      badge: c.credentialBadge,
+      badge,
+      isExpired,
+      expiryStatusLabel,
       credentialGroupId: c.credentialGroupId,
       skillLevel: c.skillLevel,
       version: c.version,

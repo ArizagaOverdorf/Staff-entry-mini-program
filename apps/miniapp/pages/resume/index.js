@@ -65,8 +65,27 @@ function isApproved(credential) {
   return credential && (credential.status || credential.credentialStatus) === 'approved';
 }
 
+function isCredExpired(credential) {
+  if (!credential) return false;
+  if (credential.isExpired !== undefined) return credential.isExpired;
+  const expireDate = credential.expireDate || credential.expiryDate;
+  if (!expireDate) return false;
+  return isDateBeforeToday(expireDate);
+}
+
+function isDateBeforeToday(value) {
+  if (!value) return false;
+  const expiry = new Date(value);
+  if (Number.isNaN(expiry.getTime())) return false;
+  const today = new Date();
+  const expiryDate = new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate());
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return expiryDate < todayDate;
+}
+
 function getAuditText(credential) {
   if (!credential) return '未上传';
+  if (isCredExpired(credential)) return '证件过期';
   return isApproved(credential) ? '已审核通过' : '未审核通过';
 }
 
@@ -77,16 +96,18 @@ function getAuditDateText(credential, dateMode) {
   }
   if (dateMode === 'expiry') {
     const expireDate = credential.expireDate || credential.expiryDate;
-    return expireDate ? `有效期至：${formatDate(expireDate)}` : '有效期：未填写';
+    if (!expireDate) return '有效期：未填写';
+    return `有效期至：${formatDate(expireDate)}`;
   }
   return '';
 }
 
 function isInsuranceValid(credential) {
-  if (!isApproved(credential)) return false;
+  if (!isApproved(credential)) return { valid: false, expired: false };
   const expireDate = credential.expireDate || credential.expiryDate;
-  if (!expireDate) return true;
-  return new Date(expireDate).getTime() >= Date.now();
+  if (!expireDate) return { valid: true, expired: false };
+  const expired = isDateBeforeToday(expireDate);
+  return { valid: !expired, expired };
 }
 
 function formatSkillCertificate(credential) {
@@ -188,7 +209,7 @@ Page({
       const displayName = profile.name || profile.nameMasked || '家政人员';
       const identityVerified = !!profile.identityVerified;
       const insurance = findCredential(credentials, 'insurance');
-      const insuranceValid = isInsuranceValid(insurance);
+      const insuranceInfo = isInsuranceValid(insurance);
       const records = recordRes.list || recordRes.records || [];
 
       const managementStatus = intakeRes.managementStatus || 'normal';
@@ -209,10 +230,11 @@ Page({
         auditItems: SENSITIVE_AUDIT_TYPES.map((item) => {
           const credential = findCredential(credentials, item.typeId);
           const approved = isApproved(credential);
+          const expired = isCredExpired(credential);
           return {
             ...item,
-            approved,
-            statusText: approved ? '已审核通过' : getAuditText(credential),
+            approved: approved && !expired,
+            statusText: getAuditText(credential),
             dateText: getAuditDateText(credential, item.dateMode)
           };
         }),
@@ -223,8 +245,8 @@ Page({
           { label: '最高学历/毕业证', statusText: getAuditText(findCredential(credentials, 'education')), approved: isApproved(findCredential(credentials, 'education')) },
           { label: '学生证', statusText: getAuditText(findCredential(credentials, 'student_card')), approved: isApproved(findCredential(credentials, 'student_card')) }
         ],
-        insuranceText: insuranceValid ? '有效' : '无效',
-        insuranceValid,
+        insuranceText: insuranceInfo.expired ? '证件过期' : (insuranceInfo.valid ? '有效' : '无效'),
+        insuranceValid: insuranceInfo.valid && !insuranceInfo.expired,
         serviceRecords: records.length > 0 ? records.map(normalizeServiceRecord) : DEMO_SERVICE_RECORDS,
         introText: buildIntro(displayName, serviceCategories, formatAreas(profile.serviceAreas))
       });

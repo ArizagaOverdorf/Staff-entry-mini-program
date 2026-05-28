@@ -8,7 +8,26 @@ import {
   MANDATORY_CREDENTIAL_TYPES,
   SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS,
   CredentialTypeLabels,
+  CREDENTIAL_TYPES_REQUIRE_EXPIRY,
 } from '../credential/credential.constants';
+
+function isDateBeforeToday(value: Date | string | null | undefined): boolean {
+  if (!value) return false;
+  const expiry = new Date(value);
+  if (Number.isNaN(expiry.getTime())) return false;
+  const today = new Date();
+  const expiryDate = new Date(
+    expiry.getFullYear(),
+    expiry.getMonth(),
+    expiry.getDate(),
+  );
+  const todayDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  return expiryDate < todayDate;
+}
 
 @Injectable()
 export class IntakeService {
@@ -33,6 +52,11 @@ export class IntakeService {
     });
     if (!account) throw new NotFoundException('Staff not found');
 
+    const isCredentialExpired = (cred: any) => {
+      if (!cred?.expiryDate) return false;
+      return isDateBeforeToday(cred.expiryDate);
+    };
+
     const mandatoryCredentials = MANDATORY_CREDENTIAL_TYPES.map((type) => {
       const cred = account.credentials.find((c) => c.credentialType === type);
       return {
@@ -41,6 +65,7 @@ export class IntakeService {
         hasCredential: !!cred,
         credentialId: cred?.id ?? null,
         credentialStatus: cred?.credentialStatus ?? null,
+        isExpired: isCredentialExpired(cred),
       };
     });
 
@@ -87,6 +112,8 @@ export class IntakeService {
     for (const mc of mandatoryCredentials) {
       if (!mc.hasCredential) {
         issues.push(`缺少强准入证件: ${mc.credentialTypeLabel}`);
+      } else if (mc.isExpired) {
+        issues.push(`强准入证件已过期: ${mc.credentialTypeLabel}（证件过期）`);
       }
     }
 
@@ -160,12 +187,19 @@ export class IntakeService {
     }
 
     for (const credType of MANDATORY_CREDENTIAL_TYPES) {
-      const hasCred = account.credentials.some(
+      const cred = account.credentials.find(
         (c) => c.credentialType === credType,
       );
-      if (!hasCred) {
+      if (!cred) {
         const label = CredentialTypeLabels[credType] ?? credType;
         throw new BadRequestException(`请上传强准入证件: ${label}`);
+      }
+      if (CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(credType)) {
+        const expired = isDateBeforeToday(cred.expiryDate);
+        if (expired) {
+          const label = CredentialTypeLabels[credType] ?? credType;
+          throw new BadRequestException(`证件过期: ${label}（证件过期）`);
+        }
       }
     }
 

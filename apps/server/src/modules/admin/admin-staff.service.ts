@@ -8,6 +8,7 @@ import {
   MANDATORY_CREDENTIAL_TYPES,
   SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS,
   CredentialTypeLabels,
+  CREDENTIAL_TYPES_REQUIRE_EXPIRY,
 } from '../credential/credential.constants';
 
 const INTAKE_STATUS_LABELS: Record<string, string> = {
@@ -39,6 +40,24 @@ interface StaffListParams {
   intakeStatus?: string;
   listingStatus?: string;
   includeDraft?: boolean;
+}
+
+function isDateBeforeToday(value: Date | string | null | undefined): boolean {
+  if (!value) return false;
+  const expiry = new Date(value);
+  if (Number.isNaN(expiry.getTime())) return false;
+  const today = new Date();
+  const expiryDate = new Date(
+    expiry.getFullYear(),
+    expiry.getMonth(),
+    expiry.getDate(),
+  );
+  const todayDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  return expiryDate < todayDate;
 }
 
 @Injectable()
@@ -221,7 +240,12 @@ export class AdminStaffService {
       orderBy: [{ isCurrent: 'desc' }, { version: 'desc' }],
     });
 
-    return credentials.map((credential) => ({
+    const isExpired = (cred: any) => isDateBeforeToday(cred.expiryDate);
+
+    return credentials.map((credential) => {
+      const expired = isExpired(credential);
+      const badge = expired ? 'expired' : (credential.credentialBadge ?? null);
+      return {
       id: credential.id,
       staffId: account.staffId,
       credentialType: credential.credentialType,
@@ -235,7 +259,9 @@ export class AdminStaffService {
       expiryDate:
         credential.expiryDate?.toISOString?.() ?? credential.expiryDate,
       status: credential.credentialStatus,
-      badge: credential.credentialBadge,
+      badge,
+      isExpired: expired,
+      expiryStatusLabel: expired ? '证件过期' : undefined,
       skillLevel: credential.skillLevel,
       version: credential.version,
       isCurrent: credential.isCurrent,
@@ -255,7 +281,8 @@ export class AdminStaffService {
           size: Number(file.fileAsset.size),
         },
       })),
-    }));
+      };
+    });
   }
 
   async getAuditRecords(staffId: string) {
@@ -291,6 +318,16 @@ export class AdminStaffService {
       throw new BadRequestException(
         `Required credentials are not approved: ${missingOrUnapproved.join(', ')}`,
       );
+    }
+
+    for (const cred of credentials) {
+      if (!CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(cred.credentialType)) {
+        continue;
+      }
+      if (isDateBeforeToday(cred.expiryDate)) {
+        const label = CredentialTypeLabels[cred.credentialType] ?? cred.credentialType;
+        throw new BadRequestException(`证件过期: ${label}（证件过期），无法通过入驻审核`);
+      }
     }
 
     for (const skill of account.skills || []) {
@@ -453,6 +490,17 @@ export class AdminStaffService {
     }
 
     const isApprove = action === 'approve';
+
+    if (
+      isApprove &&
+      CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(credential.credentialType) &&
+      isDateBeforeToday(credential.expiryDate)
+    ) {
+      throw new BadRequestException(
+        `证件过期: 该证件已过期（证件过期），无法通过审核`,
+      );
+    }
+
     const auditAction = isApprove
       ? 'credential_approve'
       : 'credential_reject';

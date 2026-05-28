@@ -44,6 +44,8 @@ export interface CredentialRecord {
   issuingAuthority?: string;
   status: string;
   badge?: string;
+  isExpired?: boolean;
+  expiryStatusLabel?: string;
   skillLevel?: string;
   version?: number;
   isCurrent?: boolean;

@@ -184,8 +184,8 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                     {item.badge === 'expiring_soon' && (
                       <Tag color="warning" style={{ marginLeft: 4 }}>即将过期</Tag>
                     )}
-                    {item.badge === 'expired' && (
-                      <Tag color="error" style={{ marginLeft: 4 }}>已过期</Tag>
+                    {(item.badge === 'expired' || item.isExpired) && (
+                      <Tag color="error" style={{ marginLeft: 4 }}>证件过期</Tag>
                     )}
                   </span>
                 }
