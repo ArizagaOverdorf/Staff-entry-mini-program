@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Form, Input, Select, Button, Space } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, Button, Space, Checkbox, Modal, message } from 'antd';
+import { SearchOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import StaffTable from './components/StaffTable';
-import { listStaff, type StaffRecord } from './services/staff';
+import { listStaff, cleanupDraftStaff, type StaffRecord } from './services/staff';
 
 const StaffList: React.FC = () => {
   const [data, setData] = useState<StaffRecord[]>([]);
@@ -11,6 +11,8 @@ const StaffList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [form] = Form.useForm();
+  const [includeDraft, setIncludeDraft] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -20,6 +22,7 @@ const StaffList: React.FC = () => {
         page,
         pageSize,
         ...values,
+        includeDraft,
       };
       const result = await listStaff(params);
       setData(result.list || []);
@@ -29,7 +32,7 @@ const StaffList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, form]);
+  }, [page, pageSize, form, includeDraft]);
 
   useEffect(() => {
     fetchData();
@@ -42,6 +45,7 @@ const StaffList: React.FC = () => {
 
   const handleReset = () => {
     form.resetFields();
+    setIncludeDraft(false);
     setPage(1);
     fetchData();
   };
@@ -49,6 +53,29 @@ const StaffList: React.FC = () => {
   const handlePageChange = (newPage: number, newPageSize: number) => {
     setPage(newPage);
     setPageSize(newPageSize);
+  };
+
+  const handleCleanup = () => {
+    Modal.confirm({
+      title: '确认清理',
+      content: '将清理7天前的草稿记录，此操作不可撤销，确认继续？',
+      okText: '确认清理',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setCleaning(true);
+        try {
+          const result = await cleanupDraftStaff();
+          message.success(`已清理 ${result.cleaned} 条草稿记录`);
+          setPage(1);
+          fetchData();
+        } catch {
+          // handled by interceptor
+        } finally {
+          setCleaning(false);
+        }
+      },
+    });
   };
 
   return (
@@ -99,6 +126,25 @@ const StaffList: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+          <Checkbox
+            checked={includeDraft}
+            onChange={(e) => {
+              setIncludeDraft(e.target.checked);
+              setPage(1);
+            }}
+          >
+            包含草稿
+          </Checkbox>
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            loading={cleaning}
+            onClick={handleCleanup}
+          >
+            清理7天前草稿
+          </Button>
+        </div>
       </Card>
       <Card>
         <StaffTable

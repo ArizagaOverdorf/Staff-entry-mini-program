@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
+const DEFAULT_DEV_ENCRYPTION_KEY =
+  'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=';
+
 @Injectable()
 export class ConfigService {
   get port(): number {
@@ -35,7 +38,11 @@ export class ConfigService {
   }
 
   get encryptionKey(): string {
-    return process.env.ENCRYPTION_KEY || 'change_me_32bytes_base64';
+    const key = process.env.ENCRYPTION_KEY;
+    if (!key || key === 'change_me_32bytes_base64') {
+      return DEFAULT_DEV_ENCRYPTION_KEY;
+    }
+    return key;
   }
 
   get filePreviewUrlTtl(): number {

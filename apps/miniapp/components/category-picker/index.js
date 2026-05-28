@@ -1,7 +1,21 @@
-/**
- * 服务类别选择组件
- * 支持多选服务类别
- */
+function normalizeCategory(item) {
+  const value = item.value || item.categoryId || item.dictKey || item.id;
+  const label = item.label || item.categoryName || item.dictValue || item.name || value;
+  return {
+    ...item,
+    value,
+    label,
+    categoryId: item.categoryId || item.dictKey || item.value || item.id,
+    categoryName: item.categoryName || item.dictValue || item.label || item.name || label
+  };
+}
+
+function getValue(item) {
+  return typeof item === 'string'
+    ? item
+    : item.value || item.categoryId || item.dictKey || item.id;
+}
+
 Component({
   properties: {
     categories: {
@@ -16,82 +30,101 @@ Component({
 
   data: {
     showPopup: false,
-    selected: [],
+    selectedIds: [],
+    normalizedCategories: [],
     displayText: '请选择服务类别'
   },
 
   observers: {
-    'selectedValues': function (val) {
-      if (val && val.length > 0) {
-        this.setData({
-          selected: val,
-          displayText: val.length + ' 项已选'
-        });
-      } else {
-        this.setData({
-          selected: [],
-          displayText: '请选择服务类别'
-        });
-      }
+    'categories, selectedValues': function () {
+      this.refreshOptions();
+    }
+  },
+
+  lifetimes: {
+    attached() {
+      this.refreshOptions();
     }
   },
 
   methods: {
-    // 打开选择弹窗
+    refreshOptions() {
+      const selectedIds = (this.data.selectedValues || [])
+        .map(getValue)
+        .filter(Boolean);
+      const normalizedCategories = (this.data.categories || [])
+        .map(normalizeCategory)
+        .filter((item) => item.value)
+        .map((item) => ({
+          ...item,
+          checked: selectedIds.indexOf(item.value) > -1
+        }));
+
+      this.setData({
+        selectedIds,
+        normalizedCategories,
+        displayText: selectedIds.length > 0 ? selectedIds.length + ' 项已选' : '请选择服务类别'
+      });
+    },
+
     openPicker() {
-      this.setData({
-        showPopup: true,
-        selected: [...this.data.selectedValues]
-      });
+      this.setData({ showPopup: true });
+      this.refreshOptions();
     },
 
-    // 关闭弹窗
     closePicker() {
-      this.setData({
-        showPopup: false
-      });
+      this.setData({ showPopup: false });
     },
 
-    // 切换选项
     toggleItem(e) {
       const value = e.currentTarget.dataset.value;
-      let selected = this.data.selected;
-      const index = selected.indexOf(value);
+      let selectedIds = [...this.data.selectedIds];
+      const index = selectedIds.indexOf(value);
+
       if (index > -1) {
-        selected.splice(index, 1);
+        selectedIds.splice(index, 1);
       } else {
-        selected.push(value);
+        selectedIds.push(value);
       }
+
       this.setData({
-        selected: selected
+        selectedIds,
+        normalizedCategories: this.data.normalizedCategories.map((item) => ({
+          ...item,
+          checked: selectedIds.indexOf(item.value) > -1
+        }))
       });
     },
 
-    // 确认选择
     confirm() {
+      const selectedValues = this.data.normalizedCategories
+        .filter((item) => this.data.selectedIds.indexOf(item.value) > -1)
+        .map((item) => ({
+          value: item.value,
+          label: item.label,
+          categoryId: item.categoryId,
+          categoryName: item.categoryName
+        }));
+
       this.setData({
         showPopup: false,
-        displayText: this.data.selected.length > 0
-          ? this.data.selected.length + ' 项已选'
-          : '请选择服务类别'
+        displayText: selectedValues.length > 0 ? selectedValues.length + ' 项已选' : '请选择服务类别'
       });
-      this.triggerEvent('change', {
-        selectedValues: this.data.selected
-      });
+      this.triggerEvent('change', { selectedValues });
     },
 
-    // 清除选择
     clear() {
       this.setData({
-        selected: [],
+        selectedIds: [],
+        normalizedCategories: this.data.normalizedCategories.map((item) => ({
+          ...item,
+          checked: false
+        })),
         displayText: '请选择服务类别'
       });
-      this.triggerEvent('change', {
-        selectedValues: []
-      });
+      this.triggerEvent('change', { selectedValues: [] });
     },
 
-    // 阻止冒泡
     noop() {}
   }
 });

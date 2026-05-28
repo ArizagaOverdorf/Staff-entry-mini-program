@@ -130,21 +130,24 @@ model StaffAccount {
 }
 
 model StaffProfile {
-  id                    String    @id @default(uuid()) @db.Uuid
-  staffAccountId        String    @unique @map("staff_account_id") @db.Uuid
-  staffId               String    @map("staff_id") @db.VarChar(32)
-  realNameEncrypted     String?   @map("real_name_encrypted") @db.VarChar(255)
-  realNameMasked        String?   @map("real_name_masked") @db.VarChar(32)
-  idNumberEncrypted     String?   @map("id_number_encrypted") @db.VarChar(255)
-  idNumberMasked        String?   @map("id_number_masked") @db.VarChar(32)
-  gender                Int?      @db.SmallInt
-  birthday              DateTime? @db.Date
-  avatarUrl             String?   @map("avatar_url") @db.VarChar(512)
-  address               String?   @db.VarChar(255)
-  emergencyContactName  String?   @map("emergency_contact_name") @db.VarChar(64)
-  emergencyContactPhone String?   @map("emergency_contact_phone") @db.VarChar(255)
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                     String    @id @default(uuid()) @db.Uuid
+  staffAccountId         String    @unique @map("staff_account_id") @db.Uuid
+  staffId                String    @map("staff_id") @db.VarChar(32)
+  realNameEncrypted      String?   @map("real_name_encrypted") @db.VarChar(255)
+  realNameMasked         String?   @map("real_name_masked") @db.VarChar(32)
+  idNumberEncrypted      String?   @map("id_number_encrypted") @db.VarChar(255)
+  idNumberMasked         String?   @map("id_number_masked") @db.VarChar(32)
+  identityVerified       Boolean   @default(false) @map("identity_verified")
+  identityVerifyProvider String?   @map("identity_verify_provider") @db.VarChar(32)
+  identityVerifiedAt     DateTime? @map("identity_verified_at")
+  gender                 Int?      @db.SmallInt
+  birthday               DateTime? @db.Date
+  avatarUrl              String?   @map("avatar_url") @db.VarChar(512)
+  address                String?   @db.VarChar(255)
+  emergencyContactName   String?   @map("emergency_contact_name") @db.VarChar(64)
+  emergencyContactPhone  String?   @map("emergency_contact_phone") @db.VarChar(255)
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
 
   staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
 
@@ -162,7 +165,7 @@ model StaffSkill {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  staffAccount        StaffAccount             @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  staffAccount         StaffAccount           @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
   credentialSkillLinks StaffCredentialSkill[]
 
   @@index([staffAccountId])
@@ -207,8 +210,8 @@ model StaffCredential {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  staffAccount   StaffAccount            @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
-  files          StaffCredentialFile[]
+  staffAccount     StaffAccount           @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  files            StaffCredentialFile[]
   credentialSkills StaffCredentialSkill[]
 
   @@index([staffAccountId])
@@ -288,21 +291,26 @@ model AuditRecord {
 // ============================================================
 
 model StaffListingStatus {
-  id             String    @id @default(uuid()) @db.Uuid
-  staffAccountId String    @unique @map("staff_account_id") @db.Uuid
-  listingStatus  String    @default("offline") @map("listing_status") @db.VarChar(32)
-  isAvailable    Boolean   @default(false) @map("is_available")
-  pauseReason    String?   @map("pause_reason") @db.VarChar(255)
-  pausedAt       DateTime? @map("paused_at")
-  resumedAt      DateTime? @map("resumed_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid()) @db.Uuid
+  staffAccountId      String    @unique @map("staff_account_id") @db.Uuid
+  listingStatus       String    @default("offline") @map("listing_status") @db.VarChar(32)
+  isAvailable         Boolean   @default(false) @map("is_available")
+  pauseReason         String?   @map("pause_reason") @db.VarChar(255)
+  pausedAt            DateTime? @map("paused_at")
+  resumedAt           DateTime? @map("resumed_at")
+  managementStatus    String    @default("normal") @map("management_status") @db.VarChar(32)
+  managementReason    String?   @map("management_reason") @db.VarChar(500)
+  managementUpdatedAt DateTime? @map("management_updated_at")
+  managementUpdatedBy String?   @map("management_updated_by") @db.VarChar(64)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   staffAccount StaffAccount            @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
   logs         StaffListingStatusLog[]
 
   @@index([listingStatus])
   @@index([isAvailable])
+  @@index([managementStatus])
   @@map("staff_listing_status")
 }
 
@@ -337,7 +345,9 @@ model StaffServiceRecord {
   serviceDate            DateTime? @map("service_date") @db.Date
   externalOrderNo        String?   @map("external_order_no") @db.VarChar(64)
   serviceProject         String?   @map("service_project") @db.VarChar(128)
+  serviceAddress         String?   @map("service_address") @db.VarChar(255)
   serviceDurationMinutes Int?      @map("service_duration_minutes")
+  serviceAmount          Decimal?  @map("service_amount") @db.Decimal(12, 2)
   customerName           String?   @map("customer_name") @db.VarChar(64)
   serviceDesc            String?   @map("service_description") @db.VarChar(500)
   rating                 Int?      @db.SmallInt

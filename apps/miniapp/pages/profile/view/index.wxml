@@ -1,9 +1,19 @@
 <view class="profile-view-container">
-  <!-- 个人信息卡片 -->
   <view class="card">
     <view class="card-header">
       <text class="card-title">基本信息</text>
       <text class="card-action" bindtap="goToEdit">编辑</text>
+    </view>
+    <view class="profile-avatar-row" bindtap="goToEdit">
+      <view class="profile-avatar">
+        <image wx:if="{{profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" />
+        <text wx:else class="profile-avatar-text">{{avatarText}}</text>
+      </view>
+      <view class="profile-avatar-info">
+        <text class="profile-avatar-title">头像</text>
+        <text class="profile-avatar-desc">点击编辑资料后可拍照或从相册上传</text>
+      </view>
+      <view class="icon-arrow"></view>
     </view>
     <view class="profile-info">
       <view class="info-row">
@@ -16,7 +26,7 @@
       </view>
       <view class="info-row">
         <text class="info-label">性别</text>
-        <text class="info-value">{{getGenderLabel(profile.gender)}}</text>
+        <text class="info-value">{{profile.genderLabel || '未设置'}}</text>
       </view>
       <view class="info-row">
         <text class="info-label">出生日期</text>
@@ -33,7 +43,6 @@
     </view>
   </view>
 
-  <!-- 服务信息 -->
   <view class="card">
     <view class="card-header">
       <text class="card-title">服务信息</text>
@@ -50,7 +59,6 @@
     </view>
   </view>
 
-  <!-- 紧急联系人 -->
   <view class="card">
     <view class="card-header">
       <text class="card-title">紧急联系人</text>
@@ -67,7 +75,6 @@
     </view>
   </view>
 
-  <!-- 加载状态 -->
   <view class="loading-container" wx:if="{{!loaded}}">
     <text>加载中...</text>
   </view>

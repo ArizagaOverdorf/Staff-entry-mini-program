@@ -1,16 +1,20 @@
-const authUtil = require('../../../utils/auth');
 const request = require('../../../utils/request');
+const authUtil = require('../../../utils/auth');
 const constants = require('../../../utils/constants');
+
+const MOCK_SMS_CODE = '123456';
 
 Page({
   data: {
     isBinding: false,
-    canBind: true,
-    phone: ''
+    isSendingCode: false,
+    countdown: 0,
+    phone: '',
+    smsCode: ''
   },
 
-  onLoad() {
-    // 登录后仍需要完成手机号绑定，不在这里按 staffId 自动跳过。
+  onUnload() {
+    this.clearCountdownTimer();
   },
 
   handlePhoneInput(e) {
@@ -19,17 +23,74 @@ Page({
     });
   },
 
-  // 获取手机号回调
-  handleGetPhoneNumber(e) {
-    const that = this;
+  handleCodeInput(e) {
+    this.setData({
+      smsCode: (e.detail.value || '').trim()
+    });
+  },
 
-    if (this.data.isBinding) return;
-
+  validatePhone() {
     const phone = (this.data.phone || '').trim();
-
-    if (e.detail.errMsg !== 'getPhoneNumber:ok' && !phone) {
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
       wx.showToast({
-        title: '请输入手机号后继续',
+        title: '请输入正确手机号',
+        icon: 'none'
+      });
+      return false;
+    }
+    return true;
+  },
+
+  handleSendCode() {
+    if (this.data.isSendingCode || this.data.countdown > 0) return;
+    if (!this.validatePhone()) return;
+
+    this.setData({ isSendingCode: true });
+
+    setTimeout(() => {
+      this.setData({
+        isSendingCode: false,
+        countdown: 60
+      });
+      wx.showToast({
+        title: '验证码已发送',
+        icon: 'success'
+      });
+      wx.showModal({
+        title: '本地测试验证码',
+        content: `当前开发环境使用验证码 ${MOCK_SMS_CODE}。上线后再接入真实短信服务。`,
+        showCancel: false
+      });
+      this.startCountdown();
+    }, 300);
+  },
+
+  startCountdown() {
+    this.clearCountdownTimer();
+    this.countdownTimer = setInterval(() => {
+      const next = Math.max((this.data.countdown || 0) - 1, 0);
+      this.setData({ countdown: next });
+      if (next === 0) {
+        this.clearCountdownTimer();
+      }
+    }, 1000);
+  },
+
+  clearCountdownTimer() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+  },
+
+  handleVerifyCodeLogin() {
+    if (this.data.isBinding) return;
+    if (!this.validatePhone()) return;
+
+    const smsCode = (this.data.smsCode || '').trim();
+    if (!/^\d{6}$/.test(smsCode)) {
+      wx.showToast({
+        title: '请输入6位验证码',
         icon: 'none'
       });
       return;
@@ -37,27 +98,13 @@ Page({
 
     this.setData({ isBinding: true });
 
-    const code = e.detail.code;
-    const encryptedData = e.detail.encryptedData;
-    const iv = e.detail.iv;
-
-    // 获取微信登录 code
-    authUtil.wxLogin().then((loginCode) => {
-      return request.post(constants.API.PHONE_BIND, {
-        code: code,
-        encryptedData: encryptedData,
-        iv: iv,
-        phone: phone
-      });
-    }).then((res) => {
-      if (res.token) {
-        authUtil.setToken(res.token);
-      }
-      if (res.staffId) {
-        authUtil.setStaffId(res.staffId);
-      }
+    request.post(constants.API.PHONE_BIND, {
+      phone: this.data.phone,
+      smsCode
+    }).then(() => {
+      authUtil.setMobileBound(true);
       wx.showToast({
-        title: '绑定成功',
+        title: '登录成功',
         icon: 'success',
         duration: 1500
       });
@@ -67,16 +114,9 @@ Page({
         });
       }, 1500);
     }).catch((err) => {
-      console.error('手机号绑定失败', err);
+      console.error('验证码登录失败', err);
     }).finally(() => {
-      that.setData({ isBinding: false });
-    });
-  },
-
-  // 跳过（仅在开发/测试环境使用）
-  handleSkip() {
-    wx.redirectTo({
-      url: '/pages/privacy/index'
+      this.setData({ isBinding: false });
     });
   }
 });

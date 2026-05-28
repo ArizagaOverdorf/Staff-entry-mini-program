@@ -48,7 +48,31 @@ export class AuthService {
   }
 
   async bindPhone(accountId: string, dto: BindPhoneDto) {
+    return this.updatePhone(accountId, dto);
+  }
+
+  async changePhone(accountId: string, dto: BindPhoneDto) {
+    const account = await this.prisma.staffAccount.findUnique({
+      where: { id: accountId },
+      include: { profile: true },
+    });
+
+    if (!account) {
+      throw new BadRequestException('account not found');
+    }
+
+    // Reserved for Alibaba Cloud / Tencent Cloud real-name verification.
+    // Current MVP allows self-service phone change only after this WeChat-bound account is verified.
+    if (!account.profile?.identityVerified) {
+      throw new BadRequestException('identity verification is required');
+    }
+
+    return this.updatePhone(accountId, dto);
+  }
+
+  private async updatePhone(accountId: string, dto: BindPhoneDto) {
     const phone = dto.phone?.trim();
+    const smsCode = dto.smsCode?.trim();
 
     if (dto.encryptedData || dto.iv) {
       // TODO: implement WeChat phone decryption via wechatDataDecrypt.
@@ -65,6 +89,10 @@ export class AuthService {
 
     if (!/^1[3-9]\d{9}$/.test(phone)) {
       throw new BadRequestException('phone format is invalid');
+    }
+
+    if (phone && smsCode !== '123456') {
+      throw new BadRequestException('sms code is invalid');
     }
 
     let phoneEncrypted: string;

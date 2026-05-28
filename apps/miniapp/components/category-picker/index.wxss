@@ -86,6 +86,13 @@
   max-height: 50vh;
 }
 
+.popup-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
 .popup-item {
   display: flex;
   justify-content: space-between;

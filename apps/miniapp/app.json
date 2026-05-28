@@ -2,8 +2,11 @@
   "pages": [
     "pages/auth/index",
     "pages/auth/phone-bind/index",
+    "pages/auth/phone-change/index",
     "pages/privacy/index",
     "pages/home/index",
+    "pages/identity/index",
+    "pages/resume/index",
     "pages/profile/edit/index",
     "pages/profile/view/index",
     "pages/credential/index",

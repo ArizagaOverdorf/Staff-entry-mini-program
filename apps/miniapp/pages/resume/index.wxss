@@ -1,0 +1,286 @@
+.resume-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 12px 12px 24px;
+  box-sizing: border-box;
+}
+
+.resume-hero {
+  background: linear-gradient(135deg, #07c160, #06ad56);
+  border-radius: 8px;
+  padding: 22px 16px 18px;
+  margin-bottom: 10px;
+  color: #fff;
+  text-align: center;
+}
+
+.resume-avatar-large {
+  width: 86px;
+  height: 86px;
+  border-radius: 43px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.resume-avatar-large image {
+  width: 100%;
+  height: 100%;
+}
+
+.resume-avatar-text {
+  color: #fff;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.resume-name-row,
+.resume-basic-row,
+.record-top {
+  display: flex;
+  align-items: center;
+}
+
+.resume-name-row.center {
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.resume-name {
+  font-size: 22px;
+  font-weight: 600;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-badge {
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.resume-badge.verified {
+  color: #07c160;
+  background-color: #fff;
+}
+
+.resume-badge.pending {
+  color: #fff7e6;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.resume-basic-row {
+  justify-content: center;
+  gap: 16px;
+  font-size: 13px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: 10px;
+}
+
+.resume-intro {
+  display: block;
+  text-align: left;
+  font-size: 13px;
+  line-height: 21px;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.resume-card {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ability-tag {
+  padding: 5px 9px;
+  border-radius: 4px;
+  background-color: #e8f8e8;
+  color: #07c160;
+  font-size: 13px;
+}
+
+.area-line,
+.empty-line {
+  font-size: 13px;
+  color: #666;
+  line-height: 20px;
+}
+
+.audit-row,
+.skill-row {
+  display: flex;
+  align-items: center;
+  padding: 11px 0;
+  border-top: 1px solid #f2f2f2;
+}
+
+.audit-row:first-of-type,
+.skill-row:first-of-type {
+  border-top: none;
+}
+
+.audit-row.detailed {
+  align-items: flex-start;
+}
+
+.audit-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-label {
+  display: block;
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+}
+
+.audit-date {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #777;
+  line-height: 16px;
+}
+
+.audit-status {
+  font-size: 13px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
+.audit-status.approved {
+  color: #07c160;
+  background-color: #e8f8e8;
+}
+
+.audit-status.unapproved {
+  color: #999;
+  background-color: #f2f2f2;
+}
+
+.skill-main {
+  flex: 1;
+  min-width: 0;
+  margin-right: 10px;
+}
+
+.skill-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.skill-desc {
+  display: block;
+  font-size: 12px;
+  color: #777;
+  line-height: 18px;
+}
+
+.resume-record {
+  padding: 12px 0;
+  border-top: 1px solid #f2f2f2;
+}
+
+.resume-record:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.record-top {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.record-project {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.record-amount {
+  font-size: 15px;
+  font-weight: 600;
+  color: #07c160;
+}
+
+.record-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #666;
+}
+
+.violation-no {
+  color: #07c160;
+}
+
+.violation-yes {
+  color: #f5222d;
+}
+
+.resume-note {
+  padding: 0 4px;
+  color: #999;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.mgmt-banner {
+  background-color: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.mgmt-banner-text {
+  font-size: 14px;
+  color: #fa8c16;
+  font-weight: 500;
+}
+
+.resume-restricted {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.restricted-text {
+  font-size: 16px;
+  color: #999;
+  line-height: 24px;
+}

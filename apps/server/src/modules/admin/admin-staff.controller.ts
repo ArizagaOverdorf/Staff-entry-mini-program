@@ -5,6 +5,7 @@ import { RequirePermissions } from './decorators/permissions.decorator';
 import { CurrentAdmin } from './decorators/current-admin.decorator';
 import { AdminStaffService } from './admin-staff.service';
 import { AuditCredentialDto, AuditIntakeDto } from './dto/audit.dto';
+import { SetManagementStatusDto } from './dto/set-management-status.dto';
 
 @UseGuards(AdminJwtAuthGuard, PermissionsGuard)
 @RequirePermissions('staff.view')
@@ -17,6 +18,12 @@ export class AdminStaffController {
     return this.adminStaffService.getDashboardStats();
   }
 
+  @Post('cleanup-draft')
+  @RequirePermissions('staff.audit')
+  async cleanupDraft() {
+    return this.adminStaffService.cleanupDrafts();
+  }
+
   @Get()
   async list(
     @Query('page') page?: string,
@@ -25,6 +32,7 @@ export class AdminStaffController {
     @Query('phone') phone?: string,
     @Query('intakeStatus') intakeStatus?: string,
     @Query('listingStatus') listingStatus?: string,
+    @Query('includeDraft') includeDraft?: string,
   ) {
     return this.adminStaffService.list({
       page: page ? parseInt(page, 10) : 1,
@@ -33,6 +41,7 @@ export class AdminStaffController {
       phone,
       intakeStatus,
       listingStatus,
+      includeDraft: includeDraft === 'true',
     });
   }
 
@@ -95,6 +104,21 @@ export class AdminStaffController {
       adminUserId,
       dto.action,
       dto.remark,
+    );
+  }
+
+  @Post(':staffId/management-status')
+  @RequirePermissions('staff.audit')
+  async setManagementStatus(
+    @Param('staffId') staffId: string,
+    @CurrentAdmin('id') adminUserId: string,
+    @Body() dto: SetManagementStatusDto,
+  ) {
+    return this.adminStaffService.setManagementStatus(
+      staffId,
+      adminUserId,
+      dto.status,
+      dto.reason,
     );
   }
 }

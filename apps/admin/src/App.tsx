@@ -9,6 +9,7 @@ import PermissionConfig from './pages/role/permission-config';
 import DictManagement from './pages/dict';
 import StaffList from './pages/staff';
 import StaffDetail from './pages/staff/detail';
+import ServiceRecordPage from './pages/service-record';
 
 const App: React.FC = () => {
   return (
@@ -23,6 +24,7 @@ const App: React.FC = () => {
         <Route path="dict" element={<DictManagement />} />
         <Route path="staff" element={<StaffList />} />
         <Route path="staff/:staffId" element={<StaffDetail />} />
+        <Route path="service-record" element={<ServiceRecordPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

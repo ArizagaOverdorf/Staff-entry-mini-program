@@ -42,6 +42,7 @@ Page({
         if (res.staffId) {
           authUtil.setStaffId(res.staffId);
         }
+        authUtil.setMobileBound(!!res.mobileBound);
         // 检查是否需要绑定手机号
         if (res.mobileBound) {
           // 检查是否已确认隐私

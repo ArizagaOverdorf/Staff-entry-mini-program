@@ -33,6 +33,7 @@ const auth = {
     try {
       wx.removeStorageSync('token');
       wx.removeStorageSync('staffId');
+      wx.removeStorageSync('mobileBound');
     } catch (e) {
       console.error('移除 token 失败', e);
     }
@@ -57,6 +58,22 @@ const auth = {
       return wx.getStorageSync('staffId') || '';
     } catch (e) {
       return '';
+    }
+  },
+
+  setMobileBound(bound) {
+    try {
+      wx.setStorageSync('mobileBound', bound ? '1' : '0');
+    } catch (e) {
+      console.error('保存手机号绑定状态失败', e);
+    }
+  },
+
+  isMobileBound() {
+    try {
+      return wx.getStorageSync('mobileBound') === '1';
+    } catch (e) {
+      return false;
     }
   },
 

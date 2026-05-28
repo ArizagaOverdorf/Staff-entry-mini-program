@@ -13,11 +13,10 @@
 }
 
 .auth-logo {
-  width: 80px;
-  height: 80px;
-  border-radius: 16px;
-  background-color: #fff;
+  width: 132px;
+  height: 110px;
   margin-bottom: 16px;
+  display: block;
 }
 
 .auth-title {
@@ -36,8 +35,21 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
   padding: 0 20px 60px;
+}
+
+.auth-login-button {
+  width: 194px;
+  height: 44px;
+  line-height: normal;
+  margin: 20px auto 0;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .auth-agreement {

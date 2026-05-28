@@ -25,6 +25,12 @@ const LISTING_STATUS_MAP: Record<string, string> = {
   paused: 'paused',
 };
 
+const MANAGEMENT_STATUS_LABELS: Record<string, string> = {
+  normal: '正常',
+  paused: '暂停',
+  blacklisted: '拉黑',
+};
+
 interface StaffListParams {
   page: number;
   pageSize: number;
@@ -32,6 +38,7 @@ interface StaffListParams {
   phone?: string;
   intakeStatus?: string;
   listingStatus?: string;
+  includeDraft?: boolean;
 }
 
 @Injectable()
@@ -62,7 +69,7 @@ export class AdminStaffService {
   }
 
   async list(params: StaffListParams) {
-    const { page, pageSize, name, phone, intakeStatus, listingStatus } = params;
+    const { page, pageSize, name, phone, intakeStatus, listingStatus, includeDraft } = params;
     const where: Record<string, any> = { deletedAt: null };
 
     if (name) {
@@ -72,7 +79,9 @@ export class AdminStaffService {
       where.phoneMasked = { contains: phone };
     }
     if (intakeStatus) {
-      where.intakeStatus = { intakeStatus };
+      where.intakeStatus = { is: { intakeStatus } };
+    } else if (!includeDraft) {
+      where.intakeStatus = { is: { intakeStatus: { not: 'draft' } } };
     }
     if (listingStatus) {
       where.listingStatus = {
@@ -121,6 +130,9 @@ export class AdminStaffService {
               listingStatus: true,
               isAvailable: true,
               pauseReason: true,
+              managementStatus: true,
+              managementReason: true,
+              managementUpdatedAt: true,
             },
           },
         },
@@ -186,6 +198,9 @@ export class AdminStaffService {
       listingStatus: account.listingStatus?.listingStatus ?? 'off',
       isAvailable: account.listingStatus?.isAvailable ?? false,
       pauseReason: account.listingStatus?.pauseReason,
+      managementStatus: account.listingStatus?.managementStatus ?? 'normal',
+      managementStatusLabel: MANAGEMENT_STATUS_LABELS[account.listingStatus?.managementStatus ?? 'normal'],
+      managementReason: account.listingStatus?.managementReason,
       privacyAgreed: account.privacyAgreed,
       auditRecords: account.auditRecords.map((record) =>
         this.formatAuditRecord(record),
@@ -479,6 +494,113 @@ export class AdminStaffService {
     };
   }
 
+  async cleanupDrafts() {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const result = await this.prisma.staffAccount.updateMany({
+      where: {
+        deletedAt: null,
+        createdAt: { lt: sevenDaysAgo },
+        OR: [
+          { intakeStatus: { is: { intakeStatus: 'draft' } } },
+          { intakeStatus: { is: null } },
+        ],
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return { cleaned: result.count };
+  }
+
+  async setManagementStatus(
+    staffId: string,
+    adminUserId: string,
+    status: 'normal' | 'paused' | 'blacklisted',
+    reason?: string,
+  ) {
+    if ((status === 'paused' || status === 'blacklisted') && !reason?.trim()) {
+      throw new BadRequestException('暂停或拉黑操作必须填写原因');
+    }
+
+    const account = await this.getStaffAccount(staffId);
+    const listingStatus = await this.prisma.staffListingStatus.findUnique({
+      where: { staffAccountId: account.id },
+    });
+
+    const oldStatus = listingStatus?.managementStatus ?? 'normal';
+
+    const statusLabelMap: Record<string, string> = {
+      normal: '正常',
+      paused: '暂停',
+      blacklisted: '拉黑',
+    };
+
+    const statusLabel = statusLabelMap[status] || status;
+
+    const isRestrictive = status === 'paused' || status === 'blacklisted';
+
+    await this.prisma.$transaction(async (tx) => {
+      const updateData: Record<string, any> = {
+        managementStatus: status,
+        managementReason: isRestrictive ? reason : null,
+        managementUpdatedAt: new Date(),
+        managementUpdatedBy: adminUserId,
+      };
+
+      if (isRestrictive) {
+        updateData.listingStatus = 'off';
+        updateData.isAvailable = false;
+        updateData.pauseReason = `management_${status}`;
+        updateData.pausedAt = new Date();
+      }
+
+      await tx.staffListingStatus.upsert({
+        where: { staffAccountId: account.id },
+        create: {
+          staffAccountId: account.id,
+          listingStatus: 'off',
+          isAvailable: false,
+          ...updateData,
+        },
+        update: updateData,
+      });
+
+      await tx.operationLog.create({
+        data: {
+          operatorId: adminUserId,
+          operatorType: 'admin',
+          targetType: 'staff_management_status',
+          targetId: account.staffId,
+          action: `management_${status}`,
+          detail: `管理状态变更: ${oldStatus} → ${status}${reason ? `，原因：${reason}` : ''}`,
+        },
+      });
+
+      const messageTitle = `服务状态变更通知`;
+      const messageContent = isRestrictive
+        ? `您的服务状态已被管理员设置为「${statusLabel}」。原因：${reason}`
+        : `您的服务状态已恢复为「${statusLabel}」。`;
+
+      await tx.message.create({
+        data: {
+          staffAccountId: account.id,
+          title: messageTitle,
+          content: messageContent,
+          messageType: 'system',
+        },
+      });
+    });
+
+    return {
+      managementStatus: status,
+      managementStatusLabel: statusLabel,
+      managementReason: isRestrictive ? reason : null,
+    };
+  }
+
   private formatStaffListItem(item: any) {
     return {
       id: item.id,
@@ -499,6 +621,9 @@ export class AdminStaffService {
       listingStatus: item.listingStatus?.listingStatus ?? 'off',
       isAvailable: item.listingStatus?.isAvailable ?? false,
       pauseReason: item.listingStatus?.pauseReason,
+      managementStatus: item.listingStatus?.managementStatus ?? 'normal',
+      managementStatusLabel: MANAGEMENT_STATUS_LABELS[item.listingStatus?.managementStatus ?? 'normal'],
+      managementReason: item.listingStatus?.managementReason,
       createdAt: item.createdAt?.toISOString(),
     };
   }

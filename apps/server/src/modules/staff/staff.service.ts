@@ -22,6 +22,7 @@ export class StaffService {
     if (!account) throw new NotFoundException('Staff not found');
 
     const encryptionKey = this.config.encryptionKey;
+    const profile = account.profile as any;
 
     return {
       staffId: account.staffId,
@@ -30,26 +31,30 @@ export class StaffService {
         ? decrypt(account.phoneEncrypted, encryptionKey)
         : undefined,
       nickname: account.wechatNickname,
-      profile: account.profile
+      profile: profile
         ? {
-            name: account.profile.realNameEncrypted
-              ? decrypt(account.profile.realNameEncrypted, encryptionKey)
+            name: profile.realNameEncrypted
+              ? decrypt(profile.realNameEncrypted, encryptionKey)
               : undefined,
-            nameMasked: account.profile.realNameMasked,
-            idNumber: account.profile.idNumberEncrypted
-              ? decrypt(account.profile.idNumberEncrypted, encryptionKey)
+            nameMasked: profile.realNameMasked,
+            idNumber: profile.idNumberEncrypted
+              ? decrypt(profile.idNumberEncrypted, encryptionKey)
               : undefined,
-            idNumberMasked: account.profile.idNumberMasked,
-            gender: account.profile.gender != null
-              ? account.profile.gender === 1 ? 'male' : 'female'
+            idNumberMasked: profile.idNumberMasked,
+            // Reserved for Alibaba Cloud / Tencent Cloud real-name verification integration.
+            identityVerified: !!profile.identityVerified,
+            identityVerifyProvider: profile.identityVerifyProvider,
+            identityVerifiedAt: profile.identityVerifiedAt,
+            gender: profile.gender != null
+              ? profile.gender === 1 ? 'male' : 'female'
               : undefined,
-            birthday: account.profile.birthday
-              ? account.profile.birthday.toISOString().slice(0, 10)
+            birthday: profile.birthday
+              ? profile.birthday.toISOString().slice(0, 10)
               : undefined,
-            avatarUrl: account.profile.avatarUrl,
-            address: account.profile.address,
-            emergencyContact: account.profile.emergencyContactName,
-            emergencyPhone: account.profile.emergencyContactPhone,
+            avatarUrl: profile.avatarUrl,
+            address: profile.address,
+            emergencyContact: profile.emergencyContactName,
+            emergencyPhone: profile.emergencyContactPhone,
             serviceCategories: account.skills.map((s) => ({
               id: s.id,
               categoryId: s.categoryId,
@@ -109,7 +114,7 @@ export class StaffService {
       where: { staffAccountId: accountId },
       create: { ...profileData, staffAccountId: accountId, staffId },
       update: profileData,
-    });
+    }) as any;
 
     return {
       name: result.realNameEncrypted
@@ -120,6 +125,9 @@ export class StaffService {
         ? decrypt(result.idNumberEncrypted, encryptionKey)
         : undefined,
       idNumberMasked: result.idNumberMasked,
+      identityVerified: result.identityVerified,
+      identityVerifyProvider: result.identityVerifyProvider,
+      identityVerifiedAt: result.identityVerifiedAt,
       gender: result.gender != null
         ? result.gender === 1 ? 'male' : 'female'
         : undefined,

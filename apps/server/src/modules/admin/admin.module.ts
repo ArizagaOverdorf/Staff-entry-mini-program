@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '../../config/config.service';
 import { FileModule } from '../file/file.module';
+import { ServiceRecordModule } from '../service-record/service-record.module';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthController } from './admin-auth.controller';
 import { AdminUserService } from './admin-user.service';
@@ -11,6 +12,7 @@ import { AdminRoleController } from './admin-role.controller';
 import { AdminStaffService } from './admin-staff.service';
 import { AdminStaffController } from './admin-staff.controller';
 import { AdminFileController } from './admin-file.controller';
+import { AdminServiceRecordController } from './admin-service-record.controller';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
@@ -18,6 +20,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
 @Module({
   imports: [
     FileModule,
+    ServiceRecordModule,
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
         secret: config.jwtSecret,
@@ -32,6 +35,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     AdminRoleController,
     AdminStaffController,
     AdminFileController,
+    AdminServiceRecordController,
   ],
   providers: [
     AdminAuthService,

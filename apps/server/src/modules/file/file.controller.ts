@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
@@ -15,6 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FileService } from './file.service';
 import { FILE_LIMITS } from './file.constants';
+import { Public } from '../../common/decorators/public.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('app/files')
@@ -26,6 +28,7 @@ export class FileController {
   async upload(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('id') accountId: string,
+    @Body('purpose') purpose?: string,
   ) {
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -40,7 +43,23 @@ export class FileController {
         `File size ${file.size} exceeds limit ${FILE_LIMITS.MAX_SIZE}`,
       );
     }
-    return this.fileService.upload(file, accountId);
+    const accessLevel = purpose === 'avatar' ? 'public' : 'private';
+    return this.fileService.upload(file, accountId, accessLevel);
+  }
+
+  @Public()
+  @Get('public/:fileId/preview')
+  async publicPreview(
+    @Param('fileId') fileId: string,
+    @Res() res: Response,
+  ) {
+    const { stream, mimeType } =
+      await this.fileService.getPublicPreviewStream(fileId);
+    res.set({
+      'Content-Type': mimeType,
+      'Cache-Control': 'public, max-age=300',
+    });
+    stream.pipe(res);
   }
 
   @Get(':fileId/preview')

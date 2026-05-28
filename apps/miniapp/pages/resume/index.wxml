@@ -1,0 +1,106 @@
+<view class="resume-container">
+  <!-- 管理状态提示 -->
+  <view class="mgmt-banner" wx:if="{{managementStatus === 'paused'}}">
+    <text class="mgmt-banner-text">暂停服务</text>
+  </view>
+  <view wx:if="{{managementStatus === 'blacklisted'}}">
+    <view class="resume-restricted">
+      <text class="restricted-text">该服务人员当前不可服务</text>
+    </view>
+  </view>
+  <block wx:if="{{managementStatus !== 'blacklisted'}}">
+  <view class="resume-hero">
+    <view class="resume-avatar-large">
+      <image wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill" />
+      <text wx:else class="resume-avatar-text">{{avatarText}}</text>
+    </view>
+    <view class="resume-name-row center">
+      <text class="resume-name">{{displayName}}</text>
+      <text class="resume-badge {{identityVerified ? 'verified' : 'pending'}}">{{identityVerifiedLabel}}</text>
+    </view>
+    <view class="resume-basic-row">
+      <text>性别：{{genderLabel}}</text>
+      <text>年龄：{{ageText || '未填写'}}</text>
+    </view>
+    <text class="resume-intro">{{introText}}</text>
+  </view>
+
+  <view class="resume-card">
+    <view class="section-title">服务类型</view>
+    <view class="tag-list" wx:if="{{serviceCategories.length > 0}}">
+      <text class="ability-tag" wx:for="{{serviceCategories}}" wx:key="categoryName">{{item.categoryName}}</text>
+    </view>
+    <view class="empty-line" wx:else>暂未填写服务类型</view>
+  </view>
+
+  <view class="resume-card">
+    <view class="section-title">服务区域</view>
+    <view class="area-line">{{serviceAreaText || '暂未填写'}}</view>
+  </view>
+
+  <view class="resume-card">
+    <view class="section-title">资质审核</view>
+    <view class="audit-row detailed" wx:for="{{auditItems}}" wx:key="typeId">
+      <view class="audit-main">
+        <text class="audit-label">{{item.label}}</text>
+        <text class="audit-date" wx:if="{{item.dateText}}">{{item.dateText}}</text>
+      </view>
+      <text class="audit-status {{item.approved ? 'approved' : 'unapproved'}}">{{item.statusText}}</text>
+    </view>
+  </view>
+
+  <view class="resume-card">
+    <view class="section-title">技能</view>
+    <view wx:if="{{skillCertificates.length > 0}}">
+      <view class="skill-row" wx:for="{{skillCertificates}}" wx:key="id">
+        <view class="skill-main">
+          <text class="skill-name">{{item.skillName}}</text>
+          <text class="skill-desc">技能证书：{{item.certName}}</text>
+          <text class="skill-desc">技能等级：{{item.skillLevel}}</text>
+        </view>
+        <text class="audit-status {{item.approved ? 'approved' : 'unapproved'}}">{{item.statusText}}</text>
+      </view>
+    </view>
+    <view class="empty-line" wx:else>暂未上传技能证书</view>
+  </view>
+
+  <view class="resume-card">
+    <view class="section-title">最高学历/学生证</view>
+    <view class="audit-row" wx:for="{{educationItems}}" wx:key="label">
+      <text class="audit-label">{{item.label}}</text>
+      <text class="audit-status {{item.approved ? 'approved' : 'unapproved'}}">{{item.statusText}}</text>
+    </view>
+  </view>
+
+  <view class="resume-card">
+    <view class="section-title">保险</view>
+    <view class="audit-row">
+      <text class="audit-label">保险状态</text>
+      <text class="audit-status {{insuranceValid ? 'approved' : 'unapproved'}}">{{insuranceText}}</text>
+    </view>
+  </view>
+
+  <view class="resume-card">
+    <view class="section-title">服务记录</view>
+    <view wx:if="{{serviceRecords.length > 0}}">
+      <view class="resume-record" wx:for="{{serviceRecords}}" wx:key="id">
+        <view class="record-top">
+          <text class="record-project">{{item.projectText}}</text>
+          <text class="record-amount">{{item.amountText}}</text>
+        </view>
+        <view class="record-grid">
+          <text>日期：{{item.dateText}}</text>
+          <text>地址：{{item.addressText}}</text>
+          <text>时长：{{item.durationText}}</text>
+          <text class="{{item.violation ? 'violation-yes' : 'violation-no'}}">是否违规：{{item.violationText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="empty-line" wx:else>暂无服务记录</view>
+  </view>
+
+  <view class="resume-note">
+    <text>简历仅展示服务能力、审核结论和必要有效期，不展示身份证号、住址、联系人、证件图片等敏感信息。</text>
+  </view>
+  </block>
+</view>

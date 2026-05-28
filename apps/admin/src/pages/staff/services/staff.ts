@@ -24,6 +24,9 @@ export interface StaffRecord {
   listingStatus: string;
   isAvailable: boolean;
   pauseReason?: string;
+  managementStatus?: string;
+  managementStatusLabel?: string;
+  managementReason?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -75,6 +78,7 @@ export interface StaffListParams {
   phone?: string;
   intakeStatus?: string;
   listingStatus?: string;
+  includeDraft?: boolean;
 }
 
 export interface StaffListResult {
@@ -107,6 +111,10 @@ export async function getStaffCredentials(staffId: string): Promise<CredentialRe
 
 export async function getStaffAuditRecords(staffId: string): Promise<AuditRecordItem[]> {
   return request.get(`/staff/${staffId}/audit-records`);
+}
+
+export async function cleanupDraftStaff(): Promise<{ cleaned: number }> {
+  return request.post('/staff/cleanup-draft');
 }
 
 export async function approveIntake(staffId: string, remark?: string): Promise<any> {
@@ -143,4 +151,12 @@ export async function rejectCredential(
   remark: string,
 ): Promise<any> {
   return reviewCredential(staffId, credentialId, 'reject', remark);
+}
+
+export async function setManagementStatus(
+  staffId: string,
+  status: 'normal' | 'paused' | 'blacklisted',
+  reason?: string,
+): Promise<any> {
+  return request.post(`/staff/${staffId}/management-status`, { status, reason });
 }

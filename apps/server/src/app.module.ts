@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from './config/config.module';
+import { ConfigModule as NestConfigModule } from '@nestjs/config';
+import { ConfigModule as LocalConfigModule } from './config/config.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AccountModule } from './modules/account/account.module';
@@ -17,7 +18,11 @@ import { IntegrationModule } from './modules/integration/integration.module';
 
 @Module({
   imports: [
-    ConfigModule,
+    NestConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env', '../../.env'],
+    }),
+    LocalConfigModule,
     PrismaModule,
     AuthModule,
     AccountModule,

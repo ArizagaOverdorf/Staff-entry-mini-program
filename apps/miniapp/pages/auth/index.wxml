@@ -1,13 +1,13 @@
 <view class="auth-container">
   <view class="auth-header">
-    <view class="auth-logo icon-circle" style="background-color:#fff;color:#07c160;">家</view>
+    <image class="auth-logo" src="/assets/brand/xigua-logo.png" mode="aspectFit" />
     <text class="auth-title">家政服务人员入驻</text>
     <text class="auth-desc">微信授权登录，轻松入驻</text>
   </view>
 
   <view class="auth-body">
     <button
-      class="btn-primary"
+      class="btn-primary auth-login-button"
       type="primary"
       loading="{{isLogging}}"
       disabled="{{!canLogin || isLogging}}"

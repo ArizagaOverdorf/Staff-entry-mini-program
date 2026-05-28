@@ -9,15 +9,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60px 30px 40px;
-}
-
-.phone-bind-icon {
-  width: 72px;
-  height: 72px;
-  margin-bottom: 20px;
-  border-radius: 36px;
-  background-color: #e8f8e8;
+  padding: 96px 30px 40px;
 }
 
 .phone-bind-title {
@@ -52,6 +44,47 @@
   font-size: 16px;
   color: #333;
   background-color: #fff;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.code-input {
+  box-sizing: border-box;
+  flex: 1;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #333;
+  background-color: #fff;
+}
+
+.btn-code {
+  width: 118px;
+  height: 48px;
+  line-height: normal;
+  margin-left: 10px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #07c160;
+  background-color: #fff;
+  color: #07c160;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.btn-code[disabled] {
+  border-color: #ddd;
+  color: #aaa;
+  background-color: #f7f7f7;
 }
 
 .phone-bind-tip {

@@ -1,6 +1,5 @@
 <view class="phone-bind-container">
   <view class="phone-bind-header">
-    <view class="phone-bind-icon icon-circle" style="background-color:#e8f8e8;color:#07c160;">机</view>
     <text class="phone-bind-title">绑定手机号</text>
     <text class="phone-bind-desc">为了保障您的账户安全，请绑定手机号</text>
   </view>
@@ -15,18 +14,36 @@
       placeholder="请输入手机号"
     />
 
+    <view class="code-row">
+      <input
+        class="code-input"
+        type="number"
+        maxlength="6"
+        value="{{smsCode}}"
+        bindinput="handleCodeInput"
+        placeholder="请输入验证码"
+      />
+      <button
+        class="btn-code"
+        disabled="{{isSendingCode || countdown > 0}}"
+        loading="{{isSendingCode}}"
+        bindtap="handleSendCode"
+      >
+        {{countdown > 0 ? countdown + '秒后重发' : '获取验证码'}}
+      </button>
+    </view>
+
     <button
       class="btn-primary"
-      open-type="getPhoneNumber"
       loading="{{isBinding}}"
       disabled="{{isBinding}}"
-      bindgetphonenumber="handleGetPhoneNumber"
+      bindtap="handleVerifyCodeLogin"
     >
-      获取手机号
+      获取验证码登录
     </button>
 
     <view class="phone-bind-tip">
-      <text>我们仅用于身份验证，不会泄露您的个人信息</text>
+      <text>本地测试验证码：123456。上线后接入短信服务。</text>
     </view>
   </view>
 </view>

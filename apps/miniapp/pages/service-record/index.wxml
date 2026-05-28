@@ -1,48 +1,58 @@
 <view class="service-record-container">
-  <!-- 列表标题 -->
   <view class="list-header">
-    <text class="list-header-title">服务记录</text>
+    <view>
+      <text class="list-header-title">服务记录</text>
+      <text class="list-header-subtitle">按订单记录历史服务表现</text>
+    </view>
     <text class="list-header-count" wx:if="{{records.length > 0}}">共 {{records.length}} 条</text>
   </view>
 
-  <!-- 记录列表 -->
+  <view class="demo-tip" wx:if="{{usingDemo}}">
+    当前暂无真实服务记录，以下为展示样例。
+  </view>
+
   <view class="record-list" wx:if="{{records.length > 0}}">
-    <view
-      class="record-card"
-      wx:for="{{records}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="viewDetail"
-    >
+    <view class="record-card" wx:for="{{records}}" wx:key="id">
       <view class="record-card-top">
-        <text class="record-client">{{item.clientName || '客户'}}</text>
-        <text class="record-status tag tag-success" wx:if="{{item.status === 'completed'}}">已完成</text>
-        <text class="record-status tag tag-warning" wx:elif="{{item.status === 'in_progress'}}">进行中</text>
-        <text class="record-status tag tag-info" wx:else>{{item.statusLabel || '未知'}}</text>
+        <text class="record-project">{{item.projectText}}</text>
+        <text class="record-amount">{{item.amountText}}</text>
       </view>
-      <view class="record-card-body">
-        <text class="record-service">{{item.serviceTypeName || item.serviceType || '家政服务'}}</text>
-        <text class="record-address">{{item.address || ''}}</text>
+      <view class="record-row">
+        <text class="record-label">日期</text>
+        <text class="record-value">{{item.dateText}}</text>
       </view>
-      <view class="record-card-bottom">
-        <text class="record-date">{{formatDate(item.serviceDate) || item.serviceDate}}</text>
-        <text class="record-duration" wx:if="{{item.duration}}">{{item.duration}}小时</text>
+      <view class="record-row">
+        <text class="record-label">地址</text>
+        <text class="record-value">{{item.addressText}}</text>
+      </view>
+      <view class="record-row">
+        <text class="record-label">项目</text>
+        <text class="record-value">{{item.projectText}}</text>
+      </view>
+      <view class="record-row">
+        <text class="record-label">时长</text>
+        <text class="record-value">{{item.durationText}}</text>
+      </view>
+      <view class="record-row">
+        <text class="record-label">金额</text>
+        <text class="record-value amount">{{item.amountText}}</text>
+      </view>
+      <view class="record-row">
+        <text class="record-label">是否违规</text>
+        <text class="record-value {{item.violation ? 'violation-yes' : 'violation-no'}}">{{item.violationText}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 空状态 -->
   <view class="empty-state" wx:if="{{loaded && records.length === 0}}">
     <view class="icon-empty">空</view>
     <text>暂无服务记录</text>
   </view>
 
-  <!-- 加载状态 -->
   <view class="loading-container" wx:if="{{!loaded}}">
     <text>加载中...</text>
   </view>
 
-  <!-- 加载更多 -->
   <view class="load-more" wx:if="{{hasMore}}">
     <text>上拉加载更多</text>
   </view>

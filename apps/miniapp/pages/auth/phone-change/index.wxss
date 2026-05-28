@@ -1,0 +1,149 @@
+.phone-change-container {
+  min-height: 100vh;
+  background-color: #fff;
+  padding: 0 20px 40px;
+  box-sizing: border-box;
+}
+
+.phone-change-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 72px 10px 24px;
+}
+
+.phone-change-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.phone-change-desc {
+  font-size: 14px;
+  line-height: 21px;
+  color: #999;
+  text-align: center;
+}
+
+.verify-card {
+  border-radius: 8px;
+  background-color: #f7f7f7;
+  padding: 14px;
+  margin-bottom: 24px;
+}
+
+.verify-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.verify-label {
+  font-size: 14px;
+  color: #333;
+}
+
+.verify-value {
+  font-size: 13px;
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+
+.verify-value.verified {
+  color: #07c160;
+  background-color: #e8f8e8;
+}
+
+.verify-value.pending {
+  color: #fa8c16;
+  background-color: #fff7e6;
+}
+
+.verify-tip {
+  font-size: 12px;
+  line-height: 18px;
+  color: #999;
+}
+
+.phone-change-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  margin-bottom: 16px;
+  padding: 0 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #333;
+  background-color: #fff;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.code-input {
+  box-sizing: border-box;
+  flex: 1;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #333;
+  background-color: #fff;
+}
+
+.btn-code {
+  width: 118px;
+  height: 48px;
+  line-height: normal;
+  margin-left: 10px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #07c160;
+  background-color: #fff;
+  color: #07c160;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.btn-code[disabled] {
+  border-color: #ddd;
+  color: #aaa;
+  background-color: #f7f7f7;
+}
+
+.link-button {
+  margin-top: 14px;
+  padding: 0;
+  height: 36px;
+  line-height: 36px;
+  color: #07c160;
+  background: transparent;
+  font-size: 14px;
+}
+
+.link-button::after {
+  border: none;
+}
+
+.phone-change-tip {
+  text-align: center;
+  font-size: 12px;
+  color: #ccc;
+  margin-top: 14px;
+  padding: 0 20px;
+}

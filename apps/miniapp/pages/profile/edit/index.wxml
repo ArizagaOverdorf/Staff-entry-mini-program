@@ -1,9 +1,19 @@
 <view class="profile-edit-container">
   <scroll-view class="form-scroll" scroll-y>
-    <!-- 基本信息 -->
     <view class="form-section">
       <view class="form-section-header">基本信息</view>
       <view class="form-group">
+        <view class="avatar-row">
+          <view class="profile-avatar" bindtap="handleAvatarUpload">
+            <image wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill" />
+            <text wx:else class="profile-avatar-text">{{avatarText}}</text>
+          </view>
+          <view class="avatar-action" bindtap="handleAvatarUpload">
+            <text class="avatar-title">头像</text>
+            <text class="avatar-desc">点击更换头像（拍照或相册）</text>
+          </view>
+        </view>
+
         <view class="form-item">
           <text class="form-label">姓名</text>
           <input class="form-input" type="text" placeholder="请输入姓名" value="{{name}}" bindinput="onNameInput" maxlength="30" />
@@ -33,7 +43,6 @@
       </view>
     </view>
 
-    <!-- 服务信息 -->
     <view class="form-section">
       <view class="form-section-header">服务信息</view>
       <view class="form-group">
@@ -52,7 +61,6 @@
       </view>
     </view>
 
-    <!-- 紧急联系人 -->
     <view class="form-section">
       <view class="form-section-header">紧急联系人</view>
       <view class="form-group">
@@ -68,7 +76,6 @@
     </view>
   </scroll-view>
 
-  <!-- 提交按钮 -->
   <view class="form-submit-bar">
     <button class="btn-primary" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="handleSave">
       保存

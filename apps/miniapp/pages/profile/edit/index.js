@@ -1,5 +1,40 @@
 const request = require('../../../utils/request');
+const uploadUtil = require('../../../utils/upload');
 const constants = require('../../../utils/constants');
+
+function getAvatarText(name) {
+  return name ? name.slice(0, 1) : '人';
+}
+
+function buildPublicPreviewUrl(fileId) {
+  return constants.API_BASE_URL + '/app/files/public/' + fileId + '/preview';
+}
+
+function normalizeCategory(item) {
+  return {
+    value: item.value || item.categoryId || item.dictKey || item.id,
+    label: item.label || item.categoryName || item.dictValue || item.name,
+    categoryId: item.categoryId || item.dictKey || item.value || item.id,
+    categoryName: item.categoryName || item.dictValue || item.label || item.name
+  };
+}
+
+function normalizeArea(item) {
+  const fallbackLabel = [item.province, item.city, item.district].filter(Boolean).join('');
+  const regionValue = [item.province, item.city, item.district].filter(Boolean).join('_');
+  return {
+    value: regionValue || item.value || item.areaId || item.dictKey || item.id,
+    label: item.label || item.areaName || item.dictValue || item.name || fallbackLabel,
+    province: item.province || '',
+    city: item.city || '',
+    district: item.district || ''
+  };
+}
+
+function hasExpectedServiceCategories(list) {
+  const values = list.map((item) => item.value || item.categoryId);
+  return constants.SERVICE_SKILL_OPTIONS.every((item) => values.indexOf(item.value) > -1);
+}
 
 Page({
   data: {
@@ -10,6 +45,8 @@ Page({
     birthday: '',
     phone: '',
     address: '',
+    avatarUrl: '',
+    avatarText: '人',
     emergencyContact: '',
     emergencyPhone: '',
     genderOptions: constants.GENDER_OPTIONS,
@@ -28,15 +65,14 @@ Page({
   },
 
   loadProfile() {
-    const that = this;
     request.get(constants.API.PROFILE).then((res) => {
       if (res.profile) {
         const p = res.profile;
         let genderIndex = -1;
         if (p.gender) {
-          genderIndex = constants.GENDER_OPTIONS.findIndex(g => g.value === p.gender);
+          genderIndex = constants.GENDER_OPTIONS.findIndex((g) => g.value === p.gender);
         }
-        that.setData({
+        this.setData({
           name: p.name || '',
           idNumber: p.idNumber || '',
           gender: p.gender || '',
@@ -45,35 +81,118 @@ Page({
           birthday: p.birthday || '',
           phone: p.phone || res.phone || '',
           address: p.address || '',
+          avatarUrl: p.avatarUrl || '',
+          avatarText: getAvatarText(p.name || p.nameMasked || ''),
           emergencyContact: p.emergencyContact || '',
           emergencyPhone: p.emergencyPhone || '',
           selectedCategories: p.serviceCategories || [],
           selectedAreas: p.serviceAreas || [],
           isEdit: true
         });
+      } else {
+        this.setData({
+          phone: res.phone || '',
+          avatarText: getAvatarText('')
+        });
       }
     }).catch(() => {
-      // 新用户，使用默认值
+      // 新用户使用默认值
     });
   },
 
   loadDictionaries() {
-    const that = this;
     request.get(constants.API.SERVICE_CATEGORIES, { groups: 'service_category' }).then((res) => {
-      that.setData({
-        serviceCategories: res.service_category || []
+      const apiCategories = (res.service_category || []).map(normalizeCategory);
+      const categories = hasExpectedServiceCategories(apiCategories)
+        ? apiCategories
+        : constants.SERVICE_SKILL_OPTIONS.map(normalizeCategory);
+      this.setData({
+        serviceCategories: categories
       });
-    }).catch(() => {});
+    }).catch(() => {
+      this.setData({
+        serviceCategories: constants.SERVICE_SKILL_OPTIONS.map(normalizeCategory)
+      });
+    });
 
     request.get(constants.API.SERVICE_AREAS, { groups: 'service_area' }).then((res) => {
-      that.setData({
-        serviceAreas: res.service_area || []
+      this.setData({
+        serviceAreas: constants.SERVICE_AREA_OPTIONS
       });
-    }).catch(() => {});
+    }).catch(() => {
+      this.setData({
+        serviceAreas: constants.SERVICE_AREA_OPTIONS
+      });
+    });
+  },
+
+  handleAvatarUpload() {
+    wx.showActionSheet({
+      itemList: ['拍照上传', '从相册选择'],
+      success: (res) => {
+        const sourceType = res.tapIndex === 0 ? ['camera'] : ['album'];
+        this.chooseAvatarAndUpload(sourceType);
+      }
+    });
+  },
+
+  chooseAvatarAndUpload(sourceType) {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType,
+      sizeType: ['compressed'],
+      success: (res) => {
+        const tempFile = res.tempFiles[0];
+        const filePath = tempFile.tempFilePath;
+
+        wx.showLoading({
+          title: '上传中...',
+          mask: true
+        });
+
+        uploadUtil.uploadFile(
+          constants.API.FILES_UPLOAD,
+          filePath,
+          'file',
+          { purpose: 'avatar' }
+        ).then((uploadRes) => {
+          const fileId = uploadRes.data?.id || uploadRes.id || '';
+          if (!fileId) {
+            wx.showToast({ title: '头像上传失败', icon: 'none' });
+            return;
+          }
+
+          this.setData({
+            avatarUrl: buildPublicPreviewUrl(fileId)
+          });
+          wx.showToast({
+            title: '头像已上传',
+            icon: 'success'
+          });
+        }).catch((err) => {
+          console.error('头像上传失败', err);
+        }).finally(() => {
+          wx.hideLoading();
+        });
+      },
+      fail: (err) => {
+        if (err.errMsg && err.errMsg.indexOf('cancel') === -1) {
+          wx.showToast({
+            title: '选择图片失败',
+            icon: 'none'
+          });
+        }
+      }
+    });
   },
 
   onNameInput(e) {
-    this.setData({ name: e.detail.value });
+    const name = e.detail.value;
+    this.setData({
+      name,
+      avatarText: getAvatarText(name)
+    });
   },
 
   onIdNumberInput(e) {
@@ -144,24 +263,22 @@ Page({
 
     this.setData({ isSubmitting: true });
 
-    const that = this;
     try {
-      // 1. Update profile
       const profileData = {
         name: this.data.name,
         idNumber: this.data.idNumber,
         gender: this.data.gender,
         birthday: this.data.birthday,
+        avatarUrl: this.data.avatarUrl,
         address: this.data.address,
         emergencyContact: this.data.emergencyContact,
         emergencyPhone: this.data.emergencyPhone
       };
       await request.put(constants.API.PROFILE_UPDATE, profileData);
 
-      // 2. Update skills
       if (this.data.selectedCategories.length > 0) {
         const skillsData = {
-          skills: this.data.selectedCategories.map(c => ({
+          skills: this.data.selectedCategories.map((c) => ({
             categoryId: c.categoryId || c.dictKey || c.id || c.value,
             categoryName: c.categoryName || c.dictValue || c.label || c.name,
             skillLevel: c.skillLevel || c.level,
@@ -171,10 +288,9 @@ Page({
         await request.put(constants.API.PROFILE + '/skills', skillsData);
       }
 
-      // 3. Update service areas
       if (this.data.selectedAreas.length > 0) {
         const areasData = {
-          areas: this.data.selectedAreas.map(a => ({
+          areas: this.data.selectedAreas.map((a) => ({
             province: a.province || a.dictValue || a.label || a.name || '',
             city: a.city || '',
             district: a.district || ''
@@ -194,7 +310,7 @@ Page({
     } catch (err) {
       console.error('保存失败', err);
     } finally {
-      that.setData({ isSubmitting: false });
+      this.setData({ isSubmitting: false });
     }
   }
 });

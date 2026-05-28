@@ -2,83 +2,118 @@ const request = require('../../../utils/request');
 const uploadUtil = require('../../../utils/upload');
 const constants = require('../../../utils/constants');
 
+function getCredentialType(typeId) {
+  return constants.CREDENTIAL_TYPES.find((item) => item.value === typeId);
+}
+
+function getSkillLevelIndex(level) {
+  return constants.SKILL_LEVEL_OPTIONS.findIndex((item) => item.value === level);
+}
+
 Page({
   data: {
     id: '',
     name: '',
+    nameLabel: '证件名称',
+    namePlaceholder: '请输入证件名称',
     typeName: '',
     typeId: '',
     expireDate: '',
     credentialNumber: '',
     issuingAuthority: '',
     issuingAuthorityLabel: '签发机构',
+    issuingAuthorityPlaceholder: '请输入签发机构',
     skillLevel: '',
+    skillLevelIndex: -1,
+    skillLevelOptions: constants.SKILL_LEVEL_OPTIONS,
     remark: '',
     fileUrl: '',
     fileIds: [],
     status: 'pending',
+    statusLabel: '',
     isSubmitting: false,
     isEdit: false,
+    isTypeLocked: false,
+    isSkillCert: false,
+    showNormalCredentialFields: true,
     credTypes: [],
-    // Skill linking for skill_cert
-    showSkillPicker: false,
-    showSkillLevel: false,
     staffSkills: [],
     selectedSkillIds: [],
-    selectedSkillNames: []
+    selectedSkillNames: [],
+    selectedSkillText: ''
   },
 
   onLoad(options) {
+    this.loadCredTypes();
+
     if (options.id) {
       this.setData({ id: options.id, isEdit: true });
       this.loadCredential(options.id);
     } else if (options.typeId) {
       const typeId = options.typeId;
-      const matchedType = constants.CREDENTIAL_TYPES.find((item) => item.value === typeId);
+      const matchedType = getCredentialType(typeId);
       const typeName = options.typeName
         ? decodeURIComponent(options.typeName)
         : matchedType
           ? matchedType.label
           : '';
-      const isSkillCert = typeId === 'skill_cert';
-      const isEducation = typeId === 'education' || typeId === 'student_card';
-      this.setData({
-        typeId,
-        typeName,
-        name: typeName,
-        issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
-        showSkillPicker: isSkillCert,
-        showSkillLevel: isSkillCert
-      });
+
+      this.applyTypeState(typeId, typeName, true);
+    } else {
+      this.refreshSkillOptions([]);
     }
-    this.loadCredTypes();
-    this.loadStaffSkills();
+  },
+
+  applyTypeState(typeId, typeName, isLocked) {
+    const isSkillCert = typeId === 'skill_cert';
+    const isEducation = typeId === 'education' || typeId === 'student_card';
+
+    this.setData({
+      typeId,
+      typeName,
+      name: isSkillCert ? '' : (this.data.name || typeName),
+      nameLabel: isSkillCert ? '名称' : '证件名称',
+      namePlaceholder: isSkillCert ? '请填写技能证书名称' : '请输入证件名称',
+      isTypeLocked: !!isLocked,
+      isSkillCert,
+      showNormalCredentialFields: !isSkillCert,
+      issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
+      issuingAuthorityPlaceholder: isEducation ? '请输入学校名称' : '请输入签发机构'
+    });
+
+    this.refreshSkillOptions(this.data.selectedSkillIds || []);
   },
 
   loadCredential(id) {
-    const that = this;
     request.get(constants.API.CREDENTIALS + '/' + id).then((res) => {
       const cred = res.credential || res;
-      const isSkillCert = (cred.typeId || cred.credentialType) === 'skill_cert';
-      const isEducation = (cred.typeId || cred.credentialType) === 'education' || (cred.typeId || cred.credentialType) === 'student_card';
-      that.setData({
+      const typeId = cred.typeId || cred.credentialType || '';
+      const typeName = cred.typeName || (getCredentialType(typeId) || {}).label || '';
+      const linkedSkillIds = (cred.linkedSkills || [])
+        .map((skill) => skill.categoryId)
+        .filter(Boolean);
+      const skillLevel = cred.skillLevel || '';
+
+      this.setData({
         name: cred.name || '',
-        typeName: cred.typeName || '',
-        typeId: cred.typeId || cred.credentialType || '',
+        typeName,
+        typeId,
+        isTypeLocked: true,
         expireDate: cred.expireDate || cred.expiryDate || '',
         credentialNumber: cred.credentialNumber || '',
         issuingAuthority: cred.issuingAuthority || '',
-        issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
-        skillLevel: cred.skillLevel || '',
+        skillLevel,
+        skillLevelIndex: getSkillLevelIndex(skillLevel),
         remark: cred.remark || '',
         fileUrl: cred.fileUrl || '',
         status: cred.status || 'pending',
-        fileIds: cred.files ? cred.files.map(f => f.fileAsset.id) : [],
-        showSkillPicker: isSkillCert,
-        showSkillLevel: isSkillCert,
-        selectedSkillIds: cred.staffSkillIds || [],
-        selectedSkillNames: (cred.linkedSkills || []).map(s => s.categoryName)
+        statusLabel: constants.CREDENTIAL_STATUS_LABEL[cred.status] || cred.status || '',
+        fileIds: cred.files ? cred.files.map((file) => file.fileAsset.id) : [],
+        selectedSkillIds: linkedSkillIds,
+        selectedSkillNames: (cred.linkedSkills || []).map((skill) => skill.categoryName)
       });
+
+      this.applyTypeState(typeId, typeName, true);
     }).catch(() => {});
   },
 
@@ -88,55 +123,47 @@ Page({
     });
   },
 
-  loadStaffSkills() {
-    const that = this;
-    request.get(constants.API.PROFILE).then((res) => {
-      const categories = (res.profile && res.profile.serviceCategories) || [];
-      that.setData({
-        staffSkills: categories.map(c => ({
-          id: c.id,
-          categoryId: c.categoryId,
-          categoryName: c.categoryName
-        }))
-      });
-    }).catch(() => {});
+  refreshSkillOptions(selectedIds) {
+    const selected = selectedIds || [];
+    const staffSkills = constants.SERVICE_SKILL_OPTIONS.map((item) => ({
+      id: item.value,
+      categoryId: item.value,
+      categoryName: item.label,
+      checked: selected.indexOf(item.value) > -1
+    }));
+    const selectedSkillNames = staffSkills
+      .filter((item) => item.checked)
+      .map((item) => item.categoryName);
+
+    this.setData({
+      staffSkills,
+      selectedSkillIds: selected,
+      selectedSkillNames,
+      selectedSkillText: selectedSkillNames.join('、')
+    });
   },
 
   onTypeChange(e) {
+    if (this.data.isTypeLocked) return;
+
     const index = parseInt(e.detail.value);
     const type = this.data.credTypes[index];
-    const isSkillCert = type.value === 'skill_cert';
-    const isEducation = type.value === 'education' || type.value === 'student_card';
-    this.setData({
-      typeId: type.value,
-      typeName: type.label,
-      issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
-      showSkillPicker: isSkillCert,
-      showSkillLevel: isSkillCert,
-      selectedSkillIds: isSkillCert ? this.data.selectedSkillIds : [],
-      selectedSkillNames: isSkillCert ? this.data.selectedSkillNames : []
-    });
+    if (!type) return;
+
+    this.applyTypeState(type.value, type.label, false);
   },
 
   onSkillToggle(e) {
     const skillId = e.currentTarget.dataset.id;
-    const skillName = e.currentTarget.dataset.name;
     let selectedSkillIds = this.data.selectedSkillIds || [];
-    let selectedSkillNames = this.data.selectedSkillNames || [];
 
-    const idx = selectedSkillIds.indexOf(skillId);
-    if (idx > -1) {
-      selectedSkillIds = selectedSkillIds.filter(id => id !== skillId);
-      selectedSkillNames = selectedSkillNames.filter(n => n !== skillName);
+    if (selectedSkillIds.indexOf(skillId) > -1) {
+      selectedSkillIds = selectedSkillIds.filter((id) => id !== skillId);
     } else {
       selectedSkillIds = [...selectedSkillIds, skillId];
-      selectedSkillNames = [...selectedSkillNames, skillName];
     }
 
-    this.setData({
-      selectedSkillIds,
-      selectedSkillNames
-    });
+    this.refreshSkillOptions(selectedSkillIds);
   },
 
   onNameInput(e) {
@@ -151,8 +178,13 @@ Page({
     this.setData({ issuingAuthority: e.detail.value });
   },
 
-  onSkillLevelInput(e) {
-    this.setData({ skillLevel: e.detail.value });
+  onSkillLevelChange(e) {
+    const index = parseInt(e.detail.value);
+    const option = this.data.skillLevelOptions[index];
+    this.setData({
+      skillLevelIndex: index,
+      skillLevel: option ? option.value : ''
+    });
   },
 
   onExpireDateInput(e) {
@@ -163,9 +195,7 @@ Page({
     this.setData({ remark: e.detail.value });
   },
 
-  // 选择并上传图片（两步：先上传文件，获得 fileId 后关联到证件）
   handleUploadImage() {
-    const that = this;
     uploadUtil.chooseAndUpload(
       constants.API.FILES_UPLOAD,
       'file'
@@ -173,10 +203,10 @@ Page({
       const fileId = res.data?.id || res.id || '';
       const fileUrl = res.data?.fileUrl || res.fileUrl || '';
       if (fileId) {
-        const fileIds = that.data.fileIds || [];
+        const fileIds = this.data.fileIds || [];
         fileIds.push(fileId);
-        that.setData({
-          fileIds: fileIds,
+        this.setData({
+          fileIds,
           fileUrl: fileUrl || fileId
         });
       }
@@ -189,22 +219,42 @@ Page({
     });
   },
 
-  // 保存
-  handleSave() {
-    if (this.data.isSubmitting) return;
+  getSelectedSkillCategories() {
+    return (this.data.selectedSkillIds || []).map((id) => {
+      const skill = constants.SERVICE_SKILL_OPTIONS.find((item) => item.value === id);
+      return {
+        categoryId: id,
+        categoryName: skill ? skill.label : id
+      };
+    });
+  },
 
-    if (!this.data.name) {
-      wx.showToast({ title: '请输入证件名称', icon: 'none' });
-      return;
-    }
+  validate() {
     if (!this.data.typeId) {
       wx.showToast({ title: '请选择证件类型', icon: 'none' });
-      return;
+      return false;
     }
-    if (this.data.typeId === 'skill_cert' && (!this.data.selectedSkillIds || this.data.selectedSkillIds.length === 0)) {
+    if (!this.data.name) {
+      wx.showToast({
+        title: this.data.isSkillCert ? '请输入名称' : '请输入证件名称',
+        icon: 'none'
+      });
+      return false;
+    }
+    if (this.data.isSkillCert && !this.data.skillLevel) {
+      wx.showToast({ title: '请选择等级', icon: 'none' });
+      return false;
+    }
+    if (this.data.isSkillCert && (!this.data.selectedSkillIds || this.data.selectedSkillIds.length === 0)) {
       wx.showToast({ title: '技能证书需关联至少一个服务技能', icon: 'none' });
-      return;
+      return false;
     }
+    return true;
+  },
+
+  handleSave() {
+    if (this.data.isSubmitting) return;
+    if (!this.validate()) return;
 
     this.setData({ isSubmitting: true });
 
@@ -212,23 +262,23 @@ Page({
       name: this.data.name,
       typeId: this.data.typeId,
       typeName: this.data.typeName,
-      credentialNumber: this.data.credentialNumber,
-      issuingAuthority: this.data.issuingAuthority,
-      expireDate: this.data.expireDate,
-      skillLevel: this.data.skillLevel,
       remark: this.data.remark,
       fileIds: this.data.fileIds
     };
 
-    if (this.data.typeId === 'skill_cert') {
-      data.staffSkillIds = this.data.selectedSkillIds;
+    if (this.data.isSkillCert) {
+      data.skillLevel = this.data.skillLevel;
+      data.staffSkillCategories = this.getSelectedSkillCategories();
+    } else {
+      data.credentialNumber = this.data.credentialNumber;
+      data.issuingAuthority = this.data.issuingAuthority;
+      data.expireDate = this.data.expireDate;
     }
 
     const url = this.data.isEdit
       ? constants.API.CREDENTIALS + '/' + this.data.id
       : constants.API.CREDENTIALS;
 
-    const that = this;
     const saveRequest = this.data.isEdit
       ? request.put(url, data)
       : request.post(url, data);
@@ -245,7 +295,7 @@ Page({
     }).catch((err) => {
       console.error('保存证件失败', err);
     }).finally(() => {
-      that.setData({ isSubmitting: false });
+      this.setData({ isSubmitting: false });
     });
   }
 });

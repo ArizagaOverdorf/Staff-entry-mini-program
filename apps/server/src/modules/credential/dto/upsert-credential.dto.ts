@@ -1,4 +1,18 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+
+class StaffSkillCategoryDto {
+  @IsString()
+  categoryId: string;
+
+  @IsString()
+  categoryName: string;
+}
 
 export class UpsertCredentialDto {
   @IsString()
@@ -62,4 +76,10 @@ export class UpsertCredentialDto {
   @IsString({ each: true })
   @IsOptional()
   staffSkillIds?: string[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StaffSkillCategoryDto)
+  @IsOptional()
+  staffSkillCategories?: StaffSkillCategoryDto[];
 }

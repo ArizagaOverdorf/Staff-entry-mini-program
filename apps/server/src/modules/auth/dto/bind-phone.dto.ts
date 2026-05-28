@@ -16,4 +16,8 @@ export class BindPhoneDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @IsString()
+  @IsOptional()
+  smsCode?: string;
 }

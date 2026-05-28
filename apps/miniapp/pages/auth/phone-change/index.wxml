@@ -1,0 +1,59 @@
+<view class="phone-change-container">
+  <view class="phone-change-header">
+    <text class="phone-change-title">修改手机号</text>
+    <text class="phone-change-desc">当前微信账号已实名认证后，可直接验证新手机号完成换绑。</text>
+  </view>
+
+  <view class="verify-card">
+    <view class="verify-row">
+      <text class="verify-label">身份校验</text>
+      <text class="verify-value {{identityVerified ? 'verified' : 'pending'}}">{{identityVerifiedLabel}}</text>
+    </view>
+    <text class="verify-tip">正式上线后接入阿里云或腾讯云实名核验；开发阶段读取当前账号实名认证状态。</text>
+  </view>
+
+  <view class="phone-change-body">
+    <input
+      class="phone-input"
+      type="number"
+      maxlength="11"
+      value="{{phone}}"
+      bindinput="handlePhoneInput"
+      placeholder="请输入新手机号"
+    />
+
+    <view class="code-row">
+      <input
+        class="code-input"
+        type="number"
+        maxlength="6"
+        value="{{smsCode}}"
+        bindinput="handleCodeInput"
+        placeholder="请输入验证码"
+      />
+      <button
+        class="btn-code"
+        disabled="{{isSendingCode || countdown > 0 || !identityVerified}}"
+        loading="{{isSendingCode}}"
+        bindtap="handleSendCode"
+      >
+        {{countdown > 0 ? countdown + '秒后重发' : '获取验证码'}}
+      </button>
+    </view>
+
+    <button
+      class="btn-primary"
+      loading="{{isSubmitting}}"
+      disabled="{{isSubmitting || !identityVerified}}"
+      bindtap="handleChangePhone"
+    >
+      确认修改手机号
+    </button>
+
+    <button class="link-button" wx:if="{{!identityVerified}}" bindtap="goToIdentity">去实名认证</button>
+
+    <view class="phone-change-tip">
+      <text>本地测试验证码：123456。上线后接入短信服务和实名核验。</text>
+    </view>
+  </view>
+</view>

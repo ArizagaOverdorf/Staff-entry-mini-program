@@ -7,6 +7,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UpsertCredentialDto } from './dto/upsert-credential.dto';
 import { CredentialType, CredentialTypeLabels } from './credential.constants';
 
+type StaffSkillCategoryInput = {
+  categoryId: string;
+  categoryName: string;
+};
+
 @Injectable()
 export class CredentialService {
   constructor(private readonly prisma: PrismaService) {}
@@ -52,16 +57,16 @@ export class CredentialService {
       throw new BadRequestException('credentialName is required');
     }
     this.validateCredentialType(credentialType);
-    this.validateSkillIds(credentialType, dto.staffSkillIds);
+    const staffSkillIds = await this.resolveSkillIdsForCredential(
+      accountId,
+      credentialType,
+      dto,
+    );
 
     const fileIds = await this.assertFilesBelongToAccount(
       accountId,
       dto.fileIds ?? [],
     );
-
-    if (credentialType === 'skill_cert' && dto.staffSkillIds?.length) {
-      await this.assertSkillsBelongToAccount(accountId, dto.staffSkillIds);
-    }
 
     const credential = await this.prisma.$transaction(async (tx) => {
       // For skill_cert, allow multiple current credentials (different groups).
@@ -107,9 +112,11 @@ export class CredentialService {
 
       await this.createFileLinks(tx, created.id, fileIds);
 
-      if (dto.staffSkillIds?.length) {
-        await this.createSkillLinks(tx, created.id, dto.staffSkillIds);
+      if (staffSkillIds.length) {
+        await this.createSkillLinks(tx, created.id, staffSkillIds);
       }
+
+      await this.requireIntakeReviewAfterCredentialChange(tx, accountId);
 
       return created;
     });
@@ -140,16 +147,21 @@ export class CredentialService {
     const expiryDate = dto.expiryDate ?? dto.expireDate;
 
     this.validateCredentialType(credentialType);
-    this.validateSkillIds(credentialType, dto.staffSkillIds);
+    if (credentialType !== credential.credentialType) {
+      throw new BadRequestException(
+        'credential type cannot be changed after creation',
+      );
+    }
+    const staffSkillIds = await this.resolveSkillIdsForCredential(
+      accountId,
+      credentialType,
+      dto,
+    );
 
     const fileIds = await this.assertFilesBelongToAccount(
       accountId,
       dto.fileIds ?? credential.files.map((file) => file.fileAssetId),
     );
-
-    if (credentialType === 'skill_cert' && dto.staffSkillIds?.length) {
-      await this.assertSkillsBelongToAccount(accountId, dto.staffSkillIds);
-    }
 
     // Reuse existing credential group, or fall back to credential id for migration
     const groupId = credential.credentialGroupId || credential.id;
@@ -214,9 +226,11 @@ export class CredentialService {
 
       await this.createFileLinks(tx, created.id, fileIds);
 
-      if (dto.staffSkillIds?.length) {
-        await this.createSkillLinks(tx, created.id, dto.staffSkillIds);
+      if (staffSkillIds.length) {
+        await this.createSkillLinks(tx, created.id, staffSkillIds);
       }
+
+      await this.requireIntakeReviewAfterCredentialChange(tx, accountId);
 
       return created;
     });
@@ -249,17 +263,83 @@ export class CredentialService {
     }
   }
 
-  private validateSkillIds(credentialType: string, staffSkillIds?: string[]) {
-    if (credentialType !== 'skill_cert' && staffSkillIds?.length) {
+  private async resolveSkillIdsForCredential(
+    accountId: string,
+    credentialType: string,
+    dto: UpsertCredentialDto,
+  ) {
+    const staffSkillIds = dto.staffSkillIds ?? [];
+    const staffSkillCategories = dto.staffSkillCategories ?? [];
+
+    if (
+      credentialType !== 'skill_cert' &&
+      (staffSkillIds.length || staffSkillCategories.length)
+    ) {
       throw new BadRequestException(
-        'staffSkillIds is only allowed for skill_cert credential type',
+        'staff skill association is only allowed for skill_cert credential type',
       );
     }
-    if (credentialType === 'skill_cert' && (!staffSkillIds || staffSkillIds.length === 0)) {
+
+    if (credentialType !== 'skill_cert') {
+      return [];
+    }
+
+    const resolvedIds = new Set<string>();
+
+    if (staffSkillIds.length) {
+      await this.assertSkillsBelongToAccount(accountId, staffSkillIds);
+      staffSkillIds.forEach((id) => resolvedIds.add(id));
+    }
+
+    for (const category of staffSkillCategories) {
+      const skillId = await this.findOrCreateStaffSkill(
+        accountId,
+        category,
+      );
+      resolvedIds.add(skillId);
+    }
+
+    if (resolvedIds.size === 0) {
       throw new BadRequestException(
-        'staffSkillIds is required for skill_cert: please select at least one service skill',
+        'staff skill association is required for skill_cert: please select at least one service skill',
       );
     }
+
+    return [...resolvedIds];
+  }
+
+  private async findOrCreateStaffSkill(
+    accountId: string,
+    category: StaffSkillCategoryInput,
+  ) {
+    if (!category.categoryId || !category.categoryName) {
+      throw new BadRequestException(
+        'staffSkillCategories must include categoryId and categoryName',
+      );
+    }
+
+    const existing = await this.prisma.staffSkill.findFirst({
+      where: {
+        staffAccountId: accountId,
+        categoryId: category.categoryId,
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return existing.id;
+    }
+
+    const created = await this.prisma.staffSkill.create({
+      data: {
+        staffAccountId: accountId,
+        categoryId: category.categoryId,
+        categoryName: category.categoryName,
+      },
+      select: { id: true },
+    });
+
+    return created.id;
   }
 
   private async assertSkillsBelongToAccount(
@@ -357,6 +437,47 @@ export class CredentialService {
         staffCredentialId: credentialId,
         staffSkillId: skillId,
       })),
+    });
+  }
+
+  private async requireIntakeReviewAfterCredentialChange(
+    tx: any,
+    accountId: string,
+  ) {
+    const intakeStatus = await tx.staffIntakeStatus.findUnique({
+      where: { staffAccountId: accountId },
+      select: { intakeStatus: true },
+    });
+
+    if (intakeStatus?.intakeStatus !== 'approved') {
+      return;
+    }
+
+    await tx.staffIntakeStatus.update({
+      where: { staffAccountId: accountId },
+      data: {
+        intakeStatus: 'pending_review',
+        submittedAt: new Date(),
+        reviewedAt: null,
+        reviewRemark: '证件资料已更新，需重新审核后恢复正常状态',
+      },
+    });
+
+    await tx.staffListingStatus.upsert({
+      where: { staffAccountId: accountId },
+      create: {
+        staffAccountId: accountId,
+        listingStatus: 'off',
+        isAvailable: false,
+        pauseReason: 'credential_updated_pending_review',
+        pausedAt: new Date(),
+      },
+      update: {
+        listingStatus: 'off',
+        isAvailable: false,
+        pauseReason: 'credential_updated_pending_review',
+        pausedAt: new Date(),
+      },
     });
   }
 

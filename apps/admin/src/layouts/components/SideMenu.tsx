@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu } from 'antd';
 import {
@@ -7,6 +7,7 @@ import {
   UserOutlined,
   SafetyOutlined,
   BookOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 
 const menuItems = [
@@ -19,6 +20,11 @@ const menuItems = [
     key: '/staff',
     icon: <TeamOutlined />,
     label: '服务人员',
+  },
+  {
+    key: '/service-record',
+    icon: <FileTextOutlined />,
+    label: '服务记录',
   },
   {
     key: '/admin-user',

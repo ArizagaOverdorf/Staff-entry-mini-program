@@ -7,19 +7,39 @@
 .list-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px 6px;
+  align-items: flex-start;
+  padding: 14px 15px 8px;
 }
 
 .list-header-title {
-  font-size: 16px;
+  display: block;
+  font-size: 18px;
   font-weight: 600;
   color: #333;
+  line-height: 24px;
+}
+
+.list-header-subtitle {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  line-height: 18px;
+  margin-top: 2px;
 }
 
 .list-header-count {
   font-size: 12px;
   color: #999;
+  line-height: 24px;
+}
+
+.demo-tip {
+  margin: 0 15px 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background-color: #fff7e6;
+  color: #ad6800;
+  font-size: 12px;
 }
 
 .record-list {
@@ -31,11 +51,6 @@
   border-radius: 8px;
   padding: 14px;
   margin-bottom: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.record-card:active {
-  background-color: #fafafa;
 }
 
 .record-card-top {
@@ -43,47 +58,48 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f2f2f2;
 }
 
-.record-client {
-  font-size: 15px;
-  font-weight: 500;
+.record-project {
+  font-size: 16px;
+  font-weight: 600;
   color: #333;
 }
 
-.record-card-body {
-  margin-bottom: 8px;
-}
-
-.record-service {
-  display: block;
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.record-address {
-  display: block;
-  font-size: 12px;
-  color: #999;
-}
-
-.record-card-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #f5f5f5;
-  padding-top: 8px;
-}
-
-.record-date {
-  font-size: 12px;
-  color: #999;
-}
-
-.record-duration {
-  font-size: 12px;
+.record-amount {
+  font-size: 16px;
+  font-weight: 600;
   color: #07c160;
+}
+
+.record-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+}
+
+.record-label {
+  font-size: 13px;
+  color: #999;
+}
+
+.record-value {
+  max-width: 230px;
+  text-align: right;
+  font-size: 14px;
+  color: #333;
+}
+
+.record-value.amount,
+.violation-no {
+  color: #07c160;
+}
+
+.violation-yes {
+  color: #f5222d;
 }
 
 .load-more {

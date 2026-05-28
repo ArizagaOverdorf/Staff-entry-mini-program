@@ -17,6 +17,12 @@ Page({
     if (!authUtil.isLoggedIn()) {
       return;
     }
+    if (!authUtil.isMobileBound()) {
+      wx.redirectTo({
+        url: '/pages/auth/phone-bind/index'
+      });
+      return;
+    }
     request.get(constants.API.ACCOUNT_INFO).then((res) => {
       if (res.privacyAgreed) {
         wx.redirectTo({
@@ -32,6 +38,12 @@ Page({
   handleAgree() {
     const that = this;
     if (this.data.isSubmitting) return;
+    if (!authUtil.isMobileBound()) {
+      wx.redirectTo({
+        url: '/pages/auth/phone-bind/index'
+      });
+      return;
+    }
 
     this.setData({ isSubmitting: true });
 

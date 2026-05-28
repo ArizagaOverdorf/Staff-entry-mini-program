@@ -13,8 +13,8 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Checking Stage 4.2 education/student-card markers..." -ForegroundColor Cyan
 $requiredMarkers = @(
   "student_card",
-  "education-section",
-  "btn-student-card",
+  "学历/毕业证",
+  "学生证",
   "educationCredentials"
 )
 

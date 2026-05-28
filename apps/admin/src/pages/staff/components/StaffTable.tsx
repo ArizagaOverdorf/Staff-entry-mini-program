@@ -28,6 +28,12 @@ const listingStatusMap: Record<string, { color: string; text: string }> = {
   offline: { color: 'default', text: '未上架' },
 };
 
+const managementStatusMap: Record<string, { color: string; text: string }> = {
+  normal: { color: 'green', text: '正常' },
+  paused: { color: 'orange', text: '暂停' },
+  blacklisted: { color: 'red', text: '拉黑' },
+};
+
 const StaffTable: React.FC<StaffTableProps> = ({
   dataSource,
   loading,
@@ -81,6 +87,16 @@ const StaffTable: React.FC<StaffTableProps> = ({
             <span>{config.text}</span>
           </Space>
         );
+      },
+    },
+    {
+      title: '管理状态',
+      dataIndex: 'managementStatus',
+      key: 'managementStatus',
+      render: (status: string) => {
+        const s = status || 'normal';
+        const config = managementStatusMap[s] || { color: 'default', text: s };
+        return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
     {

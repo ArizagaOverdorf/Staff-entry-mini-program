@@ -1,8 +1,8 @@
 <view class="account-container">
-  <!-- 用户信息卡片 -->
   <view class="user-card">
     <view class="user-avatar">
-      <view class="user-avatar-text">{{accountAvatarText}}</view>
+      <image wx:if="{{accountAvatarUrl}}" src="{{accountAvatarUrl}}" mode="aspectFill" />
+      <view wx:else class="user-avatar-text">{{accountAvatarText}}</view>
     </view>
     <view class="user-info">
       <text class="user-name">{{accountInfo.name || '家政人员'}}</text>
@@ -10,33 +10,44 @@
     </view>
   </view>
 
-  <!-- 设置列表 -->
   <view class="settings-section">
-    <view class="list-item" bindtap="goToProfile">
-      <text class="list-item-label">个人资料</text>
-      <text class="list-item-value">查看详情</text>
-      <view class="icon-arrow"></view>
-    </view>
-    <view class="list-item" bindtap="goToEditProfile">
-      <text class="list-item-label">编辑资料</text>
-      <text class="list-item-value">修改信息</text>
+    <view class="settings-title">账号安全</view>
+    <view class="list-item" bindtap="handleChangePhone">
+      <text class="list-item-label">修改手机号</text>
+      <text class="list-item-value">{{accountInfo.identityVerified ? '已实名可自助修改' : '需先实名认证'}}</text>
       <view class="icon-arrow"></view>
     </view>
   </view>
 
   <view class="settings-section">
+    <view class="settings-title">协议与服务</view>
+    <view class="list-item" bindtap="handleUserAgreement">
+      <text class="list-item-label">用户服务协议</text>
+      <view class="icon-arrow"></view>
+    </view>
+    <view class="list-item" bindtap="handlePrivacyPolicy">
+      <text class="list-item-label">隐私政策</text>
+      <view class="icon-arrow"></view>
+    </view>
     <view class="list-item" bindtap="handleAbout">
       <text class="list-item-label">关于我们</text>
       <view class="icon-arrow"></view>
     </view>
   </view>
 
-  <!-- 退出登录 -->
+  <view class="settings-section">
+    <view class="settings-title">本地设置</view>
+    <view class="list-item" bindtap="handleClearCache">
+      <text class="list-item-label">清除缓存</text>
+      <text class="list-item-value">{{cacheSizeText}}</text>
+      <view class="icon-arrow"></view>
+    </view>
+  </view>
+
   <view class="logout-section">
     <button class="btn-secondary logout-btn" bindtap="handleLogout">退出登录</button>
   </view>
 
-  <!-- 加载状态 -->
   <view class="loading-container" wx:if="{{!loaded}}">
     <text>加载中...</text>
   </view>

@@ -26,6 +26,15 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('change-phone')
+  async changePhone(
+    @CurrentUser('id') accountId: string,
+    @Body() dto: BindPhoneDto,
+  ) {
+    return this.authService.changePhone(accountId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
   async logout() {
     return { message: 'ok' };

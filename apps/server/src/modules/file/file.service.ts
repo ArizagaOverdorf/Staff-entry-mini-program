@@ -25,7 +25,11 @@ export class FileService {
       config.storageProvider === 'oss' ? ossStorage : localStorage;
   }
 
-  async upload(file: Express.Multer.File, accountId: string) {
+  async upload(
+    file: Express.Multer.File,
+    accountId: string,
+    accessLevel: 'private' | 'public' = 'private',
+  ) {
     const ext = path.extname(file.originalname);
     const storedName = `${uuidv4()}${ext}`;
     const storagePath = await this.storage.save(
@@ -42,10 +46,24 @@ export class FileService {
         size: file.size,
         storageProvider: this.config.storageProvider,
         storagePath,
-        accessLevel: 'private',
+        accessLevel,
         uploadedByStaffAccountId: accountId,
       },
     });
+  }
+
+  async getPublicPreviewStream(
+    fileId: string,
+  ): Promise<{ stream: Readable; mimeType: string }> {
+    const fileAsset = await this.prisma.fileAsset.findUniqueOrThrow({
+      where: { id: fileId },
+    });
+    if (fileAsset.accessLevel !== 'public') {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const stream = await this.storage.getReadStream(fileAsset.storedName);
+    return { stream, mimeType: fileAsset.mimeType };
   }
 
   async getPreviewStream(

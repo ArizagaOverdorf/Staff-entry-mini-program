@@ -1,13 +1,9 @@
 <view class="category-picker">
-  <!-- 触发器 -->
   <view class="picker-trigger" bindtap="openPicker">
-    <text class="picker-text {{selectedValues.length > 0 ? '' : 'placeholder'}}">
-      {{selectedValues.length > 0 ? displayText : '请选择服务类别'}}
-    </text>
+    <text class="picker-text {{selectedIds.length > 0 ? '' : 'placeholder'}}">{{displayText}}</text>
     <view class="icon-arrow-down"></view>
   </view>
 
-  <!-- 选择弹窗 -->
   <view class="picker-mask" wx:if="{{showPopup}}" catchtouchmove="noop" bindtap="closePicker"></view>
   <view class="picker-popup" wx:if="{{showPopup}}">
     <view class="popup-header">
@@ -16,15 +12,16 @@
       <text class="popup-confirm" bindtap="confirm">确定</text>
     </view>
     <scroll-view class="popup-list" scroll-y>
+      <view wx:if="{{normalizedCategories.length === 0}}" class="popup-empty">暂无可选服务类别</view>
       <view
-        class="popup-item {{selected.indexOf(item.value) > -1 ? 'selected' : ''}}"
-        wx:for="{{categories}}"
+        class="popup-item {{item.checked ? 'selected' : ''}}"
+        wx:for="{{normalizedCategories}}"
         wx:key="value"
         data-value="{{item.value}}"
         bindtap="toggleItem"
       >
         <text class="item-label">{{item.label}}</text>
-        <text class="item-check" wx:if="{{selected.indexOf(item.value) > -1}}">&#10003;</text>
+        <text class="item-check" wx:if="{{item.checked}}">已选</text>
       </view>
     </scroll-view>
   </view>

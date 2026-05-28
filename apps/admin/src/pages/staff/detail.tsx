@@ -108,7 +108,7 @@ const StaffDetail: React.FC = () => {
       <Spin spinning={refreshing}>
         <Tabs activeKey={activeTab} onChange={handleTabChange}>
           <Tabs.TabPane tab="基本信息" key="profile">
-            <StaffProfileCard staff={staff} />
+            <StaffProfileCard staff={staff} onRefresh={refresh} />
           </Tabs.TabPane>
           <Tabs.TabPane tab="审核" key="review">
             <Card title="入驻审核" style={{ marginBottom: 16 }}>

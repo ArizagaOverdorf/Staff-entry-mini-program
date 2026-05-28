@@ -1,0 +1,20 @@
+<view class="identity-container">
+  <view class="identity-card">
+    <view class="identity-icon">实名</view>
+    <text class="identity-title">实名认证</text>
+    <text class="identity-desc">当前为开发占位页。正式接入阿里云或腾讯云实名认证后，将在这里发起实名核验流程。</text>
+
+    <view class="identity-row">
+      <text class="identity-label">认证状态</text>
+      <text class="identity-value {{identityVerified ? 'verified' : 'unverified'}}">{{identityVerifiedLabel}}</text>
+    </view>
+    <view class="identity-row">
+      <text class="identity-label">服务商</text>
+      <text class="identity-value">{{identityVerifyProvider || '待接入'}}</text>
+    </view>
+
+    <button class="btn-primary identity-button" bindtap="handleStartVerify">
+      开始实名认证
+    </button>
+  </view>
+</view>

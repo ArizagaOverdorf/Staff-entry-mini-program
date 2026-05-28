@@ -225,6 +225,8 @@ export class IntakeService {
       intakeStatusLabel: this.getStatusLabel(intakeStatus),
       listingStatus: account.listingStatus?.listingStatus ?? 'offline',
       listingStatusLabel: account.listingStatus?.isAvailable ? '已上架' : '未上架',
+      isAvailable: account.listingStatus?.isAvailable ?? false,
+      managementStatus: account.listingStatus?.managementStatus ?? 'normal',
       submittedAt: account.intakeStatus?.submittedAt,
       reviewedAt: account.intakeStatus?.reviewedAt,
       rejectReason:
