@@ -81,6 +81,12 @@ Page({
     }).catch(() => {});
   },
 
+  goToSupport() {
+    wx.navigateTo({
+      url: '/pages/message/support'
+    });
+  },
+
   onReachBottom() {
     if (this.data.hasMore) {
       this.loadMessages(this.data.page + 1);

@@ -16,6 +16,7 @@
     "pages/service-record/index",
     "pages/message/index",
     "pages/message/detail",
+    "pages/message/support",
     "pages/account/index"
   ],
   "window": {

@@ -10,6 +10,7 @@ import DictManagement from './pages/dict';
 import StaffList from './pages/staff';
 import StaffDetail from './pages/staff/detail';
 import ServiceRecordPage from './pages/service-record';
+import SupportPage from './pages/support';
 
 const App: React.FC = () => {
   return (
@@ -25,6 +26,7 @@ const App: React.FC = () => {
         <Route path="staff" element={<StaffList />} />
         <Route path="staff/:staffId" element={<StaffDetail />} />
         <Route path="service-record" element={<ServiceRecordPage />} />
+        <Route path="support" element={<SupportPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

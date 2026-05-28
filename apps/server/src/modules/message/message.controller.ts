@@ -41,6 +41,14 @@ export class MessageController {
     return this.messageService.markRead(accountId, messageId);
   }
 
+  @Post('support')
+  async createSupport(
+    @CurrentUser('id') accountId: string,
+    @Body() body: { title?: string; content?: string },
+  ) {
+    return this.messageService.createSupportMessage(accountId, body.title, body.content);
+  }
+
   @Post('read')
   async markReadLegacy(
     @CurrentUser('id') accountId: string,

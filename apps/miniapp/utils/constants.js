@@ -38,6 +38,7 @@ const API = {
   MESSAGES: APP_API_PREFIX + '/messages',
   MESSAGE_UNREAD_COUNT: APP_API_PREFIX + '/messages/unread-count',
   MESSAGE_READ: APP_API_PREFIX + '/messages/read',
+  MESSAGE_SUPPORT: APP_API_PREFIX + '/messages/support',
 
   ACCOUNT_INFO: APP_API_PREFIX + '/account/me'
 };

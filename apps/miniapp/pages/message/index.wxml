@@ -1,4 +1,10 @@
 <view class="message-container">
+  <!-- 客服咨询入口 -->
+  <view class="support-entry" bindtap="goToSupport">
+    <text class="support-entry-text">联系客服 / 发送咨询</text>
+    <text class="support-entry-arrow">></text>
+  </view>
+
   <!-- 顶部操作栏 -->
   <view class="message-toolbar" wx:if="{{messages.length > 0 && totalUnread > 0}}">
     <text class="toolbar-info">未读消息 {{totalUnread}} 条</text>

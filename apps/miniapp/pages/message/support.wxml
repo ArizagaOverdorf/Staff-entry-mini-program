@@ -1,0 +1,30 @@
+<view class="support-form-container">
+  <view class="form-section">
+    <view class="form-label">标题</view>
+    <input
+      class="form-input"
+      placeholder="请输入咨询标题"
+      value="{{title}}"
+      maxlength="100"
+      bindinput="onTitleInput"
+    />
+  </view>
+
+  <view class="form-section">
+    <view class="form-label">咨询内容</view>
+    <textarea
+      class="form-textarea"
+      placeholder="请描述您的问题"
+      value="{{content}}"
+      maxlength="1000"
+      bindinput="onContentInput"
+      auto-height
+    />
+  </view>
+
+  <view class="form-footer">
+    <button class="submit-btn" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">
+      提交咨询
+    </button>
+  </view>
+</view>

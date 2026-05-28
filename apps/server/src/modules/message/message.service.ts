@@ -72,6 +72,33 @@ export class MessageService {
     return { success: true };
   }
 
+  async createSupportMessage(accountId: string, title?: string, content?: string) {
+    const normalizedTitle = title?.trim();
+    const normalizedContent = content?.trim();
+
+    if (!normalizedTitle) {
+      throw new BadRequestException('咨询标题不能为空');
+    }
+    if (normalizedTitle.length > 100) {
+      throw new BadRequestException('咨询标题不能超过100字');
+    }
+    if (!normalizedContent) {
+      throw new BadRequestException('咨询内容不能为空');
+    }
+    if (normalizedContent.length > 1000) {
+      throw new BadRequestException('咨询内容不能超过1000字');
+    }
+
+    return this.prisma.message.create({
+      data: {
+        staffAccountId: accountId,
+        title: normalizedTitle,
+        content: normalizedContent,
+        messageType: 'support_request',
+      },
+    });
+  }
+
   async markAllRead(accountId: string) {
     await this.prisma.message.updateMany({
       where: { staffAccountId: accountId, isRead: false },

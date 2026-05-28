@@ -8,6 +8,7 @@ import {
   SafetyOutlined,
   BookOutlined,
   FileTextOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 
 const menuItems = [
@@ -25,6 +26,11 @@ const menuItems = [
     key: '/service-record',
     icon: <FileTextOutlined />,
     label: '服务记录',
+  },
+  {
+    key: '/support',
+    icon: <MessageOutlined />,
+    label: '客服消息',
   },
   {
     key: '/admin-user',

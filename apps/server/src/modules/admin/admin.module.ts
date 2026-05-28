@@ -13,6 +13,8 @@ import { AdminStaffService } from './admin-staff.service';
 import { AdminStaffController } from './admin-staff.controller';
 import { AdminFileController } from './admin-file.controller';
 import { AdminServiceRecordController } from './admin-service-record.controller';
+import { AdminSupportService } from './admin-support.service';
+import { AdminSupportController } from './admin-support.controller';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
@@ -36,12 +38,14 @@ import { PermissionsGuard } from './guards/permissions.guard';
     AdminStaffController,
     AdminFileController,
     AdminServiceRecordController,
+    AdminSupportController,
   ],
   providers: [
     AdminAuthService,
     AdminUserService,
     AdminRoleService,
     AdminStaffService,
+    AdminSupportService,
     AdminJwtStrategy,
     AdminJwtAuthGuard,
     PermissionsGuard,
