@@ -141,6 +141,13 @@ Page({
 
   toggleOnlineStatus() {
     if (this.data.togglingOnline) return;
+    if (!this.data.loaded) {
+      wx.showToast({
+        title: '数据加载中，请稍后',
+        icon: 'none'
+      });
+      return;
+    }
     if (this.data.intakeStatus !== 'approved' && this.data.intakeStatus !== 'normal') {
       wx.showToast({
         title: '入驻状态正常后才能切换上线状态',

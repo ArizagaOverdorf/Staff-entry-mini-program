@@ -1,6 +1,11 @@
 const request = require('../../../utils/request');
 const uploadUtil = require('../../../utils/upload');
 const constants = require('../../../utils/constants');
+const authUtil = require('../../../utils/auth');
+
+function buildPrivatePreviewUrl(fileId) {
+  return constants.API_BASE_URL + '/app/files/' + fileId + '/preview';
+}
 
 function getCredentialType(typeId) {
   return constants.CREDENTIAL_TYPES.find((item) => item.value === typeId);
@@ -115,8 +120,27 @@ Page({
         selectedSkillNames: (cred.linkedSkills || []).map((skill) => skill.categoryName)
       });
 
+      if (!cred.fileUrl && cred.files && cred.files[0] && cred.files[0].fileAsset && cred.files[0].fileAsset.id) {
+        this.loadPrivatePreview(cred.files[0].fileAsset.id);
+      }
+
       this.applyTypeState(typeId, typeName, true);
     }).catch(() => {});
+  },
+
+  loadPrivatePreview(fileId) {
+    const token = authUtil.getToken();
+    wx.downloadFile({
+      url: buildPrivatePreviewUrl(fileId),
+      header: {
+        Authorization: 'Bearer ' + token
+      },
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300 && res.tempFilePath) {
+          this.setData({ fileUrl: res.tempFilePath });
+        }
+      }
+    });
   },
 
   loadCredTypes() {
@@ -203,13 +227,13 @@ Page({
       'file'
     ).then((res) => {
       const fileId = res.data?.id || res.id || '';
-      const fileUrl = res.data?.fileUrl || res.fileUrl || '';
+      const fileUrl = res.data?.fileUrl || res.fileUrl || res.localFilePath || '';
       if (fileId) {
         const fileIds = this.data.fileIds || [];
         fileIds.push(fileId);
         this.setData({
           fileIds,
-          fileUrl: fileUrl || fileId
+          fileUrl
         });
       }
       wx.showToast({

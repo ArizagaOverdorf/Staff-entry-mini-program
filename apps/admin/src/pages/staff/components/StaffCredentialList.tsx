@@ -39,7 +39,7 @@ const StaffCredentialList: React.FC<StaffCredentialListProps> = ({ credentials }
               title={
                 <span>
                   {credentialTypeLabels[item.credentialType] || item.credentialType}
-                  {item.badge === 'expiring' && (
+                  {(item.badge === 'expiring_soon' || item.badge === 'expiring') && (
                     <Tag color="warning" style={{ marginLeft: 8 }}>即将过期</Tag>
                   )}
                   {item.badge === 'expired' && (

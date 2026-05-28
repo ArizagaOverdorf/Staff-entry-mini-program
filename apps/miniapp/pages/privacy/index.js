@@ -59,17 +59,11 @@ Page({
         });
       }, 1500);
     }).catch((err) => {
-      // 如果接口返回尚未实现，也允许通过
       wx.showToast({
-        title: '确认成功',
-        icon: 'success',
-        duration: 1500
+        title: '请求失败，请重试',
+        icon: 'none',
+        duration: 2000
       });
-      setTimeout(() => {
-        wx.redirectTo({
-          url: '/pages/home/index'
-        });
-      }, 1500);
     }).finally(() => {
       that.setData({ isSubmitting: false });
     });

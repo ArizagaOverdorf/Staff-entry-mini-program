@@ -126,7 +126,7 @@ Page({
   },
 
   clearLocalCache() {
-    const keepKeys = ['token', 'staffId'];
+    const keepKeys = ['token', 'staffId', 'mobileBound'];
     try {
       const info = wx.getStorageInfoSync();
       info.keys.forEach((key) => {

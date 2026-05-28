@@ -105,6 +105,13 @@ const upload = {
           that.uploadFile(url, filePath, name, formData)
             .then((result) => {
               wx.hideLoading();
+              if (result && typeof result === 'object') {
+                resolve({
+                  ...result,
+                  localFilePath: filePath
+                });
+                return;
+              }
               resolve(result);
             })
             .catch((err) => {
