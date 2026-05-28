@@ -29,6 +29,7 @@ model AdminUser {
   operationLogs     OperationLog[]
   listingStatusLogs StaffListingStatusLog[]
   serviceRecordLogs StaffServiceRecordLog[]
+  messages          Message[]
 
   @@map("admin_user")
 }
@@ -393,16 +394,21 @@ model StaffServiceRecordLog {
 model Message {
   id             String    @id @default(uuid()) @db.Uuid
   staffAccountId String    @map("staff_account_id") @db.Uuid
+  adminUserId    String?   @map("admin_user_id") @db.Uuid
   title          String    @db.VarChar(128)
   content        String?   @db.Text
   messageType    String    @default("system") @map("message_type") @db.VarChar(32)
+  senderType     String    @default("staff") @map("sender_type") @db.VarChar(32)
   isRead         Boolean   @default(false) @map("is_read")
   readAt         DateTime? @map("read_at")
+  adminReadAt    DateTime? @map("admin_read_at")
   createdAt      DateTime  @default(now()) @map("created_at")
 
   staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  adminUser    AdminUser?   @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
 
   @@index([staffAccountId, isRead])
+  @@index([staffAccountId, senderType, adminReadAt])
   @@map("message")
 }
 

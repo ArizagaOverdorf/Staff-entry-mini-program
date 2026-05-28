@@ -1,30 +1,56 @@
-<view class="support-form-container">
-  <view class="form-section">
-    <view class="form-label">标题</view>
+<view class="support-chat-container">
+  <!-- Chat messages -->
+  <scroll-view
+    class="chat-scroll"
+    scroll-y
+    scroll-into-view="{{scrollToView}}"
+    scroll-with-animation
+  >
+    <view class="chat-list">
+      <view
+        class="chat-msg {{item.styleClass}}"
+        wx:for="{{messages}}"
+        wx:key="id"
+        id="msg-{{index}}"
+      >
+        <view class="chat-msg-sender">{{item.senderLabel}}</view>
+        <view class="chat-msg-bubble">
+          <text class="chat-msg-text">{{item.content || item.title}}</text>
+        </view>
+        <view class="chat-msg-time">{{item.time}}</view>
+      </view>
+    </view>
+
+    <!-- Empty state -->
+    <view class="chat-empty" wx:if="{{loaded && messages.length === 0}}">
+      <text>暂无消息</text>
+      <text class="chat-empty-hint">输入消息开始咨询</text>
+    </view>
+
+    <!-- Loading -->
+    <view class="chat-loading" wx:if="{{!loaded}}">
+      <text>加载中...</text>
+    </view>
+  </scroll-view>
+
+  <!-- Input area -->
+  <view class="chat-input-bar">
     <input
-      class="form-input"
-      placeholder="请输入咨询标题"
-      value="{{title}}"
-      maxlength="100"
-      bindinput="onTitleInput"
-    />
-  </view>
-
-  <view class="form-section">
-    <view class="form-label">咨询内容</view>
-    <textarea
-      class="form-textarea"
-      placeholder="请描述您的问题"
-      value="{{content}}"
+      class="chat-input"
+      placeholder="输入消息..."
+      value="{{inputContent}}"
       maxlength="1000"
-      bindinput="onContentInput"
-      auto-height
+      bindinput="onInputChange"
+      confirm-type="send"
+      bindconfirm="sendMessage"
     />
-  </view>
-
-  <view class="form-footer">
-    <button class="submit-btn" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">
-      提交咨询
+    <button
+      class="chat-send-btn"
+      bindtap="sendMessage"
+      loading="{{sending}}"
+      disabled="{{sending}}"
+    >
+      发送
     </button>
   </view>
 </view>

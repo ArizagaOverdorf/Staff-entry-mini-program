@@ -1,50 +1,95 @@
 import request from '../../../services/request';
 
-export interface SupportMessageItem {
-  id: string;
+export interface ConversationItem {
   staffAccountId: string;
-  staffId?: string;
-  staffName?: string;
-  staffPhone?: string;
-  title: string;
-  content?: string;
-  messageType: string;
-  isRead: boolean;
-  readAt?: string;
-  createdAt?: string;
+  staffId: string;
+  staffName: string;
+  staffPhone: string;
+  unreadCount: number;
+  latestMessage: {
+    title: string;
+    content?: string;
+    senderType: string;
+    messageType: string;
+  } | null;
+  latestMessageAt: string | null;
 }
 
-export interface SupportListParams {
-  page?: number;
-  pageSize?: number;
-  keyword?: string;
-  messageType?: string;
-  isRead?: boolean;
-}
-
-export interface SupportListResult {
-  list: SupportMessageItem[];
+export interface ConversationListResult {
+  list: ConversationItem[];
   total: number;
   page: number;
   pageSize: number;
   totalPages: number;
 }
 
-export async function listSupportMessages(
-  params?: SupportListParams,
-): Promise<SupportListResult> {
-  return request.get('/support', { params });
+export interface ConversationMessage {
+  id: string;
+  staffAccountId: string;
+  staffId?: string;
+  staffName?: string;
+  staffPhone?: string;
+  adminUserId?: string;
+  adminName?: string;
+  title: string;
+  content?: string;
+  messageType: string;
+  senderType: string;
+  isRead: boolean;
+  readAt?: string;
+  adminReadAt?: string;
+  createdAt?: string;
 }
 
-export async function getSupportMessageDetail(
-  messageId: string,
-): Promise<SupportMessageItem> {
-  return request.get(`/support/${messageId}`);
+export interface ConversationDetail {
+  staff: {
+    staffAccountId: string;
+    staffId: string;
+    staffName: string;
+    staffPhone: string;
+  };
+  messages: ConversationMessage[];
 }
 
-export async function replySupportMessage(
-  messageId: string,
+export interface ExportData {
+  staff: {
+    staffId: string;
+    staffName: string;
+    staffPhone?: string;
+  };
+  messages: {
+    time: string;
+    senderRole: string;
+    senderName: string;
+    staffId: string;
+    title: string;
+    content: string;
+    messageType: string;
+  }[];
+  exportedAt: string;
+}
+
+export async function listConversations(params?: {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+}): Promise<ConversationListResult> {
+  return request.get('/support/conversations', { params });
+}
+
+export async function getConversation(
+  staffAccountId: string,
+): Promise<ConversationDetail> {
+  return request.get(`/support/conversations/${staffAccountId}`);
+}
+
+export async function replyToConversation(
+  staffAccountId: string,
   content: string,
-): Promise<SupportMessageItem> {
-  return request.post(`/support/${messageId}/reply`, { content });
+): Promise<ConversationMessage> {
+  return request.post(`/support/conversations/${staffAccountId}/reply`, { content });
+}
+
+export async function exportConversation(staffAccountId: string): Promise<ExportData> {
+  return request.get(`/support/conversations/${staffAccountId}/export`);
 }

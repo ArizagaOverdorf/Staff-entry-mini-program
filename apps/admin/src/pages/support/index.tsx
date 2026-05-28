@@ -1,45 +1,54 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card,
   Form,
   Input,
-  Select,
   Button,
   Space,
-  Table,
-  Modal,
-  Tag,
+  Badge,
   message,
+  Empty,
+  Spin,
 } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  ExportOutlined,
+  SendOutlined,
+  LeftOutlined,
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
-  listSupportMessages,
-  replySupportMessage,
-  type SupportMessageItem,
+  listConversations,
+  getConversation,
+  replyToConversation,
+  exportConversation,
+  type ConversationItem,
+  type ConversationDetail,
+  type ConversationMessage,
 } from './services/support';
 
 const { TextArea } = Input;
 
-const messageTypeLabels: Record<string, string> = {
-  support_request: '员工咨询',
-  support_reply: '客服回复',
-};
-
 const SupportPage: React.FC = () => {
-  const [data, setData] = useState<SupportMessageItem[]>([]);
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(20);
   const [form] = Form.useForm();
-  const [replyModalOpen, setReplyModalOpen] = useState(false);
-  const [replyTarget, setReplyTarget] = useState<SupportMessageItem | null>(null);
+
+  // Chat panel state
+  const [selectedStaffAccountId, setSelectedStaffAccountId] = useState<string | null>(null);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ConversationMessage[]>([]);
+  const [chatStaff, setChatStaff] = useState<ConversationDetail['staff'] | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
+  const [showMobileList, setShowMobileList] = useState(true);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchConversations = useCallback(async () => {
     setLoading(true);
     try {
       const values = form.getFieldsValue();
@@ -47,11 +56,9 @@ const SupportPage: React.FC = () => {
         page,
         pageSize,
         keyword: values.keyword || undefined,
-        messageType: values.messageType || undefined,
-        isRead: values.isRead !== undefined ? values.isRead : undefined,
       };
-      const result = await listSupportMessages(params);
-      setData(result.list || []);
+      const result = await listConversations(params);
+      setConversations(result.list || []);
       setTotal(result.total || 0);
     } catch {
       // handled by interceptor
@@ -61,43 +68,52 @@ const SupportPage: React.FC = () => {
   }, [page, pageSize, form]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchConversations();
+  }, [fetchConversations]);
 
   const handleSearch = () => {
     setPage(1);
-    fetchData();
+    fetchConversations();
   };
 
   const handleReset = () => {
     form.resetFields();
     setPage(1);
-    fetchData();
+    fetchConversations();
   };
 
-  const handlePageChange = (newPage: number, newPageSize: number) => {
-    setPage(newPage);
-    setPageSize(newPageSize);
-  };
-
-  const openReplyModal = (record: SupportMessageItem) => {
-    setReplyTarget(record);
+  const openConversation = async (staffAccountId: string) => {
+    setSelectedStaffAccountId(staffAccountId);
+    setShowMobileList(false);
+    setChatLoading(true);
     setReplyContent('');
-    setReplyModalOpen(true);
+    try {
+      const detail = await getConversation(staffAccountId);
+      setChatMessages(detail.messages || []);
+      setChatStaff(detail.staff);
+      // Refresh unread count in list
+      fetchConversations();
+    } catch {
+      // handled by interceptor
+    } finally {
+      setChatLoading(false);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
   };
 
-  const handleReplySubmit = async () => {
+  const handleSendReply = async () => {
     if (!replyContent.trim()) {
       message.warning('请输入回复内容');
       return;
     }
-    if (!replyTarget) return;
+    if (!selectedStaffAccountId) return;
     setReplyLoading(true);
     try {
-      await replySupportMessage(replyTarget.id, replyContent.trim());
-      message.success('回复成功');
-      setReplyModalOpen(false);
-      fetchData();
+      const newMsg = await replyToConversation(selectedStaffAccountId, replyContent.trim());
+      setChatMessages((prev) => [...prev, newMsg]);
+      setReplyContent('');
+      message.success('发送成功');
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch {
       // handled by interceptor
     } finally {
@@ -105,179 +121,359 @@ const SupportPage: React.FC = () => {
     }
   };
 
-  const columns: ColumnsType<SupportMessageItem> = [
-    {
-      title: '时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 160,
-      render: (v: string) => (v ? dayjs(v).format('YYYY/MM/DD HH:mm:ss') : '-'),
-    },
-    {
-      title: '员工ID',
-      dataIndex: 'staffId',
-      key: 'staffId',
-      width: 100,
-      render: (v: string) => v || '-',
-    },
-    {
-      title: '员工姓名',
-      dataIndex: 'staffName',
-      key: 'staffName',
-      width: 100,
-      render: (v: string) => v || '-',
-    },
-    {
-      title: '手机号',
-      dataIndex: 'staffPhone',
-      key: 'staffPhone',
-      width: 130,
-      render: (v: string) => v || '-',
-    },
-    {
-      title: '标题',
-      dataIndex: 'title',
-      key: 'title',
-      width: 180,
-      ellipsis: true,
-    },
-    {
-      title: '内容',
-      dataIndex: 'content',
-      key: 'content',
-      width: 200,
-      ellipsis: true,
-      render: (v: string) => v || '-',
-    },
-    {
-      title: '消息类型',
-      dataIndex: 'messageType',
-      key: 'messageType',
-      width: 100,
-      render: (v: string) => {
-        const label = messageTypeLabels[v] || v;
-        const color = v === 'support_request' ? 'blue' : 'green';
-        return <Tag color={color}>{label}</Tag>;
-      },
-    },
-    {
-      title: '阅读状态',
-      dataIndex: 'isRead',
-      key: 'isRead',
-      width: 90,
-      render: (v: boolean) =>
-        v ? <Tag color="default">已读</Tag> : <Tag color="orange">未读</Tag>,
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 100,
-      fixed: 'right',
-      render: (_: any, record: SupportMessageItem) => (
-        <Space>
-          <Button type="link" size="small" onClick={() => openReplyModal(record)}>
-            回复
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  const handleExport = async () => {
+    if (!selectedStaffAccountId) return;
+    try {
+      const data = await exportConversation(selectedStaffAccountId);
+      // Generate CSV client-side and trigger download
+      const csvRows: string[] = [];
+      csvRows.push('时间,发送者角色,发送者姓名,员工ID,标题,内容,消息类型');
+      for (const row of data.messages) {
+        const escaped = [row.time, row.senderRole, row.senderName, row.staffId, row.title, row.content, row.messageType]
+          .map((v) => {
+            const str = String(v ?? '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+              return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+          });
+        csvRows.push(escaped.join(','));
+      }
+      const bom = '﻿';
+      const csv = bom + csvRows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `chat_${data.staff.staffId}_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      message.success('导出成功');
+    } catch {
+      // handled by interceptor
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendReply();
+    }
+  };
+
+  const backToList = () => {
+    setShowMobileList(true);
+    setSelectedStaffAccountId(null);
+  };
+
+  const renderChatBubble = (msg: ConversationMessage) => {
+    const isStaff = msg.senderType === 'staff';
+    const senderName = isStaff
+      ? (chatStaff?.staffName ?? msg.staffId ?? '员工')
+      : (msg.adminName ?? '客服');
+    const alignClass = isStaff ? 'chat-bubble-left' : 'chat-bubble-right';
+    const bubbleStyle: React.CSSProperties = isStaff
+      ? { backgroundColor: '#fff', border: '1px solid #e8e8e8' }
+      : { backgroundColor: '#95ec69', border: '1px solid #7ddb5a' };
+
+    return (
+      <div key={msg.id} className={`chat-bubble-wrapper ${alignClass}`}>
+        <div className="chat-bubble-sender">{senderName}</div>
+        <div className="chat-bubble" style={bubbleStyle}>
+          <div className="chat-bubble-content">{msg.content || msg.title}</div>
+        </div>
+        <div className="chat-bubble-time">
+          {msg.createdAt ? dayjs(msg.createdAt).format('MM/DD HH:mm') : ''}
+        </div>
+      </div>
+    );
+  };
+
+  const isConversationSelected = !!selectedStaffAccountId;
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 16 }}>客服消息</h2>
-      <Card style={{ marginBottom: 16 }}>
-        <Form form={form} layout="inline">
-          <Form.Item name="keyword" label="搜索">
-            <Input placeholder="员工姓名/staffId/手机号" allowClear style={{ width: 220 }} />
-          </Form.Item>
-          <Form.Item name="messageType" label="消息类型">
-            <Select
-              placeholder="全部"
-              allowClear
-              style={{ width: 130 }}
-              options={[
-                { label: '员工咨询', value: 'support_request' },
-                { label: '客服回复', value: 'support_reply' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="isRead" label="阅读状态">
-            <Select
-              placeholder="全部"
-              allowClear
-              style={{ width: 100 }}
-              options={[
-                { label: '未读', value: false },
-                { label: '已读', value: true },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-                查询
-              </Button>
-              <Button icon={<ReloadOutlined />} onClick={handleReset}>
-                重置
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Card>
-      <Card title="支持消息列表">
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          loading={loading}
-          scroll={{ x: 1200 }}
-          pagination={{
-            current: page,
-            pageSize,
-            total,
-            showSizeChanger: true,
-            showTotal: (t) => `共 ${t} 条`,
-            onChange: handlePageChange,
-          }}
-        />
-      </Card>
+    <div style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+      <h2 style={{ marginBottom: 16, flexShrink: 0 }}>客服消息</h2>
 
-      <Modal
-        title="回复消息"
-        open={replyModalOpen}
-        onOk={handleReplySubmit}
-        onCancel={() => setReplyModalOpen(false)}
-        confirmLoading={replyLoading}
-        destroyOnClose
-      >
-        {replyTarget && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8 }}>
-              <strong>员工：</strong>
-              {replyTarget.staffName || '-'} ({replyTarget.staffId || '-'})
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <strong>原始消息：</strong>
-              {replyTarget.title}
-            </div>
-            <div style={{ color: '#666', whiteSpace: 'pre-wrap' }}>
-              {replyTarget.content}
-            </div>
+      <div style={{ flex: 1, display: 'flex', gap: 16, minHeight: 0 }}>
+        {/* Conversation List Panel */}
+        <Card
+          title="咨询列表"
+          style={{
+            flex: showMobileList || !isConversationSelected ? '1 1 400px' : '0 0 360px',
+            maxWidth: showMobileList || !isConversationSelected ? '100%' : 360,
+            display: showMobileList || !isConversationSelected ? 'block' : 'block',
+            overflow: 'hidden',
+          }}
+          bodyStyle={{ padding: 0, height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column' }}
+        >
+          {/* Search */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
+            <Form form={form} layout="inline" style={{ flexWrap: 'nowrap' }}>
+              <Form.Item name="keyword" style={{ flex: 1, marginBottom: 0 }}>
+                <Input
+                  placeholder="员工姓名/ID/手机号"
+                  allowClear
+                  onPressEnter={handleSearch}
+                />
+              </Form.Item>
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Space size="small">
+                  <Button
+                    type="primary"
+                    icon={<SearchOutlined />}
+                    onClick={handleSearch}
+                    size="small"
+                  >
+                    搜索
+                  </Button>
+                  <Button icon={<ReloadOutlined />} onClick={handleReset} size="small" />
+                </Space>
+              </Form.Item>
+            </Form>
           </div>
-        )}
-        <div style={{ marginTop: 16 }}>
-          <strong>回复内容：</strong>
-          <TextArea
-            rows={4}
-            value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
-            placeholder="请输入回复内容"
-            maxLength={1000}
-            style={{ marginTop: 8 }}
-          />
-        </div>
-      </Modal>
+
+          {/* Conversation List */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: 40 }}><Spin /></div>
+            ) : conversations.length === 0 ? (
+              <Empty description="暂无咨询" style={{ padding: 40 }} />
+            ) : (
+              conversations.map((conv) => (
+                <div
+                  key={conv.staffAccountId}
+                  onClick={() => openConversation(conv.staffAccountId)}
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f0f0f0',
+                    cursor: 'pointer',
+                    backgroundColor:
+                      selectedStaffAccountId === conv.staffAccountId
+                        ? '#e6f7ff'
+                        : 'transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedStaffAccountId !== conv.staffAccountId) {
+                      (e.target as HTMLDivElement).style.backgroundColor = '#fafafa';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedStaffAccountId !== conv.staffAccountId) {
+                      (e.target as HTMLDivElement).style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Space>
+                      <strong>{conv.staffName}</strong>
+                      <span style={{ color: '#999', fontSize: 12 }}>{conv.staffId}</span>
+                    </Space>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: '#999', fontSize: 12 }}>
+                        {conv.latestMessageAt
+                          ? dayjs(conv.latestMessageAt).format('MM/DD HH:mm')
+                          : ''}
+                      </span>
+                      {conv.unreadCount > 0 && (
+                        <Badge
+                          count={conv.unreadCount}
+                          size="small"
+                          style={{ backgroundColor: '#ff4d4f' }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#999' }}>
+                    <span>{conv.staffPhone}</span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: '#666',
+                      marginTop: 4,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {conv.latestMessage?.content || '(无内容)'}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Pagination info */}
+          {total > pageSize && (
+            <div style={{ padding: '8px 16px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+              <Space>
+                <Button
+                  size="small"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  上一页
+                </Button>
+                <span style={{ fontSize: 12, color: '#999' }}>
+                  {page} / {Math.ceil(total / pageSize)}
+                </span>
+                <Button
+                  size="small"
+                  disabled={page >= Math.ceil(total / pageSize)}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  下一页
+                </Button>
+              </Space>
+            </div>
+          )}
+        </Card>
+
+        {/* Chat Panel */}
+        <Card
+          style={{
+            flex: 1,
+            display: isConversationSelected || !showMobileList ? 'flex' : 'none',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+          bodyStyle={{
+            padding: 0,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+          title={
+            chatStaff ? (
+              <Space>
+                <Button
+                  type="text"
+                  icon={<LeftOutlined />}
+                  onClick={backToList}
+                  style={{ marginLeft: -8 }}
+                />
+                <strong>{chatStaff.staffName}</strong>
+                <span style={{ color: '#999', fontSize: 13 }}>{chatStaff.staffId}</span>
+                <span style={{ color: '#999', fontSize: 13 }}>{chatStaff.staffPhone}</span>
+              </Space>
+            ) : (
+              '聊天详情'
+            )
+          }
+          extra={
+            chatStaff && (
+              <Button icon={<ExportOutlined />} onClick={handleExport} size="small">
+                导出聊天记录
+              </Button>
+            )
+          }
+        >
+          {!isConversationSelected ? (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Empty description="选择左侧咨询开始对话" />
+            </div>
+          ) : chatLoading ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Spin tip="加载聊天记录..." />
+            </div>
+          ) : (
+            <>
+              {/* Messages */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '16px 20px',
+                  backgroundColor: '#f5f5f5',
+                }}
+              >
+                {chatMessages.length === 0 ? (
+                  <Empty description="暂无消息" />
+                ) : (
+                  chatMessages.map((msg) => renderChatBubble(msg))
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Reply Input */}
+              <div
+                style={{
+                  borderTop: '1px solid #e8e8e8',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  gap: 12,
+                  alignItems: 'flex-end',
+                }}
+              >
+                <TextArea
+                  rows={3}
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="输入回复内容，Enter 发送，Shift+Enter 换行"
+                  maxLength={1000}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  onClick={handleSendReply}
+                  loading={replyLoading}
+                  style={{ height: 62 }}
+                >
+                  发送
+                </Button>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      {/* CSS for chat bubbles */}
+      <style>{`
+        .chat-bubble-wrapper {
+          margin-bottom: 16px;
+          display: flex;
+          flex-direction: column;
+          max-width: 70%;
+        }
+        .chat-bubble-left {
+          align-items: flex-start;
+        }
+        .chat-bubble-right {
+          align-items: flex-end;
+          margin-left: auto;
+        }
+        .chat-bubble-sender {
+          font-size: 12px;
+          color: #999;
+          margin-bottom: 4px;
+        }
+        .chat-bubble {
+          padding: 10px 14px;
+          border-radius: 8px;
+          word-break: break-word;
+          white-space: pre-wrap;
+        }
+        .chat-bubble-content {
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        .chat-bubble-time {
+          font-size: 11px;
+          color: #bbb;
+          margin-top: 4px;
+        }
+      `}</style>
     </div>
   );
 };
