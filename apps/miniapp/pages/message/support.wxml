@@ -5,6 +5,8 @@
     scroll-y
     scroll-into-view="{{scrollToView}}"
     scroll-with-animation
+    enhanced
+    show-scrollbar="{{false}}"
   >
     <view class="chat-list">
       <view
@@ -15,7 +17,22 @@
       >
         <view class="chat-msg-sender">{{item.senderLabel}}</view>
         <view class="chat-msg-bubble">
-          <text class="chat-msg-text">{{item.content || item.title}}</text>
+          <!-- Media image preview -->
+          <image
+            wx:if="{{item.isMedia && item.mediaType === 'image' && item.mediaUrl}}"
+            class="chat-media-img"
+            src="{{item.mediaUrl}}"
+            mode="widthFix"
+            data-url="{{item.mediaUrl}}"
+            data-type="image"
+            bindtap="onPreviewMedia"
+          />
+          <!-- Media video placeholder -->
+          <view wx:elif="{{item.isMedia && item.mediaType === 'video'}}" class="chat-media-video">
+            <text>[视频] {{item.displayContent}}</text>
+          </view>
+          <!-- Text message -->
+          <text wx:else class="chat-msg-text">{{item.displayContent}}</text>
         </view>
         <view class="chat-msg-time">{{item.time}}</view>
       </view>
@@ -23,7 +40,7 @@
 
     <!-- Empty state -->
     <view class="chat-empty" wx:if="{{loaded && messages.length === 0}}">
-      <text>暂无消息</text>
+      <text class="chat-empty-text">暂无消息</text>
       <text class="chat-empty-hint">输入消息开始咨询</text>
     </view>
 
@@ -33,24 +50,60 @@
     </view>
   </scroll-view>
 
-  <!-- Input area -->
+  <!-- Input bar: fixed bottom, WeChat-style -->
   <view class="chat-input-bar">
-    <input
-      class="chat-input"
-      placeholder="输入消息..."
-      value="{{inputContent}}"
-      maxlength="1000"
-      bindinput="onInputChange"
-      confirm-type="send"
-      bindconfirm="sendMessage"
-    />
+    <!-- Voice button -->
+    <view class="chat-tool-btn" bindtap="onTapVoice">
+      <text class="chat-tool-icon">语音</text>
+    </view>
+
+    <!-- Textarea input -->
+    <view class="chat-textarea-wrapper">
+      <textarea
+        class="chat-textarea"
+        placeholder="输入消息..."
+        value="{{inputContent}}"
+        maxlength="{{500}}"
+        bindinput="onInputChange"
+        bindlinechange="onTextareaLineChange"
+        bindfocus="onInputFocus"
+        bindblur="onInputBlur"
+        confirm-type="send"
+        bindconfirm="sendMessage"
+        auto-height
+        fixed
+        cursor-spacing="10"
+      />
+    </view>
+
+    <!-- Plus button -->
+    <view class="chat-tool-btn" bindtap="onTapPlus">
+      <text class="chat-tool-icon">+</text>
+    </view>
+
+    <!-- Send button -->
     <button
       class="chat-send-btn"
       bindtap="sendMessage"
       loading="{{sending}}"
-      disabled="{{sending}}"
+      disabled="{{sending || inputContent === ''}}"
     >
       发送
     </button>
+  </view>
+
+  <!-- Action sheet for media picker -->
+  <view class="action-sheet-mask" wx:if="{{showActionSheet}}" bindtap="onCloseActionSheet"></view>
+  <view class="action-sheet {{showActionSheet ? 'action-sheet-show' : ''}}">
+    <view class="action-sheet-title">发送内容</view>
+    <view class="action-sheet-item" bindtap="onChooseImage">
+      <text class="action-sheet-label">照片 (最大3MB)</text>
+    </view>
+    <view class="action-sheet-item" bindtap="onChooseVideo">
+      <text class="action-sheet-label">视频 (最大10MB)</text>
+    </view>
+    <view class="action-sheet-cancel" bindtap="onCloseActionSheet">
+      <text>取消</text>
+    </view>
   </view>
 </view>

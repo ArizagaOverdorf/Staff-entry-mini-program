@@ -4,6 +4,124 @@
   padding-bottom: 20px;
 }
 
+/* ---- Support conversation summary row ---- */
+
+.support-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 15px;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 8px;
+}
+
+.support-summary:active {
+  background-color: #fafafa;
+}
+
+.support-summary-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.support-summary-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  background-color: #07c160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.support-summary-avatar-text {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.support-summary-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.support-summary-top {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.support-summary-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  margin-right: 8px;
+}
+
+.support-summary-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.support-summary-status.status-active {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.support-summary-status.status-ended {
+  background-color: #f5f5f5;
+  color: #999;
+}
+
+.support-summary-preview {
+  display: block;
+  font-size: 13px;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.support-summary-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.support-summary-time {
+  font-size: 11px;
+  color: #ccc;
+  margin-bottom: 4px;
+}
+
+.support-summary-badge {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background-color: #ff4d4f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.support-summary-badge text {
+  font-size: 10px;
+  color: #fff;
+  line-height: 1;
+}
+
+/* ---- Support entry ---- */
+
 .support-entry {
   display: flex;
   justify-content: space-between;
@@ -29,6 +147,8 @@
   color: #ccc;
 }
 
+/* ---- Toolbar ---- */
+
 .message-toolbar {
   display: flex;
   justify-content: space-between;
@@ -51,6 +171,8 @@
 .toolbar-action:active {
   opacity: 0.7;
 }
+
+/* ---- Message list ---- */
 
 .message-list {
   background-color: #fff;
@@ -118,6 +240,22 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.4;
+}
+
+/* ---- Empty / Loading ---- */
+
+.empty-state {
+  text-align: center;
+  padding: 80px 0;
+  color: #999;
+  font-size: 15px;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+  font-size: 14px;
 }
 
 .load-more {

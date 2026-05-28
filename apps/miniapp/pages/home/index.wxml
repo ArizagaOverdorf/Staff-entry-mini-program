@@ -66,10 +66,10 @@
       </view>
     </view>
     <view class="grid-cell">
-      <button class="grid-action grid-button" open-type="contact">
+      <view class="grid-action" bindtap="goToSupport">
         <view class="grid-icon icon-service"><view class="icon-headset"></view><view class="icon-mic"></view></view>
         <text class="grid-label">联系客服</text>
-      </button>
+      </view>
     </view>
     <view class="grid-cell">
       <view class="grid-action" bindtap="goToAccount">

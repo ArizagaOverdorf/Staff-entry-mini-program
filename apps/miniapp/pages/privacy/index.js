@@ -47,7 +47,7 @@ Page({
 
     this.setData({ isSubmitting: true });
 
-    request.post(constants.API.PRIVACY_CONFIRM).then(() => {
+    request.post(constants.API.PRIVACY_CONFIRM, { agreed: true }).then(() => {
       wx.showToast({
         title: '确认成功',
         icon: 'success',

@@ -2,24 +2,41 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
   background-color: #f5f5f5;
+  position: relative;
 }
+
+/* ---- Chat scroll area ---- */
 
 .chat-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
 
 .chat-list {
   padding-bottom: 8px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
+
+/* ---- Chat message ---- */
 
 .chat-msg {
   margin-bottom: 16px;
   display: flex;
   flex-direction: column;
-  max-width: 80%;
+  max-width: 75%;
+  box-sizing: border-box;
 }
 
 .chat-msg.msg-left {
@@ -32,7 +49,7 @@
 }
 
 .chat-msg-sender {
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
   margin-bottom: 4px;
   padding: 0 4px;
@@ -42,6 +59,8 @@
   padding: 10px 14px;
   border-radius: 8px;
   word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .msg-left .chat-msg-bubble {
@@ -55,29 +74,54 @@
 }
 
 .chat-msg-text {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
+  word-break: break-all;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .chat-msg-time {
-  font-size: 11px;
+  font-size: 12px;
   color: #bbb;
   margin-top: 4px;
   padding: 0 4px;
 }
 
+/* ---- Media messages ---- */
+
+.chat-media-img {
+  max-width: 200px;
+  border-radius: 4px;
+}
+
+.chat-media-video {
+  font-size: 14px;
+  color: #666;
+  padding: 8px 12px;
+}
+
+/* ---- Empty / Loading ---- */
+
 .chat-empty {
   text-align: center;
-  padding: 60px 0;
+  padding: 80px 0;
   color: #999;
-  font-size: 14px;
+  font-size: 15px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-empty-text {
+  display: block;
+  margin-bottom: 8px;
 }
 
 .chat-empty-hint {
   display: block;
-  margin-top: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: #bbb;
 }
 
@@ -86,30 +130,61 @@
   padding: 40px 0;
   color: #999;
   font-size: 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
+
+/* ---- Input bar (fixed bottom) ---- */
 
 .chat-input-bar {
   display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  background-color: #fff;
-  border-top: 1px solid #e8e8e8;
-  gap: 10px;
+  align-items: flex-end;
+  padding: 8px 10px;
+  background-color: #f7f7f7;
+  border-top: 1px solid #e0e0e0;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.chat-input {
-  flex: 1;
-  height: 40px;
+.chat-tool-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chat-tool-icon {
   font-size: 14px;
-  border: 1px solid #e8e8e8;
-  border-radius: 20px;
-  padding: 0 16px;
+  color: #666;
+}
+
+.chat-textarea-wrapper {
+  flex: 1;
+  min-width: 0;
   box-sizing: border-box;
-  background-color: #f5f5f5;
+}
+
+.chat-textarea {
+  width: 100%;
+  min-height: 36px;
+  max-height: 120px;
+  font-size: 15px;
+  line-height: 1.4;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-sizing: border-box;
 }
 
 .chat-send-btn {
-  width: 64px;
+  width: 52px;
   height: 36px;
   line-height: 36px;
   font-size: 14px;
@@ -118,9 +193,73 @@
   border-radius: 4px;
   border: none;
   padding: 0;
+  margin: 0;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .chat-send-btn[disabled] {
   background-color: #a0d9b1;
+}
+
+/* ---- Action sheet ---- */
+
+.action-sheet-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.action-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-radius: 12px 12px 0 0;
+  z-index: 1001;
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+
+.action-sheet-show {
+  transform: translateY(0);
+}
+
+.action-sheet-title {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  padding: 14px 0 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.action-sheet-item {
+  padding: 16px;
+  text-align: center;
+  font-size: 16px;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.action-sheet-item:active {
+  background-color: #f5f5f5;
+}
+
+.action-sheet-cancel {
+  padding: 16px;
+  text-align: center;
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+  margin-top: 6px;
+  border-top: 6px solid #f0f0f0;
+}
+
+.action-sheet-cancel:active {
+  background-color: #f5f5f5;
 }

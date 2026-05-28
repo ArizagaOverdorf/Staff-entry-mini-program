@@ -252,6 +252,12 @@ Page({
     });
   },
 
+  goToSupport() {
+    wx.navigateTo({
+      url: '/pages/message/support'
+    });
+  },
+
   goToAccount() {
     wx.navigateTo({
       url: '/pages/account/index'

@@ -1,17 +1,41 @@
 <view class="message-container">
-  <!-- 客服咨询入口 -->
-  <view class="support-entry" bindtap="goToSupport">
+  <!-- Support conversation summary row -->
+  <view class="support-summary" wx:if="{{supportSummary && supportSummary.hasConversation}}" bindtap="goToSupport">
+    <view class="support-summary-left">
+      <view class="support-summary-avatar">
+        <text class="support-summary-avatar-text">客服</text>
+      </view>
+      <view class="support-summary-content">
+        <view class="support-summary-top">
+          <text class="support-summary-title">客服会话</text>
+          <text class="support-summary-status {{supportSummary.sessionActive ? 'status-active' : 'status-ended'}}">
+            {{supportSummary.sessionStatus}}
+          </text>
+        </view>
+        <text class="support-summary-preview">{{supportSummary.latestMessage.previewText || supportSummary.latestMessage.content || supportSummary.latestMessage.title || '暂无消息'}}</text>
+      </view>
+    </view>
+    <view class="support-summary-right">
+      <text class="support-summary-time">{{formatTime(supportSummary.latestMessage.createdAt)}}</text>
+      <view class="support-summary-badge" wx:if="{{supportSummary.unreadCount > 0}}">
+        <text>{{supportSummary.unreadCount > 99 ? '99+' : supportSummary.unreadCount}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Contact support entry (shown when no active conversation exists) -->
+  <view class="support-entry" wx:if="{{!supportSummary || !supportSummary.hasConversation}}" bindtap="goToSupport">
     <text class="support-entry-text">联系客服 / 发送咨询</text>
     <text class="support-entry-arrow">></text>
   </view>
 
-  <!-- 顶部操作栏 -->
+  <!-- Toolbar -->
   <view class="message-toolbar" wx:if="{{messages.length > 0 && totalUnread > 0}}">
     <text class="toolbar-info">未读消息 {{totalUnread}} 条</text>
     <text class="toolbar-action" bindtap="markAllRead">全部标记已读</text>
   </view>
 
-  <!-- 消息列表 -->
+  <!-- Regular message list (support messages excluded at backend) -->
   <view class="message-list" wx:if="{{messages.length > 0}}">
     <view
       class="message-item {{item.status === 'unread' ? 'unread' : ''}}"
@@ -31,18 +55,17 @@
     </view>
   </view>
 
-  <!-- 空状态 -->
-  <view class="empty-state" wx:if="{{loaded && messages.length === 0}}">
-    <view class="icon-empty">空</view>
+  <!-- Empty state -->
+  <view class="empty-state" wx:if="{{loaded && messages.length === 0 && (!supportSummary || !supportSummary.hasConversation)}}">
     <text>暂无消息</text>
   </view>
 
-  <!-- 加载状态 -->
+  <!-- Loading -->
   <view class="loading-container" wx:if="{{!loaded}}">
     <text>加载中...</text>
   </view>
 
-  <!-- 加载更多 -->
+  <!-- Load more -->
   <view class="load-more" wx:if="{{hasMore}}">
     <text>上拉加载更多</text>
   </view>

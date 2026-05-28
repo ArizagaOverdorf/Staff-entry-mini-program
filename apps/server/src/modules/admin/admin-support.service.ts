@@ -199,8 +199,8 @@ export class AdminSupportService {
     if (!normalizedContent) {
       throw new BadRequestException('Reply content is required');
     }
-    if (normalizedContent.length > 1000) {
-      throw new BadRequestException('回复内容不能超过1000字');
+    if (normalizedContent.length > 500) {
+      throw new BadRequestException('回复内容不能超过500字');
     }
 
     const staff = await this.prisma.staffAccount.findUnique({

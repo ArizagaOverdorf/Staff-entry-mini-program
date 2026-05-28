@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { AccountService } from './account.service';
 import { PrivacyAgreeDto } from './dto/privacy-agree.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -17,8 +17,11 @@ export class AccountController {
   @Post('privacy-agree')
   async agreePrivacy(
     @CurrentUser('id') accountId: string,
-    @Body() _dto: PrivacyAgreeDto,
+    @Body() dto: PrivacyAgreeDto,
   ) {
+    if (!dto.agreed) {
+      throw new BadRequestException('必须同意隐私政策后才能继续');
+    }
     return this.accountService.agreePrivacy(accountId);
   }
 }

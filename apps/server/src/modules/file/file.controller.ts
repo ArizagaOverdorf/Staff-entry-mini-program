@@ -33,17 +33,29 @@ export class FileController {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
-    if (!(FILE_LIMITS.ALLOWED_MIMES as readonly string[]).includes(file.mimetype)) {
+    const allowedMimes: readonly string[] = [
+      ...FILE_LIMITS.ALLOWED_MIMES,
+      ...FILE_LIMITS.ALLOWED_VIDEO_MIMES,
+    ];
+    if (!allowedMimes.includes(file.mimetype)) {
       throw new BadRequestException(
-        `File type ${file.mimetype} not allowed. Allowed: ${FILE_LIMITS.ALLOWED_MIMES.join(', ')}`,
+        `File type ${file.mimetype} not allowed. Allowed: ${allowedMimes.join(', ')}`,
       );
     }
-    if (file.size > FILE_LIMITS.MAX_SIZE) {
+    const isImage = (FILE_LIMITS.ALLOWED_IMAGE_MIMES as readonly string[]).includes(file.mimetype);
+    const isVideo = (FILE_LIMITS.ALLOWED_VIDEO_MIMES as readonly string[]).includes(file.mimetype);
+    const sizeLimit = isImage
+      ? FILE_LIMITS.IMAGE_MAX_SIZE
+      : isVideo
+        ? FILE_LIMITS.VIDEO_MAX_SIZE
+        : FILE_LIMITS.MAX_SIZE;
+    if (file.size > sizeLimit) {
       throw new BadRequestException(
-        `File size ${file.size} exceeds limit ${FILE_LIMITS.MAX_SIZE}`,
+        `File size ${file.size} exceeds limit ${sizeLimit}`,
       );
     }
-    const accessLevel = purpose === 'avatar' ? 'public' : 'private';
+    const accessLevel =
+      purpose === 'avatar' || purpose === 'support_media' ? 'public' : 'private';
     return this.fileService.upload(file, accountId, accessLevel);
   }
 

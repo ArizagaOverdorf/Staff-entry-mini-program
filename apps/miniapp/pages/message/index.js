@@ -7,17 +7,54 @@ Page({
     loaded: false,
     page: 1,
     hasMore: false,
-    totalUnread: 0
+    totalUnread: 0,
+    // Support conversation summary
+    supportSummary: null
   },
 
   onLoad() {
     this.loadMessages(1);
     this.loadUnreadCount();
+    this.loadSupportSummary();
   },
 
   onShow() {
     this.loadMessages(1);
     this.loadUnreadCount();
+    this.loadSupportSummary();
+  },
+
+  loadSupportSummary() {
+    const that = this;
+    request.get(constants.API.MESSAGE_SUPPORT_SUMMARY).then((res) => {
+      that.setData({ supportSummary: that.normalizeSupportSummary(res) });
+      // Update unread count to include support unread
+      that.updateTotalUnread();
+    }).catch(() => {
+      // Support summary may not exist yet
+    });
+  },
+
+  normalizeSupportSummary(summary) {
+    if (!summary || !summary.latestMessage) return summary;
+    const latest = { ...summary.latestMessage };
+    latest.previewText = this.formatSupportPreview(latest.content || latest.title || '');
+    return { ...summary, latestMessage: latest };
+  },
+
+  formatSupportPreview(content) {
+    if (!content || typeof content !== 'string') return '';
+    const trimmed = content.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.type === 'image') return '[图片]';
+        if (parsed.type === 'video') return '[视频]';
+      } catch (e) {
+        // Not a support media payload.
+      }
+    }
+    return content;
   },
 
   loadMessages(page) {
@@ -41,13 +78,28 @@ Page({
       that.setData({
         totalUnread: res.unreadCount || res.count || 0
       });
+      that.updateTotalUnread();
     }).catch(() => {});
   },
 
-  // 查看消息详情
+  updateTotalUnread() {
+    const supportUnread = (this.data.supportSummary && this.data.supportSummary.unreadCount) || 0;
+    const regularUnread = this.data.messages.filter(m => m.status === 'unread').length;
+    this.setData({
+      totalUnread: supportUnread + regularUnread
+    });
+  },
+
+  // Navigate to support conversation
+  goToSupport() {
+    wx.navigateTo({
+      url: '/pages/message/support'
+    });
+  },
+
+  // View regular message detail
   viewDetail(e) {
     const msg = e.currentTarget.dataset.item || {};
-    // 标记为已读
     this.markAsRead(msg.id);
     wx.navigateTo({
       url: '/pages/message/detail?id=' + msg.id
@@ -56,7 +108,6 @@ Page({
 
   markAsRead(id) {
     request.post(constants.API.MESSAGES + '/' + id + '/read').then(() => {
-      // 更新本地状态
       const messages = this.data.messages.map(m => {
         if (m.id === id) {
           return { ...m, status: 'read' };
@@ -64,10 +115,11 @@ Page({
         return m;
       });
       this.setData({ messages: messages });
+      this.updateTotalUnread();
     }).catch(() => {});
   },
 
-  // 标记全部已读
+  // Mark all regular messages as read
   markAllRead() {
     request.post(constants.API.MESSAGE_READ, { all: true }).then(() => {
       const messages = this.data.messages.map(m => {
@@ -75,16 +127,10 @@ Page({
       });
       this.setData({
         messages: messages,
-        totalUnread: 0
+        totalUnread: (this.data.supportSummary && this.data.supportSummary.unreadCount) || 0
       });
       wx.showToast({ title: '已全部标记为已读', icon: 'none' });
     }).catch(() => {});
-  },
-
-  goToSupport() {
-    wx.navigateTo({
-      url: '/pages/message/support'
-    });
   },
 
   onReachBottom() {

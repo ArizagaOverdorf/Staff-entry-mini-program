@@ -17,7 +17,12 @@ export class MessageService {
         ? Math.min(params.pageSize, 100)
         : 20;
 
-    const where = { staffAccountId: accountId };
+    // Exclude support conversation messages from general message list.
+    // Support messages are aggregated into one conversation row in the miniapp.
+    const where = {
+      staffAccountId: accountId,
+      messageType: { notIn: ['support_request', 'support_reply'] },
+    };
     const [total, list] = await Promise.all([
       this.prisma.message.count({ where }),
       this.prisma.message.findMany({
@@ -80,7 +85,11 @@ export class MessageService {
    * Staff sends a support message into their conversation.
    * This is a conversation message, not a one-time form.
    */
-  async createSupportMessage(accountId: string, title?: string, content?: string) {
+  async createSupportMessage(
+    accountId: string,
+    title?: string,
+    content?: string,
+  ) {
     const normalizedTitle = title?.trim();
     const normalizedContent = content?.trim();
 
@@ -93,8 +102,8 @@ export class MessageService {
     if (!normalizedContent) {
       throw new BadRequestException('咨询内容不能为空');
     }
-    if (normalizedContent.length > 1000) {
-      throw new BadRequestException('咨询内容不能超过1000字');
+    if (normalizedContent.length > 500) {
+      throw new BadRequestException('咨询内容不能超过500字');
     }
 
     const message = await this.prisma.message.create({
@@ -119,8 +128,8 @@ export class MessageService {
     if (!normalizedContent) {
       throw new BadRequestException('消息内容不能为空');
     }
-    if (normalizedContent.length > 1000) {
-      throw new BadRequestException('消息内容不能超过1000字');
+    if (normalizedContent.length > 500) {
+      throw new BadRequestException('消息内容不能超过500字');
     }
 
     const message = await this.prisma.message.create({
@@ -163,6 +172,61 @@ export class MessageService {
 
     return {
       messages: messages.map((msg) => this.formatMessage(msg)),
+    };
+  }
+
+  /**
+   * Get support conversation summary for message center aggregation.
+   * Returns one row with latest message preview, unread count, and session status.
+   * Session is active if latest support message is within 30 minutes.
+   */
+  async getSupportConversationSummary(accountId: string) {
+    const supportTypes: string[] = ['support_request', 'support_reply'];
+
+    const latestMsg = await this.prisma.message.findFirst({
+      where: {
+        staffAccountId: accountId,
+        messageType: { in: supportTypes },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        messageType: true,
+        senderType: true,
+        isRead: true,
+        createdAt: true,
+      },
+    });
+
+    const unreadCount = await this.prisma.message.count({
+      where: {
+        staffAccountId: accountId,
+        messageType: { in: supportTypes },
+        senderType: { in: ['admin', 'system'] },
+        isRead: false,
+      },
+    });
+
+    const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+    let sessionActive = false;
+    if (latestMsg) {
+      const age = Date.now() - new Date(latestMsg.createdAt).getTime();
+      sessionActive = age < SESSION_TIMEOUT_MS;
+    }
+
+    return {
+      hasConversation: !!latestMsg,
+      latestMessage: latestMsg ? this.formatMessage(latestMsg) : null,
+      unreadCount,
+      sessionActive,
+      sessionStatus: latestMsg
+        ? sessionActive
+          ? '会话进行中'
+          : '会话已结束'
+        : null,
+      sessionTimeoutMs: SESSION_TIMEOUT_MS,
     };
   }
 

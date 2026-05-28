@@ -2,7 +2,7 @@
  * 全局常量定义
  */
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://192.168.1.161:3000/api';
 const APP_API_PREFIX = '/app';
 
 const API = {
@@ -41,6 +41,7 @@ const API = {
   MESSAGE_SUPPORT: APP_API_PREFIX + '/messages/support',
   MESSAGE_SUPPORT_CONVERSATION: APP_API_PREFIX + '/messages/support/conversation',
   MESSAGE_SUPPORT_SEND: APP_API_PREFIX + '/messages/support/send',
+  MESSAGE_SUPPORT_SUMMARY: APP_API_PREFIX + '/messages/support/summary',
 
   ACCOUNT_INFO: APP_API_PREFIX + '/account/me'
 };

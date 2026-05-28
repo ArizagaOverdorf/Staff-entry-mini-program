@@ -25,6 +25,11 @@ export class MessageController {
     return this.messageService.unreadCount(accountId);
   }
 
+  @Get('support/summary')
+  async getSupportConversationSummary(@CurrentUser('id') accountId: string) {
+    return this.messageService.getSupportConversationSummary(accountId);
+  }
+
   @Get('support/conversation')
   async getSupportConversation(@CurrentUser('id') accountId: string) {
     return this.messageService.getStaffConversation(accountId);

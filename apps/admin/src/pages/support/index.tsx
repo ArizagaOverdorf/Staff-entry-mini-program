@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+const POLL_INTERVAL = 5000;
 import {
   Card,
   Form,
@@ -29,6 +30,21 @@ import {
 } from './services/support';
 
 const { TextArea } = Input;
+
+function formatSupportContent(content?: string, title?: string) {
+  const value = content || title || '';
+  const trimmed = value.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed.type === 'image') return '[图片]';
+      if (parsed.type === 'video') return '[视频]';
+    } catch {
+      // Keep original content when it is not a media payload.
+    }
+  }
+  return value;
+}
 
 const SupportPage: React.FC = () => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -70,6 +86,28 @@ const SupportPage: React.FC = () => {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+
+  // Poll inbox list every 5s
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchConversations();
+    }, POLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, [fetchConversations]);
+
+  // Poll active conversation every 5s
+  useEffect(() => {
+    if (!selectedStaffAccountId) return;
+    const timer = setInterval(() => {
+      if (selectedStaffAccountId) {
+        getConversation(selectedStaffAccountId).then((detail) => {
+          setChatMessages(detail.messages || []);
+          setChatStaff(detail.staff);
+        }).catch(() => {});
+      }
+    }, POLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, [selectedStaffAccountId]);
 
   const handleSearch = () => {
     setPage(1);
@@ -180,7 +218,7 @@ const SupportPage: React.FC = () => {
       <div key={msg.id} className={`chat-bubble-wrapper ${alignClass}`}>
         <div className="chat-bubble-sender">{senderName}</div>
         <div className="chat-bubble" style={bubbleStyle}>
-          <div className="chat-bubble-content">{msg.content || msg.title}</div>
+          <div className="chat-bubble-content">{formatSupportContent(msg.content, msg.title)}</div>
         </div>
         <div className="chat-bubble-time">
           {msg.createdAt ? dayjs(msg.createdAt).format('MM/DD HH:mm') : ''}
@@ -297,7 +335,7 @@ const SupportPage: React.FC = () => {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {conv.latestMessage?.content || '(无内容)'}
+                    {formatSupportContent(conv.latestMessage?.content, conv.latestMessage?.title) || '(无内容)'}
                   </div>
                 </div>
               ))
@@ -420,7 +458,7 @@ const SupportPage: React.FC = () => {
                   onChange={(e) => setReplyContent(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="输入回复内容，Enter 发送，Shift+Enter 换行"
-                  maxLength={1000}
+                  maxLength={500}
                   style={{ flex: 1 }}
                 />
                 <Button
