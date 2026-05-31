@@ -184,10 +184,9 @@ Write-Host "  Intake ID card sides check passed." -ForegroundColor Green
 # 8. Skill certificate multi-upload support
 Write-Host "  Skill certificate multi-upload support..." -ForegroundColor Cyan
 Assert-Contains ".\apps\miniapp\pages\credential\index.js" "skillCertificates" "Credential index must track skill certificates"
-Assert-Contains ".\apps\miniapp\pages\credential\index.wxml" "skill-upload-card" "Credential index must have add skill cert button"
-Assert-Contains ".\apps\miniapp\pages\credential\index.js" "goToSkillCertUpload" "Credential index must have goToSkillCertUpload"
+Assert-Contains ".\apps\miniapp\pages\credential\index.wxml" "skillEntries|skill-entry-card|证书图片（1-3张）" "Credential index must have multi skill certificate entries"
+Assert-Contains ".\apps\miniapp\pages\credential\index.js" "onSaveSkillEntry|goToSkillCertUpload" "Credential index must have skill certificate save/upload handler"
 Write-Host "  Skill certificate multi-upload support passed." -ForegroundColor Green
 
 Write-Host ""
 Write-Host "Stage 9 verification passed." -ForegroundColor Green
-
