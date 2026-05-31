@@ -3,7 +3,7 @@
     <view class="header-top">
       <view class="header-user">
         <view class="avatar">
-          <image wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill" />
+          <image wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill" bindload="onAvatarImageLoad" binderror="onAvatarImageError" />
           <view wx:else class="avatar-text">{{staffAvatarText}}</view>
         </view>
         <view class="header-info">

@@ -1,6 +1,6 @@
 const request = require('../../../utils/request');
 const constants = require('../../../utils/constants');
-const { normalizeAvatarUrl, getAvatarText } = require('../../../utils/avatar');
+const { normalizeAvatarUrl, getAvatarText, resolveAvatarValue } = require('../../../utils/avatar');
 
 function getGenderLabel(value) {
   const option = constants.GENDER_OPTIONS.find((g) => g.value === value);
@@ -41,7 +41,7 @@ Page({
       this.setData({
         profile: {
           ...profile,
-          avatarUrl: normalizeAvatarUrl(profile.avatarUrl),
+          avatarUrl: normalizeAvatarUrl(resolveAvatarValue(profile, res)),
           phone: profile.phone || res.phone || '',
           genderLabel: getGenderLabel(profile.gender),
           serviceCategoryNames: formatNames(profile.serviceCategories, 'categoryName'),

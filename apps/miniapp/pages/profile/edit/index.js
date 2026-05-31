@@ -1,7 +1,13 @@
 const request = require('../../../utils/request');
 const uploadUtil = require('../../../utils/upload');
 const constants = require('../../../utils/constants');
-const { extractUploadedFileId, normalizeAvatarUrl, getAvatarText } = require('../../../utils/avatar');
+const {
+  extractUploadedFileId,
+  normalizeAvatarUrl,
+  getAvatarText,
+  resolveAvatarValue,
+  setCachedAvatarFileId
+} = require('../../../utils/avatar');
 
 function normalizeCategory(item) {
   return {
@@ -27,6 +33,10 @@ function normalizeArea(item) {
 function hasExpectedServiceCategories(list) {
   const values = list.map((item) => item.value || item.categoryId);
   return constants.SERVICE_SKILL_OPTIONS.every((item) => values.indexOf(item.value) > -1);
+}
+
+function logAvatarDebug(stage, payload) {
+  console.log('[AvatarDebug][profile-edit][' + stage + ']', payload);
 }
 
 Page({
@@ -63,6 +73,15 @@ Page({
     request.get(constants.API.PROFILE).then((res) => {
       if (res.profile) {
         const p = res.profile;
+        const avatarValue = resolveAvatarValue(p, res);
+        logAvatarDebug('loadProfile.profile', {
+          rawProfileAvatarUrl: p.avatarUrl || '',
+          rawProfileAvatarFileId: p.avatarFileId || '',
+          rawRootAvatarUrl: res.avatarUrl || '',
+          rawWechatAvatar: res.wechatAvatar || '',
+          resolvedAvatarValue: avatarValue,
+          normalizedAvatarUrl: normalizeAvatarUrl(avatarValue)
+        });
         let genderIndex = -1;
         if (p.gender) {
           genderIndex = constants.GENDER_OPTIONS.findIndex((g) => g.value === p.gender);
@@ -75,9 +94,9 @@ Page({
           birthday: p.birthday || '',
           phone: p.phone || res.phone || '',
           address: p.address || '',
-          avatarUrl: p.avatarUrl || '',
-          avatarFileId: p.avatarUrl || '',
-          avatarPreviewUrl: normalizeAvatarUrl(p.avatarUrl),
+          avatarUrl: avatarValue,
+          avatarFileId: avatarValue,
+          avatarPreviewUrl: normalizeAvatarUrl(avatarValue),
           avatarText: getAvatarText(p.name || p.nameMasked || ''),
           emergencyContact: p.emergencyContact || '',
           emergencyPhone: p.emergencyPhone || '',
@@ -86,8 +105,18 @@ Page({
           isEdit: true
         });
       } else {
+        const avatarValue = resolveAvatarValue({}, res);
+        logAvatarDebug('loadProfile.noProfile', {
+          rawRootAvatarUrl: res.avatarUrl || '',
+          rawWechatAvatar: res.wechatAvatar || '',
+          resolvedAvatarValue: avatarValue,
+          normalizedAvatarUrl: normalizeAvatarUrl(avatarValue)
+        });
         this.setData({
           phone: res.phone || '',
+          avatarUrl: avatarValue,
+          avatarFileId: avatarValue,
+          avatarPreviewUrl: normalizeAvatarUrl(avatarValue),
           avatarText: getAvatarText('')
         });
       }
@@ -155,16 +184,23 @@ Page({
         ).then((uploadRes) => {
           const fileId = extractUploadedFileId(uploadRes);
           if (!fileId) {
+            logAvatarDebug('upload.noFileId', { uploadRes });
             wx.showToast({ title: '头像上传失败', icon: 'none' });
             return;
           }
 
+          logAvatarDebug('upload.success', {
+            fileId,
+            localFilePath: filePath,
+            uploadRes
+          });
           this.setData({
             avatarUrl: fileId,
             avatarFileId: fileId,
             avatarPreviewUrl: filePath,
             avatarChanged: true
           });
+          setCachedAvatarFileId(fileId, filePath);
           wx.showToast({
             title: '头像已上传',
             icon: 'success'
@@ -191,6 +227,20 @@ Page({
     this.setData({
       name,
       avatarText: getAvatarText(name)
+    });
+  },
+
+  onAvatarImageLoad(e) {
+    logAvatarDebug('image.load', {
+      src: this.data.avatarPreviewUrl || this.data.avatarUrl,
+      event: e.detail || {}
+    });
+  },
+
+  onAvatarImageError(e) {
+    logAvatarDebug('image.error', {
+      src: this.data.avatarPreviewUrl || this.data.avatarUrl,
+      event: e.detail || {}
     });
   },
 
@@ -263,7 +313,22 @@ Page({
       const avatarChanged = this.data.avatarChanged;
       const uploadedFileId = this.data.avatarFileId;
 
-      await request.put(constants.API.PROFILE_UPDATE, profileData);
+      logAvatarDebug('save.beforePut', {
+        avatarChanged,
+        uploadedFileId,
+        profileAvatarUrl: profileData.avatarUrl,
+        currentPreview: this.data.avatarPreviewUrl
+      });
+      const updatedProfile = await request.put(constants.API.PROFILE_UPDATE, profileData);
+      const updatedAvatarValue = resolveAvatarValue(updatedProfile, updatedProfile);
+      logAvatarDebug('save.afterPut', {
+        updatedProfile,
+        updatedAvatarValue,
+        normalizedAvatarUrl: normalizeAvatarUrl(updatedAvatarValue)
+      });
+      if (updatedAvatarValue) {
+        setCachedAvatarFileId(updatedAvatarValue);
+      }
 
       if (this.data.selectedCategories.length > 0) {
         const skillsData = {
@@ -293,7 +358,12 @@ Page({
         try {
           const savedProfile = await request.get(constants.API.PROFILE);
           const profile = savedProfile.profile || {};
-          const returnedAvatarUrl = profile.avatarUrl || '';
+          const returnedAvatarUrl = resolveAvatarValue(profile, savedProfile);
+          logAvatarDebug('save.afterRefresh', {
+            savedProfile,
+            returnedAvatarUrl,
+            normalizedAvatarUrl: normalizeAvatarUrl(returnedAvatarUrl)
+          });
 
           if (!returnedAvatarUrl || returnedAvatarUrl !== uploadedFileId) {
             console.error('[AvatarSaveConfirm] mismatch', {
@@ -311,6 +381,7 @@ Page({
             avatarPreviewUrl: normalizeAvatarUrl(returnedAvatarUrl),
             avatarChanged: false
           });
+          setCachedAvatarFileId(returnedAvatarUrl);
         } catch (refreshErr) {
           console.error('[AvatarSaveConfirm] refresh failed', {
             uploadedFileId: uploadedFileId,
@@ -325,7 +396,7 @@ Page({
         try {
           const savedProfile = await request.get(constants.API.PROFILE);
           const profile = savedProfile.profile || {};
-          const returnedAvatarUrl = profile.avatarUrl;
+          const returnedAvatarUrl = resolveAvatarValue(profile, savedProfile);
           this.setData({
             avatarUrl: returnedAvatarUrl || '',
             avatarFileId: returnedAvatarUrl || '',

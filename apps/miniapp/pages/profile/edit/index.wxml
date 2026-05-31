@@ -5,7 +5,7 @@
       <view class="form-group">
         <view class="avatar-row">
           <view class="profile-avatar" bindtap="handleAvatarUpload">
-            <image wx:if="{{avatarPreviewUrl || avatarUrl}}" src="{{avatarPreviewUrl || avatarUrl}}" mode="aspectFill" />
+            <image wx:if="{{avatarPreviewUrl || avatarUrl}}" src="{{avatarPreviewUrl || avatarUrl}}" mode="aspectFill" bindload="onAvatarImageLoad" binderror="onAvatarImageError" />
             <text wx:else class="profile-avatar-text">{{avatarText}}</text>
           </view>
           <view class="avatar-action" bindtap="handleAvatarUpload">

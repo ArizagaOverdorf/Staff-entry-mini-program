@@ -1,6 +1,6 @@
 const request = require('../../utils/request');
 const constants = require('../../utils/constants');
-const { normalizeAvatarUrl, getAvatarText } = require('../../utils/avatar');
+const { normalizeAvatarUrl, getAvatarText, resolveAvatarValue } = require('../../utils/avatar');
 
 const SENSITIVE_AUDIT_TYPES = [
   { typeId: 'id_card', label: '身份证', dateMode: 'none' },
@@ -213,7 +213,7 @@ Page({
 
       this.setData({
         displayName,
-        avatarUrl: normalizeAvatarUrl(profile.avatarUrl),
+        avatarUrl: normalizeAvatarUrl(resolveAvatarValue(profile, profileRes)),
         avatarText: getAvatarText(displayName, '简'),
         identityVerified,
         identityVerifiedLabel: identityVerified ? '已实名认证' : '未实名认证',

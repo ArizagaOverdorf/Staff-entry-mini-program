@@ -1,7 +1,7 @@
 const authUtil = require('../../utils/auth');
 const request = require('../../utils/request');
 const constants = require('../../utils/constants');
-const { normalizeAvatarUrl, getAvatarText } = require('../../utils/avatar');
+const { normalizeAvatarUrl, getAvatarText, resolveAvatarValue } = require('../../utils/avatar');
 
 Page({
   data: {
@@ -40,7 +40,7 @@ Page({
           phone: phone,
           identityVerified: !!profile.identityVerified
         },
-        accountAvatarUrl: normalizeAvatarUrl(profile.avatarUrl) || account.wechatAvatar || '',
+        accountAvatarUrl: normalizeAvatarUrl(resolveAvatarValue(profile, account)),
         accountAvatarText: getAvatarText(displayName, '账'),
         loaded: true
       });

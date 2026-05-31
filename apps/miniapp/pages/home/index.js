@@ -1,7 +1,11 @@
 const authUtil = require('../../utils/auth');
 const request = require('../../utils/request');
 const constants = require('../../utils/constants');
-const { normalizeAvatarUrl, getAvatarText } = require('../../utils/avatar');
+const { normalizeAvatarUrl, getAvatarText, resolveAvatarValue } = require('../../utils/avatar');
+
+function logAvatarDebug(stage, payload) {
+  console.log('[AvatarDebug][home][' + stage + ']', payload);
+}
 
 function getQualificationClass(status) {
   if (status === 'approved' || status === 'normal') return 'success';
@@ -110,8 +114,17 @@ Page({
     request.get(constants.API.PROFILE).then((res) => {
       const profile = res.profile || {};
       const displayName = profile.name || profile.nameMasked || res.nickname || '家政人员';
-      const avatarUrl = normalizeAvatarUrl(profile.avatarUrl);
+      const avatarValue = resolveAvatarValue(profile, res);
+      const avatarUrl = normalizeAvatarUrl(avatarValue);
       const identityVerified = !!profile.identityVerified;
+      logAvatarDebug('loadProfileHeader', {
+        rawProfileAvatarUrl: profile.avatarUrl || '',
+        rawProfileAvatarFileId: profile.avatarFileId || '',
+        rawRootAvatarUrl: res.avatarUrl || '',
+        rawWechatAvatar: res.wechatAvatar || '',
+        resolvedAvatarValue: avatarValue,
+        normalizedAvatarUrl: avatarUrl
+      });
 
       this.setData({
         displayName,
@@ -123,6 +136,20 @@ Page({
       });
     }).catch(() => {
       // 保持默认展示
+    });
+  },
+
+  onAvatarImageLoad(e) {
+    logAvatarDebug('image.load', {
+      src: this.data.avatarUrl,
+      event: e.detail || {}
+    });
+  },
+
+  onAvatarImageError(e) {
+    logAvatarDebug('image.error', {
+      src: this.data.avatarUrl,
+      event: e.detail || {}
     });
   },
 

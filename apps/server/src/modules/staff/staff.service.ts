@@ -23,6 +23,7 @@ export class StaffService {
 
     const encryptionKey = this.config.encryptionKey;
     const profile = account.profile as any;
+    const avatarUrl = profile?.avatarUrl || account.wechatAvatar || undefined;
 
     return {
       staffId: account.staffId,
@@ -31,6 +32,9 @@ export class StaffService {
         ? decrypt(account.phoneEncrypted, encryptionKey)
         : undefined,
       nickname: account.wechatNickname,
+      wechatAvatar: account.wechatAvatar,
+      avatarUrl,
+      avatarFileId: avatarUrl,
       profile: profile
         ? {
             name: profile.realNameEncrypted
@@ -51,7 +55,8 @@ export class StaffService {
             birthday: profile.birthday
               ? profile.birthday.toISOString().slice(0, 10)
               : undefined,
-            avatarUrl: profile.avatarUrl,
+            avatarUrl,
+            avatarFileId: avatarUrl,
             address: profile.address,
             emergencyContact: profile.emergencyContactName,
             emergencyPhone: profile.emergencyContactPhone,
@@ -81,6 +86,7 @@ export class StaffService {
     const realName = dto.realName ?? dto.name;
     const emergencyContactName = dto.emergencyContactName ?? dto.emergencyContact;
     const emergencyContactPhone = dto.emergencyContactPhone ?? dto.emergencyPhone;
+    const avatarUrl = typeof dto.avatarUrl === 'string' ? dto.avatarUrl.trim() : dto.avatarUrl;
 
     const profileData: Record<string, any> = {};
 
@@ -103,14 +109,14 @@ export class StaffService {
     }
     if (dto.birthday !== undefined)
       profileData.birthday = dto.birthday ? new Date(dto.birthday) : null;
-    if (dto.avatarUrl !== undefined) profileData.avatarUrl = dto.avatarUrl;
+    if (dto.avatarUrl !== undefined) profileData.avatarUrl = avatarUrl || null;
     if (dto.address !== undefined) profileData.address = dto.address;
 
     // Promote avatar file to public so miniapp public-preview endpoint can serve it.
-    if (dto.avatarUrl && !dto.avatarUrl.startsWith('http://') && !dto.avatarUrl.startsWith('https://')) {
+    if (avatarUrl && !avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://')) {
       await this.prisma.fileAsset.updateMany({
         where: {
-          id: dto.avatarUrl,
+          id: avatarUrl,
           uploadedByStaffAccountId: accountId,
         },
         data: { accessLevel: 'public' },
@@ -122,10 +128,21 @@ export class StaffService {
     if (emergencyContactPhone !== undefined)
       profileData.emergencyContactPhone = emergencyContactPhone;
 
-    const result = await this.prisma.staffProfile.upsert({
-      where: { staffAccountId: accountId },
-      create: { ...profileData, staffAccountId: accountId, staffId },
-      update: profileData,
+    const result = await this.prisma.$transaction(async (tx) => {
+      const profileResult = await tx.staffProfile.upsert({
+        where: { staffAccountId: accountId },
+        create: { ...profileData, staffAccountId: accountId, staffId },
+        update: profileData,
+      });
+
+      if (dto.avatarUrl !== undefined) {
+        await tx.staffAccount.update({
+          where: { id: accountId },
+          data: { wechatAvatar: avatarUrl || null },
+        });
+      }
+
+      return profileResult;
     }) as any;
 
     return {
@@ -147,6 +164,7 @@ export class StaffService {
         ? result.birthday.toISOString().slice(0, 10)
         : undefined,
       avatarUrl: result.avatarUrl,
+      avatarFileId: result.avatarUrl,
       address: result.address,
       emergencyContact: result.emergencyContactName,
       emergencyPhone: result.emergencyContactPhone,
