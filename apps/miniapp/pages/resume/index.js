@@ -1,5 +1,6 @@
 const request = require('../../utils/request');
 const constants = require('../../utils/constants');
+const { normalizeAvatarUrl, getAvatarText } = require('../../utils/avatar');
 
 const SENSITIVE_AUDIT_TYPES = [
   { typeId: 'id_card', label: '身份证', dateMode: 'none' },
@@ -21,10 +22,6 @@ const DEMO_SERVICE_RECORDS = [
     violation: false
   }
 ];
-
-function getAvatarText(name) {
-  return name ? name.slice(0, 1) : '简';
-}
 
 function getGenderLabel(value) {
   if (value === 'male' || value === 1) return '男';
@@ -216,8 +213,8 @@ Page({
 
       this.setData({
         displayName,
-        avatarUrl: profile.avatarUrl || '',
-        avatarText: getAvatarText(displayName),
+        avatarUrl: normalizeAvatarUrl(profile.avatarUrl),
+        avatarText: getAvatarText(displayName, '简'),
         identityVerified,
         identityVerifiedLabel: identityVerified ? '已实名认证' : '未实名认证',
         genderLabel: getGenderLabel(profile.gender),

@@ -1,13 +1,10 @@
 const request = require('../../../utils/request');
 const constants = require('../../../utils/constants');
+const { normalizeAvatarUrl, getAvatarText } = require('../../../utils/avatar');
 
 function getGenderLabel(value) {
   const option = constants.GENDER_OPTIONS.find((g) => g.value === value);
   return option ? option.label : '未设置';
-}
-
-function getAvatarText(name) {
-  return name ? name.slice(0, 1) : '人';
 }
 
 function formatNames(items, key) {
@@ -44,6 +41,7 @@ Page({
       this.setData({
         profile: {
           ...profile,
+          avatarUrl: normalizeAvatarUrl(profile.avatarUrl),
           phone: profile.phone || res.phone || '',
           genderLabel: getGenderLabel(profile.gender),
           serviceCategoryNames: formatNames(profile.serviceCategories, 'categoryName'),

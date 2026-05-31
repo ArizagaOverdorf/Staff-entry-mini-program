@@ -1,14 +1,7 @@
 const request = require('../../../utils/request');
 const uploadUtil = require('../../../utils/upload');
 const constants = require('../../../utils/constants');
-
-function getAvatarText(name) {
-  return name ? name.slice(0, 1) : '人';
-}
-
-function buildPublicPreviewUrl(fileId) {
-  return constants.API_BASE_URL + '/app/files/public/' + fileId + '/preview';
-}
+const { extractUploadedFileId, normalizeAvatarUrl, getAvatarText } = require('../../../utils/avatar');
 
 function normalizeCategory(item) {
   return {
@@ -39,13 +32,14 @@ function hasExpectedServiceCategories(list) {
 Page({
   data: {
     name: '',
-    idNumber: '',
     gender: '',
     genderIndex: -1,
     birthday: '',
     phone: '',
     address: '',
     avatarUrl: '',
+    avatarFileId: '',
+    avatarPreviewUrl: '',
     avatarText: '人',
     emergencyContact: '',
     emergencyPhone: '',
@@ -56,7 +50,8 @@ Page({
     serviceAreas: [],
     selectedAreas: [],
     isSubmitting: false,
-    isEdit: false
+    isEdit: false,
+    avatarChanged: false
   },
 
   onLoad() {
@@ -74,7 +69,6 @@ Page({
         }
         this.setData({
           name: p.name || '',
-          idNumber: p.idNumber || '',
           gender: p.gender || '',
           genderIndex: genderIndex,
           genderLabel: genderIndex >= 0 ? constants.GENDER_OPTIONS[genderIndex].label : '请选择性别',
@@ -82,6 +76,8 @@ Page({
           phone: p.phone || res.phone || '',
           address: p.address || '',
           avatarUrl: p.avatarUrl || '',
+          avatarFileId: p.avatarUrl || '',
+          avatarPreviewUrl: normalizeAvatarUrl(p.avatarUrl),
           avatarText: getAvatarText(p.name || p.nameMasked || ''),
           emergencyContact: p.emergencyContact || '',
           emergencyPhone: p.emergencyPhone || '',
@@ -157,14 +153,17 @@ Page({
           'file',
           { purpose: 'avatar' }
         ).then((uploadRes) => {
-          const fileId = uploadRes.data?.id || uploadRes.id || '';
+          const fileId = extractUploadedFileId(uploadRes);
           if (!fileId) {
             wx.showToast({ title: '头像上传失败', icon: 'none' });
             return;
           }
 
           this.setData({
-            avatarUrl: buildPublicPreviewUrl(fileId)
+            avatarUrl: fileId,
+            avatarFileId: fileId,
+            avatarPreviewUrl: filePath,
+            avatarChanged: true
           });
           wx.showToast({
             title: '头像已上传',
@@ -193,10 +192,6 @@ Page({
       name,
       avatarText: getAvatarText(name)
     });
-  },
-
-  onIdNumberInput(e) {
-    this.setData({ idNumber: e.detail.value });
   },
 
   onBirthdayInput(e) {
@@ -242,14 +237,6 @@ Page({
       wx.showToast({ title: '请输入姓名', icon: 'none' });
       return false;
     }
-    if (!this.data.idNumber) {
-      wx.showToast({ title: '请输入身份证号', icon: 'none' });
-      return false;
-    }
-    if (this.data.idNumber.length !== 18) {
-      wx.showToast({ title: '身份证号格式不正确', icon: 'none' });
-      return false;
-    }
     if (this.data.genderIndex < 0) {
       wx.showToast({ title: '请选择性别', icon: 'none' });
       return false;
@@ -266,14 +253,16 @@ Page({
     try {
       const profileData = {
         name: this.data.name,
-        idNumber: this.data.idNumber,
         gender: this.data.gender,
         birthday: this.data.birthday,
-        avatarUrl: this.data.avatarUrl,
+        avatarUrl: this.data.avatarFileId || this.data.avatarUrl,
         address: this.data.address,
         emergencyContact: this.data.emergencyContact,
         emergencyPhone: this.data.emergencyPhone
       };
+      const avatarChanged = this.data.avatarChanged;
+      const uploadedFileId = this.data.avatarFileId;
+
       await request.put(constants.API.PROFILE_UPDATE, profileData);
 
       if (this.data.selectedCategories.length > 0) {
@@ -297,6 +286,54 @@ Page({
           }))
         };
         await request.put(constants.API.PROFILE + '/service-areas', areasData);
+      }
+
+      // When avatar was changed, post-save refresh is mandatory.
+      if (avatarChanged) {
+        try {
+          const savedProfile = await request.get(constants.API.PROFILE);
+          const profile = savedProfile.profile || {};
+          const returnedAvatarUrl = profile.avatarUrl || '';
+
+          if (!returnedAvatarUrl || returnedAvatarUrl !== uploadedFileId) {
+            console.error('[AvatarSaveConfirm] mismatch', {
+              uploadedFileId: uploadedFileId,
+              returnedAvatarUrl: returnedAvatarUrl
+            });
+            wx.showToast({ title: '头像未保存成功，请重试', icon: 'none' });
+            this.setData({ isSubmitting: false });
+            return;
+          }
+
+          this.setData({
+            avatarUrl: returnedAvatarUrl,
+            avatarFileId: returnedAvatarUrl,
+            avatarPreviewUrl: normalizeAvatarUrl(returnedAvatarUrl),
+            avatarChanged: false
+          });
+        } catch (refreshErr) {
+          console.error('[AvatarSaveConfirm] refresh failed', {
+            uploadedFileId: uploadedFileId,
+            error: (refreshErr && refreshErr.message) || refreshErr
+          });
+          wx.showToast({ title: '头像保存确认失败，请重试', icon: 'none' });
+          this.setData({ isSubmitting: false });
+          return;
+        }
+      } else {
+        // No avatar change — refresh is best-effort, navigate back either way.
+        try {
+          const savedProfile = await request.get(constants.API.PROFILE);
+          const profile = savedProfile.profile || {};
+          const returnedAvatarUrl = profile.avatarUrl;
+          this.setData({
+            avatarUrl: returnedAvatarUrl || '',
+            avatarFileId: returnedAvatarUrl || '',
+            avatarPreviewUrl: normalizeAvatarUrl(returnedAvatarUrl)
+          });
+        } catch (refreshErr) {
+          // Non-critical when no avatar was changed; still navigate back.
+        }
       }
 
       wx.showToast({

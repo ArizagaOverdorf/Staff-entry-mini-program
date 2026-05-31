@@ -105,6 +105,18 @@ export class StaffService {
       profileData.birthday = dto.birthday ? new Date(dto.birthday) : null;
     if (dto.avatarUrl !== undefined) profileData.avatarUrl = dto.avatarUrl;
     if (dto.address !== undefined) profileData.address = dto.address;
+
+    // Promote avatar file to public so miniapp public-preview endpoint can serve it.
+    if (dto.avatarUrl && !dto.avatarUrl.startsWith('http://') && !dto.avatarUrl.startsWith('https://')) {
+      await this.prisma.fileAsset.updateMany({
+        where: {
+          id: dto.avatarUrl,
+          uploadedByStaffAccountId: accountId,
+        },
+        data: { accessLevel: 'public' },
+      });
+    }
+
     if (emergencyContactName !== undefined)
       profileData.emergencyContactName = emergencyContactName;
     if (emergencyContactPhone !== undefined)

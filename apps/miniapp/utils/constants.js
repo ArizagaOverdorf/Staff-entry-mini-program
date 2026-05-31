@@ -122,7 +122,7 @@ const CREDENTIAL_BADGE = {
 };
 
 const CREDENTIAL_TYPES = [
-  { value: 'id_card', label: '身份证' },
+  { value: 'id_card', label: '居民身份证' },
   { value: 'health_cert', label: '健康证' },
   { value: 'no_crime_cert', label: '无犯罪记录证明' },
   { value: 'credit_report', label: '征信报告' },
@@ -137,7 +137,8 @@ const CREDENTIAL_TYPES = [
 const SKILL_LEVEL_OPTIONS = [
   { value: '初级', label: '初级' },
   { value: '中级', label: '中级' },
-  { value: '高级', label: '高级' }
+  { value: '高级', label: '高级' },
+  { value: '专家', label: '专家' }
 ];
 
 // 当前阶段先收窄到保姆/月嫂类，后续可由后台字典扩展。

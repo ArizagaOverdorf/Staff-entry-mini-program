@@ -25,7 +25,7 @@ export const CredentialType = {
 } as const;
 
 export const CredentialTypeLabels: Record<string, string> = {
-  id_card: '身份证',
+  id_card: '居民身份证',
   health_cert: '健康证',
   no_crime_cert: '无犯罪记录证明',
   credit_report: '征信报告',
@@ -60,3 +60,13 @@ export const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
   'medical_report',
   'insurance',
 ];
+
+export const ALLOWED_SKILL_LEVELS = ['初级', '中级', '高级', '专家'] as const;
+
+export const ALLOWED_SKILL_CERT_CATEGORY_IDS = [
+  'maternity_matron',
+  'childcare_nanny',
+  'live_in_nanny',
+  'daytime_nanny',
+  'elderly_nanny',
+] as const;

@@ -19,17 +19,40 @@
         <view class="chat-msg-bubble">
           <!-- Media image preview -->
           <image
-            wx:if="{{item.isMedia && item.mediaType === 'image' && item.mediaUrl}}"
+            wx:if="{{item.isMedia && item.mediaType === 'image' && item.mediaUrl && !item.mediaLoadFailed}}"
             class="chat-media-img"
             src="{{item.mediaUrl}}"
-            mode="widthFix"
+            mode="aspectFill"
             data-url="{{item.mediaUrl}}"
+            data-index="{{index}}"
+            data-file-id="{{item.mediaFileId}}"
             data-type="image"
             bindtap="onPreviewMedia"
+            binderror="onMediaImageError"
           />
+          <view wx:elif="{{item.isMedia && item.mediaType === 'image'}}" class="chat-media-fallback">
+            <text>[图片]</text>
+          </view>
           <!-- Media video placeholder -->
-          <view wx:elif="{{item.isMedia && item.mediaType === 'video'}}" class="chat-media-video">
+          <view
+            wx:elif="{{item.isMedia && item.mediaType === 'video'}}"
+            class="chat-media-video"
+            data-url="{{item.mediaUrl}}"
+            data-type="video"
+            bindtap="onPreviewMedia"
+          >
             <text>[视频] {{item.displayContent}}</text>
+          </view>
+          <view
+            wx:elif="{{item.isMedia && item.mediaType === 'file'}}"
+            class="chat-media-file"
+            data-url="{{item.mediaUrl}}"
+            data-file-name="{{item.displayContent}}"
+            data-file-type="{{item.mediaFileType}}"
+            bindtap="onOpenMediaFile"
+          >
+            <text class="chat-media-file-icon">[file]</text>
+            <text class="chat-media-file-name">{{item.displayContent}}</text>
           </view>
           <!-- Text message -->
           <text wx:else class="chat-msg-text">{{item.displayContent}}</text>
@@ -54,7 +77,10 @@
   <view class="chat-input-bar">
     <!-- Voice button -->
     <view class="chat-tool-btn" bindtap="onTapVoice">
-      <text class="chat-tool-icon">语音</text>
+      <view class="chat-voice-icon">
+        <view class="chat-voice-head"></view>
+        <view class="chat-voice-stem"></view>
+      </view>
     </view>
 
     <!-- Textarea input -->
@@ -81,15 +107,6 @@
       <text class="chat-tool-icon">+</text>
     </view>
 
-    <!-- Send button -->
-    <button
-      class="chat-send-btn"
-      bindtap="sendMessage"
-      loading="{{sending}}"
-      disabled="{{sending || inputContent === ''}}"
-    >
-      发送
-    </button>
   </view>
 
   <!-- Action sheet for media picker -->
@@ -97,10 +114,13 @@
   <view class="action-sheet {{showActionSheet ? 'action-sheet-show' : ''}}">
     <view class="action-sheet-title">发送内容</view>
     <view class="action-sheet-item" bindtap="onChooseImage">
-      <text class="action-sheet-label">照片 (最大3MB)</text>
+      <text class="action-sheet-label">照片 (最大2MB)</text>
     </view>
     <view class="action-sheet-item" bindtap="onChooseVideo">
-      <text class="action-sheet-label">视频 (最大10MB)</text>
+      <text class="action-sheet-label">视频 (最大5MB)</text>
+    </view>
+    <view class="action-sheet-item" bindtap="onChooseFile">
+      <text class="action-sheet-label">文件 (最大10MB)</text>
     </view>
     <view class="action-sheet-cancel" bindtap="onCloseActionSheet">
       <text>取消</text>

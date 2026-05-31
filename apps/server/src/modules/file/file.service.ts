@@ -27,7 +27,7 @@ export class FileService {
 
   async upload(
     file: Express.Multer.File,
-    accountId: string,
+    accountId?: string,
     accessLevel: 'private' | 'public' = 'private',
   ) {
     const ext = path.extname(file.originalname);
@@ -38,7 +38,7 @@ export class FileService {
       file.mimetype,
     );
 
-    return this.prisma.fileAsset.create({
+    const fileAsset = await this.prisma.fileAsset.create({
       data: {
         originalName: file.originalname,
         storedName,
@@ -47,9 +47,14 @@ export class FileService {
         storageProvider: this.config.storageProvider,
         storagePath,
         accessLevel,
-        uploadedByStaffAccountId: accountId,
+        uploadedByStaffAccountId: accountId || null,
       },
     });
+
+    return {
+      ...fileAsset,
+      size: Number(fileAsset.size),
+    };
   }
 
   async getPublicPreviewStream(

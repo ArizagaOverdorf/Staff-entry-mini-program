@@ -14,7 +14,7 @@ interface CredentialReviewListProps {
 }
 
 const credentialTypeLabels: Record<string, string> = {
-  id_card: '身份证',
+  id_card: '居民身份证',
   health_cert: '健康证',
   no_crime_cert: '无犯罪记录证明',
   credit_report: '征信报告',
@@ -55,8 +55,9 @@ const statusMap: Record<string, { color: string; text: string }> = {
 };
 
 const fileTypeLabels: Record<string, string> = {
-  front: '正面',
-  back: '反面',
+  front: '人像面',
+  back: '国徽面',
+  credential_image: '证件图片',
   attachment: '附件',
 };
 
@@ -193,7 +194,9 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                   <div>
                     <Descriptions size="small" column={2}>
                       {item.credentialNumber && (
-                        <Descriptions.Item label="证件编号">{item.credentialNumber}</Descriptions.Item>
+                        <Descriptions.Item label={item.credentialType === 'id_card' ? '身份证号' : '证件编号'}>
+                          {item.credentialNumber}
+                        </Descriptions.Item>
                       )}
                       {item.skillLevel && (
                         <Descriptions.Item label="技能等级">{item.skillLevel}</Descriptions.Item>

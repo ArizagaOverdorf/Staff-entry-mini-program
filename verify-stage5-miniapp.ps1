@@ -133,6 +133,7 @@ Assert-Contains ".\apps\miniapp\pages\service-record\index.wxml" "是否违规" 
 Write-Host "Checking resume privacy boundaries..." -ForegroundColor Cyan
 $resumeSensitive = Get-ChildItem ".\apps\miniapp\pages\resume" -Recurse -File -ErrorAction SilentlyContinue |
   Select-String -Pattern "idNumber|homeAddress|emergencyContact|emergencyPhone|certificateNo|credentialNo|fileUrl|files|imageUrl" |
+  Where-Object { $_.Line -notmatch "normalizeAvatarUrl|/app/files/public/" } |
   Select-Object -First 1
 if ($resumeSensitive) {
   Write-Host $resumeSensitive

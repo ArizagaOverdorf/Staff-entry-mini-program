@@ -65,11 +65,13 @@ const request = {
                 resolve(body.data);
               } else {
                 const errMsg = body.message || '请求失败';
-                wx.showToast({
-                  title: errMsg,
-                  icon: 'none',
-                  duration: 2000
-                });
+                if (!options || !options.silent) {
+                  wx.showToast({
+                    title: errMsg,
+                    icon: 'none',
+                    duration: 2000
+                  });
+                }
                 reject(new Error(errMsg));
               }
               return;
@@ -77,20 +79,24 @@ const request = {
             resolve(body);
           } else {
             const errMsg = (res.data && res.data.message) || '请求失败';
-            wx.showToast({
-              title: errMsg,
-              icon: 'none',
-              duration: 2000
-            });
+            if (!options || !options.silent) {
+              wx.showToast({
+                title: errMsg,
+                icon: 'none',
+                duration: 2000
+              });
+            }
             reject(new Error(errMsg));
           }
         },
         fail(err) {
-          wx.showToast({
-            title: '网络异常，请检查网络连接',
-            icon: 'none',
-            duration: 2000
-          });
+          if (!options || !options.silent) {
+            wx.showToast({
+              title: '网络异常，请检查网络连接',
+              icon: 'none',
+              duration: 2000
+            });
+          }
           reject(err);
         }
       });
@@ -100,8 +106,8 @@ const request = {
   /**
    * GET 请求
    */
-  get(url, data) {
-    return this._request('GET', url, data);
+  get(url, data, options) {
+    return this._request('GET', url, data, options);
   },
 
   /**

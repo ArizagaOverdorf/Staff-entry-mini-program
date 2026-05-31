@@ -1,10 +1,7 @@
 const authUtil = require('../../utils/auth');
 const request = require('../../utils/request');
 const constants = require('../../utils/constants');
-
-function getAvatarText(name) {
-  return name ? name.slice(0, 1) : '服';
-}
+const { normalizeAvatarUrl, getAvatarText } = require('../../utils/avatar');
 
 function getQualificationClass(status) {
   if (status === 'approved' || status === 'normal') return 'success';
@@ -113,13 +110,13 @@ Page({
     request.get(constants.API.PROFILE).then((res) => {
       const profile = res.profile || {};
       const displayName = profile.name || profile.nameMasked || res.nickname || '家政人员';
-      const avatarUrl = profile.avatarUrl || '';
+      const avatarUrl = normalizeAvatarUrl(profile.avatarUrl);
       const identityVerified = !!profile.identityVerified;
 
       this.setData({
         displayName,
         avatarUrl,
-        staffAvatarText: getAvatarText(displayName),
+        staffAvatarText: getAvatarText(displayName, '服'),
         identityVerified,
         // Reserved for Alibaba Cloud / Tencent Cloud real-name verification result.
         identityVerifiedLabel: identityVerified ? '已实名认证' : '未实名认证'

@@ -4,8 +4,8 @@ const constants = require('../../utils/constants');
 const REQUIRED_CREDENTIALS = [
   {
     typeId: 'id_card',
-    title: '身份证正反面',
-    desc: '必传，请在同一证件内上传正面和反面两张图片'
+    title: '居民身份证',
+    desc: '必传，请分别上传人像面和国徽面'
   },
   {
     typeId: 'health_cert',

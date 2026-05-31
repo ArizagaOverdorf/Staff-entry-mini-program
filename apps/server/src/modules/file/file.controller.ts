@@ -37,7 +37,12 @@ export class FileController {
       ...FILE_LIMITS.ALLOWED_MIMES,
       ...FILE_LIMITS.ALLOWED_VIDEO_MIMES,
     ];
-    if (!allowedMimes.includes(file.mimetype)) {
+    const originalName = (file.originalname || '').toLowerCase();
+    const allowedDocumentExts = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+    const isDocumentFallback =
+      file.mimetype === 'application/octet-stream' &&
+      allowedDocumentExts.some((ext) => originalName.endsWith(ext));
+    if (!allowedMimes.includes(file.mimetype) && !isDocumentFallback) {
       throw new BadRequestException(
         `File type ${file.mimetype} not allowed. Allowed: ${allowedMimes.join(', ')}`,
       );

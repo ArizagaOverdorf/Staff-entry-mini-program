@@ -6,6 +6,15 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+class CredentialFileItemDto {
+  @IsString()
+  fileId: string;
+
+  @IsString()
+  @IsOptional()
+  fileSide?: string;
+}
+
 class StaffSkillCategoryDto {
   @IsString()
   categoryId: string;
@@ -67,6 +76,12 @@ export class UpsertCredentialDto {
   @IsString({ each: true })
   @IsOptional()
   fileIds?: string[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CredentialFileItemDto)
+  @IsOptional()
+  files?: CredentialFileItemDto[];
 
   @IsString()
   @IsOptional()

@@ -1,10 +1,7 @@
 const authUtil = require('../../utils/auth');
 const request = require('../../utils/request');
 const constants = require('../../utils/constants');
-
-function getAvatarText(name) {
-  return name ? name.slice(0, 1) : '账';
-}
+const { normalizeAvatarUrl, getAvatarText } = require('../../utils/avatar');
 
 Page({
   data: {
@@ -43,8 +40,8 @@ Page({
           phone: phone,
           identityVerified: !!profile.identityVerified
         },
-        accountAvatarUrl: profile.avatarUrl || account.wechatAvatar || '',
-        accountAvatarText: getAvatarText(displayName),
+        accountAvatarUrl: normalizeAvatarUrl(profile.avatarUrl) || account.wechatAvatar || '',
+        accountAvatarText: getAvatarText(displayName, '账'),
         loaded: true
       });
     }).catch(() => {

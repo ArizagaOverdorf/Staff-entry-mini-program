@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 3000;
 import {
   Card,
   Form,
@@ -10,6 +10,7 @@ import {
   message,
   Empty,
   Spin,
+  Upload,
 } from 'antd';
 import {
   SearchOutlined,
@@ -17,6 +18,9 @@ import {
   ExportOutlined,
   SendOutlined,
   LeftOutlined,
+  FileImageOutlined,
+  VideoCameraOutlined,
+  PaperClipOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -24,6 +28,7 @@ import {
   getConversation,
   replyToConversation,
   exportConversation,
+  uploadSupportFile,
   type ConversationItem,
   type ConversationDetail,
   type ConversationMessage,
@@ -46,6 +51,67 @@ function formatSupportContent(content?: string, title?: string) {
   return value;
 }
 
+function parseSupportMediaPayload(content?: string, title?: string) {
+  const value = content || title || '';
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed.type !== 'image' && parsed.type !== 'video' && parsed.type !== 'file') return null;
+    return parsed as {
+      type: 'image' | 'video' | 'file';
+      fileId?: string;
+      mediaUrl?: string;
+      url?: string;
+      fileName?: string;
+      mimeType?: string;
+      size?: number;
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildAdminPreviewUrl(media: ReturnType<typeof parseSupportMediaPayload>) {
+  if (!media) return '';
+  const url = media.mediaUrl || media.url || '';
+  if (url) return url;
+  return media.fileId ? `/api/app/files/public/${media.fileId}/preview` : '';
+}
+
+function renderSupportContent(content?: string, title?: string) {
+  const media = parseSupportMediaPayload(content, title);
+  if (media?.type === 'image') {
+    const src = buildAdminPreviewUrl(media);
+    return src ? (
+      <img
+        src={src}
+        alt="图片消息"
+        style={{ maxWidth: 220, maxHeight: 180, borderRadius: 6, display: 'block' }}
+      />
+    ) : (
+      '[图片]'
+    );
+  }
+  if (media?.type === 'video') {
+    const src = buildAdminPreviewUrl(media);
+    return src ? <a href={src} target="_blank" rel="noreferrer">[视频] {media.fileName || '视频消息'}</a> : '[视频]';
+  }
+  if (media?.type === 'file') {
+    const src = buildAdminPreviewUrl(media);
+    return src ? <a href={src} target="_blank" rel="noreferrer">[文件] {media.fileName || '文件消息'}</a> : '[文件]';
+  }
+  return content || title || '';
+}
+
+function formatSupportPreview(content?: string, title?: string) {
+  const media = parseSupportMediaPayload(content, title);
+  if (media?.type === 'image') return '[图片]';
+  if (media?.type === 'video') return '[视频]';
+  if (media?.type === 'file') return '[文件]';
+  return content || title || '';
+}
+
 const SupportPage: React.FC = () => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -61,11 +127,17 @@ const SupportPage: React.FC = () => {
   const [chatStaff, setChatStaff] = useState<ConversationDetail['staff'] | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [showMobileList, setShowMobileList] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const conversationPollingRef = useRef(false);
+  const chatPollingRef = useRef(false);
 
-  const fetchConversations = useCallback(async () => {
-    setLoading(true);
+  const fetchConversations = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const values = form.getFieldsValue();
       const params: any = {
@@ -79,7 +151,9 @@ const SupportPage: React.FC = () => {
     } catch {
       // handled by interceptor
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [page, pageSize, form]);
 
@@ -87,23 +161,31 @@ const SupportPage: React.FC = () => {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Poll inbox list every 5s
+  // Poll inbox list. Avoid overlapping requests so refresh does not flicker.
   useEffect(() => {
     const timer = setInterval(() => {
-      fetchConversations();
+      if (conversationPollingRef.current) return;
+      conversationPollingRef.current = true;
+      fetchConversations({ silent: true }).finally(() => {
+        conversationPollingRef.current = false;
+      });
     }, POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [fetchConversations]);
 
-  // Poll active conversation every 5s
+  // Poll active conversation. Avoid overlapping requests.
   useEffect(() => {
     if (!selectedStaffAccountId) return;
     const timer = setInterval(() => {
       if (selectedStaffAccountId) {
+        if (chatPollingRef.current) return;
+        chatPollingRef.current = true;
         getConversation(selectedStaffAccountId).then((detail) => {
           setChatMessages(detail.messages || []);
           setChatStaff(detail.staff);
-        }).catch(() => {});
+        }).catch(() => {}).finally(() => {
+          chatPollingRef.current = false;
+        });
       }
     }, POLL_INTERVAL);
     return () => clearInterval(timer);
@@ -130,7 +212,7 @@ const SupportPage: React.FC = () => {
       setChatMessages(detail.messages || []);
       setChatStaff(detail.staff);
       // Refresh unread count in list
-      fetchConversations();
+      fetchConversations({ silent: true });
     } catch {
       // handled by interceptor
     } finally {
@@ -157,6 +239,50 @@ const SupportPage: React.FC = () => {
     } finally {
       setReplyLoading(false);
     }
+  };
+
+  const handleUploadAndSend = async (file: File, mediaType: 'image' | 'video' | 'file') => {
+    if (!selectedStaffAccountId) {
+      message.warning('请先选择一个会话');
+      return Upload.LIST_IGNORE;
+    }
+
+    const imageLimit = 2 * 1024 * 1024;
+    const videoLimit = 5 * 1024 * 1024;
+    const fileLimit = 10 * 1024 * 1024;
+    const limit = mediaType === 'image' ? imageLimit : mediaType === 'video' ? videoLimit : fileLimit;
+    if (file.size > limit) {
+      message.warning(
+        mediaType === 'image'
+          ? '图片不能超过2MB'
+          : mediaType === 'video'
+            ? '视频不能超过5MB'
+            : '文件不能超过10MB',
+      );
+      return Upload.LIST_IGNORE;
+    }
+
+    setUploadingMedia(true);
+    try {
+      const uploaded = await uploadSupportFile(file);
+      const content = JSON.stringify({
+        type: mediaType,
+        fileId: uploaded.id,
+        mediaUrl: `/api/app/files/public/${uploaded.id}/preview`,
+        fileName: uploaded.originalName || file.name,
+        mimeType: uploaded.mimeType || file.type,
+        size: uploaded.size || file.size,
+      });
+      const newMsg = await replyToConversation(selectedStaffAccountId, content);
+      setChatMessages((prev) => [...prev, newMsg]);
+      message.success('发送成功');
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch {
+      // handled by interceptor
+    } finally {
+      setUploadingMedia(false);
+    }
+    return Upload.LIST_IGNORE;
   };
 
   const handleExport = async () => {
@@ -218,7 +344,7 @@ const SupportPage: React.FC = () => {
       <div key={msg.id} className={`chat-bubble-wrapper ${alignClass}`}>
         <div className="chat-bubble-sender">{senderName}</div>
         <div className="chat-bubble" style={bubbleStyle}>
-          <div className="chat-bubble-content">{formatSupportContent(msg.content, msg.title)}</div>
+          <div className="chat-bubble-content">{renderSupportContent(msg.content, msg.title)}</div>
         </div>
         <div className="chat-bubble-time">
           {msg.createdAt ? dayjs(msg.createdAt).format('MM/DD HH:mm') : ''}
@@ -335,7 +461,7 @@ const SupportPage: React.FC = () => {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {formatSupportContent(conv.latestMessage?.content, conv.latestMessage?.title) || '(无内容)'}
+                    {formatSupportPreview(conv.latestMessage?.content, conv.latestMessage?.title) || '(无内容)'}
                   </div>
                 </div>
               ))
@@ -461,6 +587,38 @@ const SupportPage: React.FC = () => {
                   maxLength={500}
                   style={{ flex: 1 }}
                 />
+                <Space direction="vertical" size={4}>
+                  <Upload
+                    showUploadList={false}
+                    accept="image/*"
+                    beforeUpload={(file) => handleUploadAndSend(file, 'image')}
+                    disabled={uploadingMedia}
+                  >
+                    <Button icon={<FileImageOutlined />} loading={uploadingMedia} size="small">
+                      图片
+                    </Button>
+                  </Upload>
+                  <Upload
+                    showUploadList={false}
+                    accept="video/*"
+                    beforeUpload={(file) => handleUploadAndSend(file, 'video')}
+                    disabled={uploadingMedia}
+                  >
+                    <Button icon={<VideoCameraOutlined />} loading={uploadingMedia} size="small">
+                      视频
+                    </Button>
+                  </Upload>
+                  <Upload
+                    showUploadList={false}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    beforeUpload={(file) => handleUploadAndSend(file, 'file')}
+                    disabled={uploadingMedia}
+                  >
+                    <Button icon={<PaperClipOutlined />} loading={uploadingMedia} size="small">
+                      文件
+                    </Button>
+                  </Upload>
+                </Space>
                 <Button
                   type="primary"
                   icon={<SendOutlined />}

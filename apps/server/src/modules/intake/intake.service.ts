@@ -114,6 +114,14 @@ export class IntakeService {
         issues.push(`缺少强准入证件: ${mc.credentialTypeLabel}`);
       } else if (mc.isExpired) {
         issues.push(`强准入证件已过期: ${mc.credentialTypeLabel}（证件过期）`);
+      } else if (mc.credentialType === 'id_card' && mc.credentialId) {
+        // Check ID card has both sides
+        const sideFiles = await this.loadCredentialFiles(mc.credentialId);
+        const hasFront = sideFiles.some((f: any) => f.fileType === 'front');
+        const hasBack = sideFiles.some((f: any) => f.fileType === 'back');
+        if (!hasFront || !hasBack) {
+          issues.push('居民身份证需要上传人像面和国徽面');
+        }
       }
     }
 
@@ -193,6 +201,15 @@ export class IntakeService {
       if (!cred) {
         const label = CredentialTypeLabels[credType] ?? credType;
         throw new BadRequestException(`请上传强准入证件: ${label}`);
+      }
+      // Validate ID card has both front and back
+      if (credType === 'id_card') {
+        const sideFiles = await this.loadCredentialFiles(cred.id);
+        const hasFront = sideFiles.some((f: any) => f.fileType === 'front');
+        const hasBack = sideFiles.some((f: any) => f.fileType === 'back');
+        if (!hasFront || !hasBack) {
+          throw new BadRequestException('居民身份证需要上传人像面和国徽面');
+        }
       }
       if (CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(credType)) {
         const expired = isDateBeforeToday(cred.expiryDate);
@@ -275,6 +292,14 @@ export class IntakeService {
         createdAt: r.createdAt?.toISOString(),
       })),
     };
+  }
+
+  private async loadCredentialFiles(credentialId: string) {
+    const files = await this.prisma.staffCredentialFile.findMany({
+      where: { staffCredentialId: credentialId },
+      select: { fileType: true },
+    });
+    return files;
   }
 
   private getStatusLabel(status: string): string {

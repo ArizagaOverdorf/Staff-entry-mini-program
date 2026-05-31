@@ -24,7 +24,10 @@ Page({
     typeName: '',
     typeId: '',
     expireDate: '',
+    issueDate: '',
+    todayDate: '',
     credentialNumber: '',
+    idNumberRequired: false,
     issuingAuthority: '',
     issuingAuthorityLabel: '签发机构',
     issuingAuthorityPlaceholder: '请输入签发机构',
@@ -34,6 +37,13 @@ Page({
     remark: '',
     fileUrl: '',
     fileIds: [],
+    fileSides: [],
+    // ID card dual-upload slots
+    isIdCard: false,
+    idCardFrontFileId: '',
+    idCardFrontUrl: '',
+    idCardBackFileId: '',
+    idCardBackUrl: '',
     status: 'pending',
     statusLabel: '',
     isSubmitting: false,
@@ -49,6 +59,12 @@ Page({
   },
 
   onLoad(options) {
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+    this.setData({ todayDate: todayStr });
+
     this.loadCredTypes();
 
     if (options.id) {
@@ -64,13 +80,30 @@ Page({
           : '';
 
       this.applyTypeState(typeId, typeName, true);
+
+      // Prefill ID number from profile when creating new ID card credential
+      if (typeId === 'id_card') {
+        this.prefillProfileIdNumber();
+      }
     } else {
       this.refreshSkillOptions([]);
     }
   },
 
+  prefillProfileIdNumber() {
+    request.get(constants.API.PROFILE).then((res) => {
+      const profile = res.profile || {};
+      if (profile.idNumber) {
+        this.setData({ credentialNumber: profile.idNumber });
+      }
+    }).catch(() => {
+      // Profile not available — leave empty
+    });
+  },
+
   applyTypeState(typeId, typeName, isLocked) {
     const isSkillCert = typeId === 'skill_cert';
+    const isIdCard = typeId === 'id_card';
     const isEducation = typeId === 'education' || typeId === 'student_card';
     const requireExpiry = constants.CREDENTIAL_TYPES_REQUIRE_EXPIRY.indexOf(typeId) > -1;
 
@@ -82,7 +115,9 @@ Page({
       namePlaceholder: isSkillCert ? '请填写技能证书名称' : '请输入证件名称',
       isTypeLocked: !!isLocked,
       isSkillCert,
-      showNormalCredentialFields: !isSkillCert,
+      isIdCard,
+      idNumberRequired: isIdCard,
+      showNormalCredentialFields: !isSkillCert && !isIdCard,
       requireExpiry,
       issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
       issuingAuthorityPlaceholder: isEducation ? '请输入学校名称' : '请输入签发机构'
@@ -101,11 +136,23 @@ Page({
         .filter(Boolean);
       const skillLevel = cred.skillLevel || '';
 
+      // Handle ID card dual upload files
+      const files = cred.files || [];
+      const idCardFront = files.find((f) => f.fileType === 'front' || f.fileSide === 'front');
+      const idCardBack = files.find((f) => f.fileType === 'back' || f.fileSide === 'back');
+      const otherFiles = files.filter((f) =>
+        f.fileType !== 'front' && f.fileSide !== 'front' &&
+        f.fileType !== 'back' && f.fileSide !== 'back'
+      );
+      const flatFileIds = files.map((f) => f.fileAsset.id);
+      const flatFileSides = files.map((f) => f.fileType || f.fileSide || 'credential_image');
+
       this.setData({
         name: cred.name || '',
         typeName,
         typeId,
         isTypeLocked: true,
+        issueDate: cred.issueDate || '',
         expireDate: cred.expireDate || cred.expiryDate || '',
         credentialNumber: cred.credentialNumber || '',
         issuingAuthority: cred.issuingAuthority || '',
@@ -115,20 +162,34 @@ Page({
         fileUrl: cred.fileUrl || '',
         status: cred.status || 'pending',
         statusLabel: constants.CREDENTIAL_STATUS_LABEL[cred.status] || cred.status || '',
-        fileIds: cred.files ? cred.files.map((file) => file.fileAsset.id) : [],
+        fileIds: flatFileIds,
+        fileSides: flatFileSides,
+        idCardFrontFileId: idCardFront ? idCardFront.fileAsset.id : '',
+        idCardBackFileId: idCardBack ? idCardBack.fileAsset.id : '',
+        idCardFrontUrl: '',
+        idCardBackUrl: '',
         selectedSkillIds: linkedSkillIds,
         selectedSkillNames: (cred.linkedSkills || []).map((skill) => skill.categoryName)
       });
 
-      if (!cred.fileUrl && cred.files && cred.files[0] && cred.files[0].fileAsset && cred.files[0].fileAsset.id) {
-        this.loadPrivatePreview(cred.files[0].fileAsset.id);
+      // Load previews for ID card front/back
+      if (idCardFront && idCardFront.fileAsset.id) {
+        this.loadPrivatePreview(idCardFront.fileAsset.id, 'idCardFrontUrl');
+      }
+      if (idCardBack && idCardBack.fileAsset.id) {
+        this.loadPrivatePreview(idCardBack.fileAsset.id, 'idCardBackUrl');
+      }
+      // Load preview for non-ID-card credentials (e.g., skill_cert, health_cert)
+      if (!idCardFront && !idCardBack && files.length > 0 && files[0].fileAsset && files[0].fileAsset.id) {
+        this.loadPrivatePreview(files[0].fileAsset.id, 'fileUrl');
       }
 
       this.applyTypeState(typeId, typeName, true);
     }).catch(() => {});
   },
 
-  loadPrivatePreview(fileId) {
+  loadPrivatePreview(fileId, targetKey) {
+    const key = targetKey || 'fileUrl';
     const token = authUtil.getToken();
     wx.downloadFile({
       url: buildPrivatePreviewUrl(fileId),
@@ -137,7 +198,9 @@ Page({
       },
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300 && res.tempFilePath) {
-          this.setData({ fileUrl: res.tempFilePath });
+          const data = {};
+          data[key] = res.tempFilePath;
+          this.setData(data);
         }
       }
     });
@@ -213,7 +276,11 @@ Page({
     });
   },
 
-  onExpireDateInput(e) {
+  onIssueDateChange(e) {
+    this.setData({ issueDate: e.detail.value });
+  },
+
+  onExpireDateChange(e) {
     this.setData({ expireDate: e.detail.value });
   },
 
@@ -231,8 +298,11 @@ Page({
       if (fileId) {
         const fileIds = this.data.fileIds || [];
         fileIds.push(fileId);
+        const fileSides = this.data.fileSides || [];
+        fileSides.push('credential_image');
         this.setData({
           fileIds,
+          fileSides,
           fileUrl
         });
       }
@@ -243,6 +313,26 @@ Page({
     }).catch((err) => {
       console.error('上传失败', err);
     });
+  },
+
+  handleUploadIdCardFront() {
+    uploadUtil.chooseAndUpload(constants.API.FILES_UPLOAD, 'file').then((res) => {
+      const fileId = res.data?.id || res.id || '';
+      if (fileId) {
+        this.setData({ idCardFrontFileId: fileId, idCardFrontUrl: res.localFilePath || '' });
+        wx.showToast({ title: '人像面已上传', icon: 'success' });
+      }
+    }).catch((err) => { console.error('上传失败', err); });
+  },
+
+  handleUploadIdCardBack() {
+    uploadUtil.chooseAndUpload(constants.API.FILES_UPLOAD, 'file').then((res) => {
+      const fileId = res.data?.id || res.id || '';
+      if (fileId) {
+        this.setData({ idCardBackFileId: fileId, idCardBackUrl: res.localFilePath || '' });
+        wx.showToast({ title: '国徽面已上传', icon: 'success' });
+      }
+    }).catch((err) => { console.error('上传失败', err); });
   },
 
   getSelectedSkillCategories() {
@@ -267,13 +357,41 @@ Page({
       });
       return false;
     }
-    if (this.data.requireExpiry && !this.data.expireDate) {
-      wx.showToast({ title: '请填写有效期', icon: 'none' });
-      return false;
+    if (this.data.isIdCard) {
+      if (!this.data.idCardFrontFileId) {
+        wx.showToast({ title: '请上传身份证人像面', icon: 'none' });
+        return false;
+      }
+      if (!this.data.idCardBackFileId) {
+        wx.showToast({ title: '请上传身份证国徽面', icon: 'none' });
+        return false;
+      }
+      if (!this.data.credentialNumber || !this.data.credentialNumber.trim()) {
+        wx.showToast({ title: '请填写身份证号', icon: 'none' });
+        return false;
+      }
     }
-    if (this.data.requireExpiry && this.data.expireDate && isNaN(Date.parse(this.data.expireDate))) {
-      wx.showToast({ title: '有效期日期格式无效', icon: 'none' });
-      return false;
+    if (this.data.requireExpiry) {
+      if (!this.data.issueDate) {
+        wx.showToast({ title: '请选择生效日期', icon: 'none' });
+        return false;
+      }
+      if (!this.data.expireDate) {
+        wx.showToast({ title: '请选择有效期至', icon: 'none' });
+        return false;
+      }
+      if (isNaN(Date.parse(this.data.issueDate))) {
+        wx.showToast({ title: '生效日期格式无效', icon: 'none' });
+        return false;
+      }
+      if (isNaN(Date.parse(this.data.expireDate))) {
+        wx.showToast({ title: '有效期至日期格式无效', icon: 'none' });
+        return false;
+      }
+      if (this.data.expireDate < this.data.issueDate) {
+        wx.showToast({ title: '有效期至不能早于生效日期', icon: 'none' });
+        return false;
+      }
     }
     if (this.data.isSkillCert && !this.data.skillLevel) {
       wx.showToast({ title: '请选择等级', icon: 'none' });
@@ -281,6 +399,10 @@ Page({
     }
     if (this.data.isSkillCert && (!this.data.selectedSkillIds || this.data.selectedSkillIds.length === 0)) {
       wx.showToast({ title: '技能证书需关联至少一个服务技能', icon: 'none' });
+      return false;
+    }
+    if (this.data.isSkillCert && (!this.data.fileIds || this.data.fileIds.length === 0)) {
+      wx.showToast({ title: '请上传技能证书图片', icon: 'none' });
       return false;
     }
     return true;
@@ -296,9 +418,25 @@ Page({
       name: this.data.name,
       typeId: this.data.typeId,
       typeName: this.data.typeName,
-      remark: this.data.remark,
-      fileIds: this.data.fileIds
+      remark: this.data.remark
     };
+
+    // Build files array with side info
+    if (this.data.isIdCard) {
+      data.files = [];
+      if (this.data.idCardFrontFileId) {
+        data.files.push({ fileId: this.data.idCardFrontFileId, fileSide: 'front' });
+      }
+      if (this.data.idCardBackFileId) {
+        data.files.push({ fileId: this.data.idCardBackFileId, fileSide: 'back' });
+      }
+    } else {
+      const fileSides = this.data.fileSides || [];
+      data.files = (this.data.fileIds || []).map((fid, i) => ({
+        fileId: fid,
+        fileSide: fileSides[i] || 'credential_image'
+      }));
+    }
 
     if (this.data.isSkillCert) {
       data.skillLevel = this.data.skillLevel;
@@ -306,7 +444,10 @@ Page({
     } else {
       data.credentialNumber = this.data.credentialNumber;
       data.issuingAuthority = this.data.issuingAuthority;
-      data.expireDate = this.data.expireDate;
+      if (this.data.requireExpiry) {
+        data.issueDate = this.data.issueDate;
+        data.expireDate = this.data.expireDate;
+      }
     }
 
     const url = this.data.isEdit

@@ -93,3 +93,18 @@ export async function replyToConversation(
 export async function exportConversation(staffAccountId: string): Promise<ExportData> {
   return request.get(`/support/conversations/${staffAccountId}/export`);
 }
+
+export interface UploadedSupportFile {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+}
+
+export async function uploadSupportFile(file: File): Promise<UploadedSupportFile> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+}

@@ -4,8 +4,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ConfigService } from '../../config/config.service';
 import { UpsertCredentialDto } from './dto/upsert-credential.dto';
-import { CredentialType, CredentialTypeLabels, CREDENTIAL_TYPES_REQUIRE_EXPIRY } from './credential.constants';
+import { CredentialType, CredentialTypeLabels, CREDENTIAL_TYPES_REQUIRE_EXPIRY, ALLOWED_SKILL_LEVELS, ALLOWED_SKILL_CERT_CATEGORY_IDS } from './credential.constants';
+import { encrypt } from '../../utils/crypto.util';
+import { maskIdNumber } from '../staff/staff.mask';
 
 type StaffSkillCategoryInput = {
   categoryId: string;
@@ -32,7 +35,10 @@ function isDateBeforeToday(value: Date | string | null | undefined): boolean {
 
 @Injectable()
 export class CredentialService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   async listByAccount(accountId: string) {
     const credentials = await this.prisma.staffCredential.findMany({
@@ -75,16 +81,29 @@ export class CredentialService {
       throw new BadRequestException('credentialName is required');
     }
     this.validateCredentialType(credentialType);
-    this.validateExpiryDate(credentialType, dto.expiryDate ?? dto.expireDate);
+    this.validateExpiryDate(credentialType, dto.issueDate, dto.expiryDate ?? dto.expireDate);
+
+    // Resolve files with optional side info
+    const fileEntries = this.resolveFileEntries(dto);
+    if (credentialType === 'id_card') {
+      this.validateIdCardFiles(fileEntries);
+      this.validateIdCardNumber(dto.credentialNumber);
+    }
+    if (credentialType === 'skill_cert') {
+      this.validateSkillCert(dto, fileEntries);
+    }
+
+    const fileIds = fileEntries.map((e) => e.fileId);
+
     const staffSkillIds = await this.resolveSkillIdsForCredential(
       accountId,
       credentialType,
       dto,
     );
 
-    const fileIds = await this.assertFilesBelongToAccount(
+    const validatedFileIds = await this.assertFilesBelongToAccount(
       accountId,
-      dto.fileIds ?? [],
+      fileIds,
     );
 
     const credential = await this.prisma.$transaction(async (tx) => {
@@ -99,6 +118,11 @@ export class CredentialService {
           },
           data: { isCurrent: false },
         });
+      }
+
+      // Sync ID number to profile when saving id_card
+      if (credentialType === 'id_card' && dto.credentialNumber) {
+        await this.syncProfileIdNumber(tx, accountId, dto.credentialNumber);
       }
 
       const created = await tx.staffCredential.create({
@@ -129,7 +153,7 @@ export class CredentialService {
         data: { credentialGroupId: created.id },
       });
 
-      await this.createFileLinks(tx, created.id, fileIds);
+      await this.createFileLinks(tx, created.id, fileEntries);
 
       if (staffSkillIds.length) {
         await this.createSkillLinks(tx, created.id, staffSkillIds);
@@ -164,23 +188,52 @@ export class CredentialService {
     const credentialName =
       dto.credentialName ?? dto.name ?? dto.typeName ?? credential.credentialName;
     const expiryDate = dto.expiryDate ?? dto.expireDate;
+    const issueDate = dto.issueDate !== undefined ? dto.issueDate : credential.issueDate
+      ? (credential.issueDate instanceof Date ? credential.issueDate.toISOString().slice(0, 10) : credential.issueDate)
+      : undefined;
 
     this.validateCredentialType(credentialType);
-    this.validateExpiryDate(credentialType, expiryDate);
+    this.validateExpiryDate(credentialType, issueDate, expiryDate);
     if (credentialType !== credential.credentialType) {
       throw new BadRequestException(
         'credential type cannot be changed after creation',
       );
     }
+
+    // Resolve files with optional side info
+    let fileEntries = this.resolveFileEntries(dto);
+    if (fileEntries.length === 0) {
+      // Keep existing files if no new file list is provided
+      fileEntries = credential.files.map((f) => ({
+        fileId: f.fileAssetId,
+        fileSide: f.fileType ?? 'credential_image',
+      }));
+    }
+    if (credentialType === 'id_card') {
+      this.validateIdCardFiles(fileEntries);
+      this.validateIdCardNumber(
+        dto.credentialNumber !== undefined
+          ? dto.credentialNumber
+          : credential.credentialNumber,
+      );
+    }
+    if (credentialType === 'skill_cert') {
+      const skillLevel =
+        dto.skillLevel !== undefined ? dto.skillLevel : credential.skillLevel;
+      this.validateSkillCert({ ...dto, skillLevel: skillLevel ?? undefined }, fileEntries);
+    }
+
+    const fileIds = fileEntries.map((e) => e.fileId);
+
     const staffSkillIds = await this.resolveSkillIdsForCredential(
       accountId,
       credentialType,
       dto,
     );
 
-    const fileIds = await this.assertFilesBelongToAccount(
+    const validatedFileIds = await this.assertFilesBelongToAccount(
       accountId,
-      dto.fileIds ?? credential.files.map((file) => file.fileAssetId),
+      fileIds,
     );
 
     // Reuse existing credential group, or fall back to credential id for migration
@@ -244,10 +297,19 @@ export class CredentialService {
         },
       });
 
-      await this.createFileLinks(tx, created.id, fileIds);
+      await this.createFileLinks(tx, created.id, fileEntries);
 
       if (staffSkillIds.length) {
         await this.createSkillLinks(tx, created.id, staffSkillIds);
+      }
+
+      // Sync ID number to profile when updating id_card
+      const effectiveNumber =
+        dto.credentialNumber !== undefined
+          ? dto.credentialNumber
+          : credential.credentialNumber;
+      if (credentialType === 'id_card' && effectiveNumber) {
+        await this.syncProfileIdNumber(tx, accountId, effectiveNumber);
       }
 
       await this.requireIntakeReviewAfterCredentialChange(tx, accountId);
@@ -283,9 +345,21 @@ export class CredentialService {
     }
   }
 
-  private validateExpiryDate(credentialType: string, expiryDate: string | undefined | null) {
+  private validateExpiryDate(
+    credentialType: string,
+    issueDate: string | undefined | null,
+    expiryDate: string | undefined | null,
+  ) {
     if (!CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(credentialType)) {
       return;
+    }
+    if (!issueDate) {
+      throw new BadRequestException(
+        `证件「${CredentialTypeLabels[credentialType] || credentialType}」需要填写生效日期`,
+      );
+    }
+    if (isNaN(Date.parse(issueDate))) {
+      throw new BadRequestException('生效日期格式无效');
     }
     if (!expiryDate) {
       throw new BadRequestException(
@@ -294,6 +368,9 @@ export class CredentialService {
     }
     if (isNaN(Date.parse(expiryDate))) {
       throw new BadRequestException('有效期日期格式无效');
+    }
+    if (expiryDate < issueDate) {
+      throw new BadRequestException('有效期至不能早于生效日期');
     }
   }
 
@@ -322,10 +399,26 @@ export class CredentialService {
 
     if (staffSkillIds.length) {
       await this.assertSkillsBelongToAccount(accountId, staffSkillIds);
-      staffSkillIds.forEach((id) => resolvedIds.add(id));
+      const linkedSkills = await this.prisma.staffSkill.findMany({
+        where: { id: { in: [...new Set(staffSkillIds)] } },
+        select: { id: true, categoryId: true },
+      });
+      for (const skill of linkedSkills) {
+        if (!(ALLOWED_SKILL_CERT_CATEGORY_IDS as readonly string[]).includes(skill.categoryId)) {
+          throw new BadRequestException(
+            `服务技能「${skill.categoryId}」不属于技能证书允许的服务类别，当前仅支持：${(ALLOWED_SKILL_CERT_CATEGORY_IDS as readonly string[]).join('、')}`,
+          );
+        }
+        resolvedIds.add(skill.id);
+      }
     }
 
     for (const category of staffSkillCategories) {
+      if (!(ALLOWED_SKILL_CERT_CATEGORY_IDS as readonly string[]).includes(category.categoryId)) {
+        throw new BadRequestException(
+          `不支持的服务技能类别：${category.categoryId}，当前仅支持：${(ALLOWED_SKILL_CERT_CATEGORY_IDS as readonly string[]).join('、')}`,
+        );
+      }
       const skillId = await this.findOrCreateStaffSkill(
         accountId,
         category,
@@ -442,20 +535,107 @@ export class CredentialService {
     return uniqueFileIds;
   }
 
+  private resolveFileEntries(
+    dto: UpsertCredentialDto,
+  ): { fileId: string; fileSide: string }[] {
+    if (dto.files && dto.files.length > 0) {
+      return dto.files.map((f) => ({
+        fileId: f.fileId,
+        fileSide: f.fileSide || 'credential_image',
+      }));
+    }
+    if (dto.fileIds && dto.fileIds.length > 0) {
+      return dto.fileIds.map((fid) => ({
+        fileId: fid,
+        fileSide: 'credential_image',
+      }));
+    }
+    return [];
+  }
+
+  private validateIdCardFiles(
+    entries: { fileId: string; fileSide: string }[],
+  ) {
+    if (entries.length < 2) {
+      throw new BadRequestException(
+        '居民身份证需要上传人像面和国徽面两张图片',
+      );
+    }
+    const hasFront = entries.some((e) => e.fileSide === 'front');
+    const hasBack = entries.some((e) => e.fileSide === 'back');
+    if (!hasFront || !hasBack) {
+      throw new BadRequestException(
+        '居民身份证需要标注人像面(front)和国徽面(back)',
+      );
+    }
+  }
+
+  private validateIdCardNumber(credentialNumber: string | null | undefined) {
+    if (!credentialNumber || !credentialNumber.trim()) {
+      throw new BadRequestException('居民身份证需要填写身份证号');
+    }
+  }
+
+  private validateSkillCert(
+    dto: UpsertCredentialDto,
+    fileEntries: { fileId: string; fileSide: string }[],
+  ) {
+    if (!fileEntries || fileEntries.length === 0) {
+      throw new BadRequestException('技能证书需要上传证书图片');
+    }
+    if (!dto.skillLevel || !(ALLOWED_SKILL_LEVELS as readonly string[]).includes(dto.skillLevel)) {
+      throw new BadRequestException(
+        `技能等级无效，允许的等级：${(ALLOWED_SKILL_LEVELS as readonly string[]).join('、')}`,
+      );
+    }
+  }
+
+  private async syncProfileIdNumber(
+    tx: any,
+    accountId: string,
+    idNumber: string,
+  ) {
+    const trimmed = idNumber.trim();
+    if (!trimmed) return;
+
+    const account = await tx.staffAccount.findUnique({
+      where: { id: accountId },
+      select: { staffId: true },
+    });
+    if (!account?.staffId) {
+      throw new BadRequestException('Staff account not found, cannot sync profile ID number');
+    }
+
+    const encryptionKey = this.config.encryptionKey;
+    await tx.staffProfile.upsert({
+      where: { staffAccountId: accountId },
+      create: {
+        staffAccountId: accountId,
+        staffId: account.staffId,
+        idNumberEncrypted: encrypt(trimmed, encryptionKey),
+        idNumberMasked: maskIdNumber(trimmed),
+      },
+      update: {
+        idNumberEncrypted: encrypt(trimmed, encryptionKey),
+        idNumberMasked: maskIdNumber(trimmed),
+      },
+    });
+  }
+
   private async createFileLinks(
     tx: any,
     credentialId: string,
-    fileIds: string[],
+    fileEntries: { fileId: string; fileSide: string }[],
   ) {
-    if (fileIds.length === 0) {
+    if (fileEntries.length === 0) {
       return;
     }
 
     await tx.staffCredentialFile.createMany({
-      data: fileIds.map((fileId) => ({
+      data: fileEntries.map((entry) => ({
         staffCredentialId: credentialId,
-        fileAssetId: fileId,
-        fileType: 'credential_image',
+        fileAssetId: entry.fileId,
+        fileType: entry.fileSide || 'credential_image',
       })),
     });
   }
@@ -553,9 +733,11 @@ export class CredentialService {
       fileUrl: c.files?.[0]?.fileAsset?.id
         ? `/api/app/files/${c.files[0].fileAsset.id}/preview`
         : undefined,
+      fileSide: c.files?.[0]?.fileType ?? undefined,
       files: (c.files || []).map((f: any) => ({
         id: f.id,
         fileType: f.fileType,
+        fileSide: f.fileType,
         fileAsset: {
           id: f.fileAsset.id,
           originalName: f.fileAsset.originalName,

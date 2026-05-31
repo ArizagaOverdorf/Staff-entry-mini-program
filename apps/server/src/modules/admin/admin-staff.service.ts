@@ -274,6 +274,7 @@ export class AdminStaffService {
       files: credential.files.map((file) => ({
         id: file.id,
         fileType: file.fileType,
+        fileSide: file.fileType,
         fileAsset: {
           id: file.fileAsset.id,
           originalName: file.fileAsset.originalName,
@@ -305,19 +306,23 @@ export class AdminStaffService {
 
     const credentials = account.credentials || [];
 
-    const missingOrUnapproved = MANDATORY_CREDENTIAL_TYPES.filter(
-      (credentialType) => {
-        const credential = credentials.find(
-          (item) => item.credentialType === credentialType && item.isCurrent,
-        );
-        return !credential || credential.credentialStatus !== 'approved';
-      },
-    );
-
-    if (missingOrUnapproved.length > 0) {
-      throw new BadRequestException(
-        `Required credentials are not approved: ${missingOrUnapproved.join(', ')}`,
+    const missingOrUnapproved: string[] = [];
+    for (const credentialType of MANDATORY_CREDENTIAL_TYPES) {
+      const credential = credentials.find(
+        (item) => item.credentialType === credentialType && item.isCurrent,
       );
+      if (!credential || credential.credentialStatus !== 'approved') {
+        missingOrUnapproved.push(credentialType);
+        continue;
+      }
+      if (credentialType === 'id_card') {
+        const sideFiles = await this.loadCredentialFiles(credential.id);
+        const hasFront = sideFiles.some((f: any) => f.fileType === 'front');
+        const hasBack = sideFiles.some((f: any) => f.fileType === 'back');
+        if (!hasFront || !hasBack) {
+          missingOrUnapproved.push(credentialType);
+        }
+      }
     }
 
     for (const cred of credentials) {
@@ -731,6 +736,13 @@ export class AdminStaffService {
     if (!remark?.trim()) {
       throw new BadRequestException(message);
     }
+  }
+
+  private async loadCredentialFiles(credentialId: string) {
+    return this.prisma.staffCredentialFile.findMany({
+      where: { staffCredentialId: credentialId },
+      select: { fileType: true },
+    });
   }
 
   private async writeReviewSideEffects(

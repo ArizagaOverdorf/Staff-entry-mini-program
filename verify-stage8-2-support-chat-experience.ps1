@@ -199,8 +199,8 @@ Write-Host "  Max text length 500 passed." -ForegroundColor Green
 Write-Host "  Image/video size limits..." -ForegroundColor Cyan
 Assert-Contains ".\apps\miniapp\pages\message\support.js" "IMAGE_MAX_SIZE" "Support JS must have IMAGE_MAX_SIZE constant"
 Assert-Contains ".\apps\miniapp\pages\message\support.js" "VIDEO_MAX_SIZE" "Support JS must have VIDEO_MAX_SIZE constant"
-Assert-Contains ".\apps\miniapp\pages\message\support.js" "3 \* 1024 \* 1024" "Support JS must have 3MB image limit"
-Assert-Contains ".\apps\miniapp\pages\message\support.js" "10 \* 1024 \* 1024" "Support JS must have 10MB video limit"
+Assert-Contains ".\apps\miniapp\pages\message\support.js" "2 \* 1024 \* 1024" "Support JS must have 2MB image limit"
+Assert-Contains ".\apps\miniapp\pages\message\support.js" "5 \* 1024 \* 1024" "Support JS must have 5MB video limit"
 Assert-Contains ".\apps\server\src\modules\file\file.constants.ts" "IMAGE_MAX_SIZE" "File constants must have IMAGE_MAX_SIZE"
 Assert-Contains ".\apps\server\src\modules\file\file.constants.ts" "VIDEO_MAX_SIZE" "File constants must have VIDEO_MAX_SIZE"
 Write-Host "  Image/video size limits passed." -ForegroundColor Green
@@ -225,7 +225,7 @@ Write-Host "  Voice placeholder passed." -ForegroundColor Green
 Write-Host "  Chat input bar WeChat-style..." -ForegroundColor Cyan
 Assert-Contains ".\apps\miniapp\pages\message\support.wxml" "chat-tool-btn" "Support WXML must have chat tool buttons"
 Assert-Contains ".\apps\miniapp\pages\message\support.wxml" "chat-textarea-wrapper" "Support WXML must have textarea wrapper"
-Assert-Contains ".\apps\miniapp\pages\message\support.wxml" "chat-send-btn" "Support WXML must have send button"
+Assert-Contains ".\apps\miniapp\pages\message\support.wxml" "confirm-type" "Support WXML must have confirm-type for keyboard send"
 Write-Host "  Chat input bar WeChat-style passed." -ForegroundColor Green
 
 # 15. Home page support entry

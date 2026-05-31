@@ -2,10 +2,11 @@ const request = require('../../utils/request');
 const constants = require('../../utils/constants');
 const uploadUtil = require('../../utils/upload');
 
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 3000;
 const MAX_TEXT_LENGTH = 500;
-const IMAGE_MAX_SIZE = 3 * 1024 * 1024;
-const VIDEO_MAX_SIZE = 10 * 1024 * 1024;
+const IMAGE_MAX_SIZE = 2 * 1024 * 1024;
+const VIDEO_MAX_SIZE = 5 * 1024 * 1024;
+const FILE_MAX_SIZE = 10 * 1024 * 1024;
 
 Page({
   data: {
@@ -20,6 +21,10 @@ Page({
   },
 
   _pollTimer: null,
+  _isPolling: false,
+  _localMediaMap: {},
+  _loadingMediaMap: {},
+  _lastMessageSignature: '',
   _locked: false,
 
   onLoad() {
@@ -42,7 +47,11 @@ Page({
   startPolling() {
     if (this._pollTimer) return;
     this._pollTimer = setInterval(() => {
-      this.loadConversation(false);
+      if (this._isPolling || this.data.sending) return;
+      this._isPolling = true;
+      this.loadConversation(false, true).finally(() => {
+        this._isPolling = false;
+      });
     }, POLL_INTERVAL);
   },
 
@@ -53,12 +62,20 @@ Page({
     }
   },
 
-  loadConversation(scrollToBottom) {
+  loadConversation(scrollToBottom, silent) {
     const that = this;
-    request.get(constants.API.MESSAGE_SUPPORT_CONVERSATION)
+    return request.get(constants.API.MESSAGE_SUPPORT_CONVERSATION, null, { silent: !!silent })
       .then((res) => {
         const msgs = res.messages || [];
         const prevLen = that.data.messages.length;
+        const signature = msgs.map((m) => [m.id, m.createdAt, m.content || ''].join('|')).join('||');
+        if (signature === that._lastMessageSignature) {
+          if (!that.data.loaded) {
+            that.setData({ loaded: true });
+          }
+          return;
+        }
+        that._lastMessageSignature = signature;
         const hasNew = msgs.length > prevLen;
         const shouldScroll = scrollToBottom !== false && (hasNew || prevLen === 0);
         that.setData({
@@ -72,6 +89,40 @@ Page({
       });
   },
 
+  buildPublicPreviewUrl(fileIdOrUrl) {
+    if (!fileIdOrUrl) return '';
+    const value = String(fileIdOrUrl);
+    const userDataPath = wx.env && wx.env.USER_DATA_PATH ? wx.env.USER_DATA_PATH : '';
+    if (
+      value.indexOf('wxfile://') === 0 ||
+      value.indexOf('http://tmp/') === 0 ||
+      value.indexOf('file://') === 0 ||
+      (userDataPath && value.indexOf(userDataPath) === 0)
+    ) {
+      return value;
+    }
+    if (value.indexOf('http://') === 0 || value.indexOf('https://') === 0) {
+      return value;
+    }
+    if (value.indexOf('/api/') === 0) {
+      return constants.API_BASE_URL.replace(/\/api$/, '') + value;
+    }
+    return constants.API_BASE_URL + '/app/files/public/' + value + '/preview';
+  },
+
+  getFileType(fileName, mimeType) {
+    const name = (fileName || '').toLowerCase();
+    const mime = (mimeType || '').toLowerCase();
+    if (name.endsWith('.pdf') || mime === 'application/pdf') return 'pdf';
+    if (name.endsWith('.doc')) return 'doc';
+    if (name.endsWith('.docx')) return 'docx';
+    if (name.endsWith('.xls')) return 'xls';
+    if (name.endsWith('.xlsx')) return 'xlsx';
+    if (name.endsWith('.ppt')) return 'ppt';
+    if (name.endsWith('.pptx')) return 'pptx';
+    return '';
+  },
+
   formatMessage(msg) {
     const isStaff = msg.senderType === 'staff';
     let displayContent = msg.content || msg.title || '';
@@ -79,17 +130,21 @@ Page({
     let mediaType = '';
     let mediaUrl = '';
     let mediaFileId = '';
+    let mediaFileName = '';
+    let mediaFileType = '';
 
     // Try to parse JSON content for media messages
     if (displayContent && displayContent.startsWith('{') && displayContent.endsWith('}')) {
       try {
         const parsed = JSON.parse(displayContent);
-        if (parsed.type === 'image' || parsed.type === 'video') {
+        if (parsed.type === 'image' || parsed.type === 'video' || parsed.type === 'file') {
           isMedia = true;
           mediaType = parsed.type;
-          mediaFileId = parsed.fileId || parsed.url || '';
-          mediaUrl = mediaFileId ? constants.API_BASE_URL + '/app/files/public/' + mediaFileId + '/preview' : '';
-          displayContent = parsed.fileName || (parsed.type === 'image' ? '[图片]' : '[视频]');
+          mediaFileId = parsed.fileId || '';
+          mediaFileName = parsed.fileName || '';
+          mediaFileType = this.getFileType(mediaFileName, parsed.mimeType);
+          mediaUrl = this._localMediaMap[mediaFileId] || this.buildPublicPreviewUrl(parsed.mediaUrl || parsed.url || mediaFileId);
+          displayContent = parsed.fileName || (parsed.type === 'image' ? '[图片]' : parsed.type === 'video' ? '[视频]' : '[文件]');
         }
       } catch (e) {
         // Not JSON, use as plain text
@@ -111,7 +166,10 @@ Page({
       isMedia: isMedia,
       mediaType: mediaType,
       mediaUrl: mediaUrl,
-      mediaFileId: mediaFileId
+      mediaFileId: mediaFileId,
+      mediaFileName: mediaFileName,
+      mediaFileType: mediaFileType,
+      mediaLoadFailed: false
     };
   },
 
@@ -138,9 +196,11 @@ Page({
   },
 
   sendMessage() {
+    if (this.data.sending) {
+      return;
+    }
     const content = (this.data.inputContent || '').trim();
     if (!content) {
-      wx.showToast({ title: '请输入消息内容', icon: 'none' });
       return;
     }
     if (content.length > MAX_TEXT_LENGTH) {
@@ -195,7 +255,7 @@ Page({
       success(res) {
         const tempFile = res.tempFiles[0];
         if (tempFile.size > IMAGE_MAX_SIZE) {
-          wx.showToast({ title: '图片不能超过3MB', icon: 'none' });
+          wx.showToast({ title: '图片不能超过2MB', icon: 'none' });
           return;
         }
         that.uploadAndSendMedia(tempFile, 'image');
@@ -219,7 +279,7 @@ Page({
       success(res) {
         const tempFile = res.tempFiles[0];
         if (tempFile.size > VIDEO_MAX_SIZE) {
-          wx.showToast({ title: '视频不能超过10MB', icon: 'none' });
+          wx.showToast({ title: '视频不能超过5MB', icon: 'none' });
           return;
         }
         that.uploadAndSendMedia(tempFile, 'video');
@@ -232,24 +292,62 @@ Page({
     });
   },
 
+  // Choose document-like file and send as media message
+  onChooseFile() {
+    this.setData({ showActionSheet: false });
+    const that = this;
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['pdf', 'doc', 'docx', 'xls', 'xlsx'],
+      success(res) {
+        const tempFile = res.tempFiles && res.tempFiles[0];
+        if (!tempFile) return;
+        if (tempFile.size > FILE_MAX_SIZE) {
+          wx.showToast({ title: '文件不能超过10MB', icon: 'none' });
+          return;
+        }
+        that.uploadAndSendMedia(tempFile, 'file');
+      },
+      fail(err) {
+        if (err.errMsg && err.errMsg.indexOf('cancel') === -1) {
+          wx.showToast({ title: '选择文件失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
   // Upload media file and send as a support JSON message
   uploadAndSendMedia(tempFile, mediaType) {
     const that = this;
-    const fileName = mediaType === 'image' ? '图片消息' : '视频消息';
+    const filePath = tempFile.tempFilePath || tempFile.path;
+    const fileName = tempFile.name || (mediaType === 'image' ? '图片消息' : mediaType === 'video' ? '视频消息' : '文件消息');
+
+    if (!filePath) {
+      wx.showToast({ title: '文件路径无效', icon: 'none' });
+      return;
+    }
 
     wx.showLoading({ title: '上传中...', mask: true });
 
-    uploadUtil.uploadFile(constants.API.FILES_UPLOAD, tempFile.tempFilePath, 'file', {
+    uploadUtil.uploadFile(constants.API.FILES_UPLOAD, filePath, 'file', {
       purpose: 'support_media'
     })
       .then((result) => {
         wx.hideLoading();
         // Build a structured placeholder in content for display
         const fileId = result.id || result.fileId || '';
+        if (fileId && mediaType !== 'file') {
+          that._localMediaMap[fileId] = filePath;
+        }
+        const mediaUrl = that.buildPublicPreviewUrl(fileId);
         const mediaContent = JSON.stringify({
           type: mediaType,
           fileId: fileId,
-          fileName: fileName
+          mediaUrl: mediaUrl,
+          fileName: fileName,
+          mimeType: result.mimeType || tempFile.type || '',
+          size: result.size || tempFile.size || 0
         });
 
         that.setData({ sending: true });
@@ -276,15 +374,111 @@ Page({
       });
   },
 
+  onMediaImageError(e) {
+    const index = e.currentTarget.dataset.index;
+    const fileId = e.currentTarget.dataset.fileId;
+    const url = e.currentTarget.dataset.url;
+    if (index === undefined || index === null) return;
+    if (fileId && url) {
+      this.cacheMediaPreview(fileId, url, index);
+      return;
+    }
+    const key = 'messages[' + index + '].mediaLoadFailed';
+    this.setData({ [key]: true });
+  },
+
+  cacheMediaPreview(fileId, url, index) {
+    if (this._localMediaMap[fileId] || this._loadingMediaMap[fileId]) return;
+    this._loadingMediaMap[fileId] = true;
+    const fs = wx.getFileSystemManager();
+    const filePath = wx.env.USER_DATA_PATH + '/support_' + fileId;
+    const requestUrl = this.buildPublicPreviewUrl(url);
+    wx.request({
+      url: requestUrl,
+      responseType: 'arraybuffer',
+      success: (res) => {
+        if (res.statusCode < 200 || res.statusCode >= 300 || !res.data) {
+          const key = 'messages[' + index + '].mediaLoadFailed';
+          this.setData({ [key]: true });
+          return;
+        }
+        fs.writeFile({
+          filePath,
+          data: res.data,
+          success: () => {
+            this._localMediaMap[fileId] = filePath;
+            const urlKey = 'messages[' + index + '].mediaUrl';
+            const failedKey = 'messages[' + index + '].mediaLoadFailed';
+            this.setData({
+              [urlKey]: filePath,
+              [failedKey]: false
+            });
+          },
+          fail: () => {
+            const key = 'messages[' + index + '].mediaLoadFailed';
+            this.setData({ [key]: true });
+          }
+        });
+      },
+      fail: () => {
+        const key = 'messages[' + index + '].mediaLoadFailed';
+        this.setData({ [key]: true });
+      },
+      complete: () => {
+        this._loadingMediaMap[fileId] = false;
+      }
+    });
+  },
+
+  onOpenMediaFile(e) {
+    const url = e.currentTarget.dataset.url;
+    const fileName = e.currentTarget.dataset.fileName || '';
+    const fileType = e.currentTarget.dataset.fileType || this.getFileType(fileName, '');
+    if (!url) return;
+    const requestUrl = this.buildPublicPreviewUrl(url);
+    wx.showLoading({ title: '打开中...', mask: true });
+    wx.downloadFile({
+      url: requestUrl,
+      success(res) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          const options = {
+            filePath: res.tempFilePath,
+            showMenu: true
+          };
+          if (fileType) {
+            options.fileType = fileType;
+          }
+          options.fail = function () {
+            wx.showToast({ title: '文件打开失败', icon: 'none' });
+          };
+          wx.openDocument(options);
+        } else {
+          wx.showToast({ title: '文件下载失败', icon: 'none' });
+        }
+      },
+      fail() {
+        wx.showToast({ title: '文件打开失败', icon: 'none' });
+      },
+      complete() {
+        wx.hideLoading();
+      }
+    });
+  },
+
   // Preview media image in chat
   onPreviewMedia(e) {
     const url = e.currentTarget.dataset.url;
     const type = e.currentTarget.dataset.type;
     if (!url) return;
+    const previewUrl = this.buildPublicPreviewUrl(url);
     if (type === 'image') {
       wx.previewImage({
-        urls: [url],
-        current: url
+        urls: [previewUrl],
+        current: previewUrl
+      });
+    } else if (type === 'video' && wx.previewMedia) {
+      wx.previewMedia({
+        sources: [{ url: previewUrl, type: 'video' }]
       });
     } else {
       wx.showToast({ title: '视频预览暂未开放', icon: 'none' });
