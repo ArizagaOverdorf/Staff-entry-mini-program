@@ -6,9 +6,20 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '../../config/config.service';
 import { UpsertCredentialDto } from './dto/upsert-credential.dto';
-import { CredentialType, CredentialTypeLabels, CREDENTIAL_TYPES_REQUIRE_EXPIRY, ALLOWED_SKILL_LEVELS, ALLOWED_SKILL_CERT_CATEGORY_IDS } from './credential.constants';
+import { UpsertSkillEntryDto, UpsertIndependentSkillsDto } from './dto/skill-entry.dto';
+import {
+  CredentialType,
+  CredentialTypeLabels,
+  CREDENTIAL_TYPES_REQUIRE_EXPIRY,
+  ALLOWED_SKILL_LEVELS,
+  ALLOWED_SKILL_CERT_CATEGORY_IDS,
+  INDEPENDENT_SKILL_KEYS,
+  INDEPENDENT_SKILL_LABELS,
+  CERTIFICATE_SKILL_NAMES,
+  RELATED_SERVICE_SKILLS,
+} from './credential.constants';
 import { encrypt } from '../../utils/crypto.util';
-import { maskIdNumber } from '../staff/staff.mask';
+import { maskIdNumber, parseIdCardBirthday } from '../../utils/mask.util';
 
 type StaffSkillCategoryInput = {
   categoryId: string;
@@ -337,6 +348,251 @@ export class CredentialService {
     await this.prisma.staffCredential.delete({ where: { id } });
   }
 
+  // ============================================================
+  // Independent skill toggles (保洁 / 厨师)
+  // ============================================================
+
+  async getIndependentSkills(accountId: string) {
+    const skills = await this.prisma.staffIndependentSkill.findMany({
+      where: { staffAccountId: accountId },
+    });
+    const result: Record<string, boolean> = {};
+    for (const key of INDEPENDENT_SKILL_KEYS) {
+      const existing = skills.find((s) => s.skillKey === key);
+      result[key] = existing ? existing.isSelected : false;
+    }
+    return {
+      skills: Object.entries(result).map(([skillKey, isSelected]) => ({
+        skillKey,
+        skillLabel: INDEPENDENT_SKILL_LABELS[skillKey] || skillKey,
+        isSelected,
+      })),
+    };
+  }
+
+  async upsertIndependentSkills(accountId: string, dto: UpsertIndependentSkillsDto) {
+    for (const item of dto.skills) {
+      if (!(INDEPENDENT_SKILL_KEYS as readonly string[]).includes(item.skillKey)) {
+        throw new BadRequestException(`Invalid independent skill key: ${item.skillKey}`);
+      }
+      await this.prisma.staffIndependentSkill.upsert({
+        where: {
+          staffAccountId_skillKey: {
+            staffAccountId: accountId,
+            skillKey: item.skillKey,
+          },
+        },
+        create: {
+          staffAccountId: accountId,
+          skillKey: item.skillKey,
+          isSelected: item.isSelected,
+        },
+        update: {
+          isSelected: item.isSelected,
+        },
+      });
+    }
+    return this.getIndependentSkills(accountId);
+  }
+
+  // ============================================================
+  // Certificate-backed skill entries (技能一 / 技能二 / 技能三)
+  // ============================================================
+
+  async getSkillEntries(accountId: string) {
+    const entries = await this.prisma.staffSkillEntry.findMany({
+      where: { staffAccountId: accountId },
+      include: {
+        files: { include: { fileAsset: true } },
+      },
+      orderBy: { entryIndex: 'asc' },
+    });
+
+    // Ensure all 3 slots always exist
+    const result: any[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const existing = entries.find((e) => e.entryIndex === i);
+      if (existing) {
+        result.push(this.formatSkillEntry(existing));
+      } else {
+        result.push({
+          entryIndex: i,
+          skillName: null,
+          skillLevel: null,
+          workDurationMonths: null,
+          relatedServiceSkills: [],
+          files: [],
+        });
+      }
+    }
+    return { entries: result };
+  }
+
+  async upsertSkillEntry(accountId: string, dto: UpsertSkillEntryDto) {
+    const { entryIndex, skillName, skillLevel, workDurationMonths, relatedServiceSkills, files, fileIds } = dto;
+
+    if (entryIndex < 1 || entryIndex > 3) {
+      throw new BadRequestException('entryIndex must be 1, 2, or 3');
+    }
+
+    const isFilled = !!(skillName && skillName.trim());
+
+    if (isFilled) {
+      this.validateSkillEntry(dto);
+    }
+
+    // Resolve file entries
+    const fileEntries = this.resolveSkillEntryFiles(dto);
+    if (isFilled && fileEntries.length === 0) {
+      throw new BadRequestException('证书图片为必填项，请上传1-3张证书图片');
+    }
+    if (fileEntries.length > 3) {
+      throw new BadRequestException('最多上传3张证书图片');
+    }
+
+    const fileIdsToValidate = fileEntries.map((e) => e.fileId);
+    if (fileIdsToValidate.length > 0) {
+      await this.assertFilesBelongToAccount(accountId, fileIdsToValidate);
+    }
+
+    // Check duplicate skill names across entries
+    if (isFilled && skillName) {
+      const existingEntries = await this.prisma.staffSkillEntry.findMany({
+        where: {
+          staffAccountId: accountId,
+          entryIndex: { not: entryIndex },
+          skillName: { not: null },
+        },
+      });
+      const duplicates = existingEntries.filter((e) => e.skillName === skillName.trim());
+      if (duplicates.length > 0) {
+        throw new BadRequestException(`技能名称「${skillName}」已在其他技能条目中使用，请选择不同的技能名称`);
+      }
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const entry = await tx.staffSkillEntry.upsert({
+        where: {
+          staffAccountId_entryIndex: {
+            staffAccountId: accountId,
+            entryIndex,
+          },
+        },
+        create: {
+          staffAccountId: accountId,
+          entryIndex,
+          skillName: isFilled ? skillName!.trim() : null,
+          skillLevel: isFilled ? (skillLevel || null) : null,
+          workDurationMonths: isFilled ? (workDurationMonths || null) : null,
+          relatedServiceSkills: isFilled && relatedServiceSkills?.length
+            ? relatedServiceSkills
+            : [],
+        },
+        update: {
+          skillName: isFilled ? skillName!.trim() : null,
+          skillLevel: isFilled ? (skillLevel || null) : null,
+          workDurationMonths: isFilled ? (workDurationMonths || null) : null,
+          relatedServiceSkills: isFilled && relatedServiceSkills?.length
+            ? relatedServiceSkills
+            : [],
+        },
+      });
+
+      // Replace files
+      await tx.staffSkillEntryFile.deleteMany({
+        where: { staffSkillEntryId: entry.id },
+      });
+      if (fileEntries.length > 0) {
+        await tx.staffSkillEntryFile.createMany({
+          data: fileEntries.map((fe) => ({
+            staffSkillEntryId: entry.id,
+            fileAssetId: fe.fileId,
+          })),
+        });
+      }
+
+      await this.requireIntakeReviewAfterCredentialChange(tx, accountId);
+
+      return entry;
+    });
+
+    const fullEntry = await this.prisma.staffSkillEntry.findUniqueOrThrow({
+      where: { id: updated.id },
+      include: { files: { include: { fileAsset: true } } },
+    });
+    return this.formatSkillEntry(fullEntry);
+  }
+
+  private validateSkillEntry(dto: UpsertSkillEntryDto) {
+    const { skillName, skillLevel, workDurationMonths } = dto;
+
+    if (!skillName || !skillName.trim()) {
+      throw new BadRequestException('技能名称为必填项');
+    }
+    if (!(CERTIFICATE_SKILL_NAMES as readonly string[]).includes(skillName.trim())) {
+      throw new BadRequestException(`无效的技能名称: ${skillName}`);
+    }
+    if (!skillLevel || !(ALLOWED_SKILL_LEVELS as readonly string[]).includes(skillLevel)) {
+      throw new BadRequestException(
+        `技能等级无效，允许的等级：${(ALLOWED_SKILL_LEVELS as readonly string[]).join('、')}`,
+      );
+    }
+    if (!workDurationMonths || workDurationMonths < 1 || !Number.isInteger(workDurationMonths)) {
+      throw new BadRequestException('相关工作时长必须为正整数（月）');
+    }
+    if (dto.relatedServiceSkills?.length) {
+      for (const s of dto.relatedServiceSkills) {
+        if (!(RELATED_SERVICE_SKILLS as readonly string[]).includes(s)) {
+          throw new BadRequestException(`无效的关联服务技能: ${s}`);
+        }
+      }
+    }
+  }
+
+  private resolveSkillEntryFiles(dto: UpsertSkillEntryDto): { fileId: string }[] {
+    if (dto.files && dto.files.length > 0) {
+      return dto.files.map((f) => ({ fileId: f.fileId }));
+    }
+    if (dto.fileIds && dto.fileIds.length > 0) {
+      return dto.fileIds.map((fid) => ({ fileId: fid }));
+    }
+    return [];
+  }
+
+  async hasAnyCertificateBackedSkillEntry(accountId: string): Promise<boolean> {
+    const entries = await this.prisma.staffSkillEntry.findMany({
+      where: {
+        staffAccountId: accountId,
+        skillName: { not: null },
+      },
+    });
+    return entries.length > 0;
+  }
+
+  private formatSkillEntry(entry: any) {
+    return {
+      id: entry.id,
+      entryIndex: entry.entryIndex,
+      skillName: entry.skillName,
+      skillLevel: entry.skillLevel,
+      workDurationMonths: entry.workDurationMonths,
+      relatedServiceSkills: (entry.relatedServiceSkills as string[]) || [],
+      files: (entry.files || []).map((f: any) => ({
+        id: f.id,
+        fileAsset: {
+          id: f.fileAsset.id,
+          originalName: f.fileAsset.originalName,
+          mimeType: f.fileAsset.mimeType,
+          size: Number(f.fileAsset.size),
+        },
+      })),
+    };
+  }
+
+  // ============================================================
+  // Private helpers
+  // ============================================================
+
   private validateCredentialType(credentialType: string) {
     if (!Object.values(CredentialType).includes(credentialType as any)) {
       throw new BadRequestException(
@@ -607,6 +863,8 @@ export class CredentialService {
     }
 
     const encryptionKey = this.config.encryptionKey;
+    const birthday = parseIdCardBirthday(trimmed);
+
     await tx.staffProfile.upsert({
       where: { staffAccountId: accountId },
       create: {
@@ -614,10 +872,12 @@ export class CredentialService {
         staffId: account.staffId,
         idNumberEncrypted: encrypt(trimmed, encryptionKey),
         idNumberMasked: maskIdNumber(trimmed),
+        birthday: birthday ? new Date(birthday) : undefined,
       },
       update: {
         idNumberEncrypted: encrypt(trimmed, encryptionKey),
         idNumberMasked: maskIdNumber(trimmed),
+        birthday: birthday ? new Date(birthday) : undefined,
       },
     });
   }

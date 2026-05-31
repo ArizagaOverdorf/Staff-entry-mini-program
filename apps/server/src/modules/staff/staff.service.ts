@@ -5,6 +5,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateSkillsDto } from './dto/update-skills.dto';
 import { UpdateServiceAreasDto } from './dto/update-service-areas.dto';
 import { maskPhone, maskIdNumber, maskName } from './staff.mask';
+import { parseIdCardBirthday } from '../../utils/mask.util';
 import { encrypt, decrypt } from '../../utils/crypto.util';
 
 @Injectable()
@@ -25,6 +26,12 @@ export class StaffService {
     const profile = account.profile as any;
     const avatarUrl = profile?.avatarUrl || account.wechatAvatar || undefined;
 
+    // Derive birthday from ID card number (source of truth is credential management)
+    const idNumber = profile?.idNumberEncrypted
+      ? decrypt(profile.idNumberEncrypted, encryptionKey)
+      : undefined;
+    const derivedBirthday = idNumber ? parseIdCardBirthday(idNumber) : undefined;
+
     return {
       staffId: account.staffId,
       phone: account.phoneMasked,
@@ -41,9 +48,7 @@ export class StaffService {
               ? decrypt(profile.realNameEncrypted, encryptionKey)
               : undefined,
             nameMasked: profile.realNameMasked,
-            idNumber: profile.idNumberEncrypted
-              ? decrypt(profile.idNumberEncrypted, encryptionKey)
-              : undefined,
+            idNumber,
             idNumberMasked: profile.idNumberMasked,
             // Reserved for Alibaba Cloud / Tencent Cloud real-name verification integration.
             identityVerified: !!profile.identityVerified,
@@ -52,9 +57,7 @@ export class StaffService {
             gender: profile.gender != null
               ? profile.gender === 1 ? 'male' : 'female'
               : undefined,
-            birthday: profile.birthday
-              ? profile.birthday.toISOString().slice(0, 10)
-              : undefined,
+            birthday: derivedBirthday,
             avatarUrl,
             avatarFileId: avatarUrl,
             address: profile.address,
@@ -103,12 +106,15 @@ export class StaffService {
       profileData.idNumberMasked = dto.idNumber
         ? maskIdNumber(dto.idNumber)
         : null;
+      // Auto-derive birthday from ID card number
+      profileData.birthday = dto.idNumber
+        ? (() => { const bd = parseIdCardBirthday(dto.idNumber); return bd ? new Date(bd) : null; })()
+        : null;
     }
+    // Manual birthday is ignored — birthday is derived from ID card number in credential management
     if (dto.gender !== undefined) {
       profileData.gender = dto.gender === 'male' ? 1 : dto.gender === 'female' ? 2 : parseInt(dto.gender, 10) || null;
     }
-    if (dto.birthday !== undefined)
-      profileData.birthday = dto.birthday ? new Date(dto.birthday) : null;
     if (dto.avatarUrl !== undefined) profileData.avatarUrl = avatarUrl || null;
     if (dto.address !== undefined) profileData.address = dto.address;
 

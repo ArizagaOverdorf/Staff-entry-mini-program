@@ -55,6 +55,16 @@ export class AdminStaffController {
     return this.adminStaffService.credentials(staffId);
   }
 
+  @Get(':staffId/skill-entries')
+  async skillEntries(@Param('staffId') staffId: string) {
+    return this.adminStaffService.getSkillEntries(staffId);
+  }
+
+  @Get(':staffId/independent-skills')
+  async independentSkills(@Param('staffId') staffId: string) {
+    return this.adminStaffService.getIndependentSkills(staffId);
+  }
+
   @Get(':staffId/audit-records')
   async auditRecords(@Param('staffId') staffId: string) {
     return this.adminStaffService.getAuditRecords(staffId);

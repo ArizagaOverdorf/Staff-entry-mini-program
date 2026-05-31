@@ -26,7 +26,7 @@
         </view>
         <view class="form-item">
           <text class="form-label">出生日期</text>
-          <input class="form-input" type="text" placeholder="如：1990-01-01" value="{{birthday}}" bindinput="onBirthdayInput" />
+          <text class="form-value">{{birthday || '请先在证件管理中填写身份证号'}}</text>
         </view>
         <view class="form-item">
           <text class="form-label">手机号</text>

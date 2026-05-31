@@ -162,3 +162,27 @@ export async function setManagementStatus(
 ): Promise<any> {
   return request.post(`/staff/${staffId}/management-status`, { status, reason });
 }
+
+export interface SkillEntryRecord {
+  id?: string;
+  entryIndex: number;
+  skillName: string | null;
+  skillLevel: string | null;
+  workDurationMonths: number | null;
+  relatedServiceSkills: string[];
+  files: { id: string; fileAsset: { id: string; originalName: string; mimeType: string; size: number } }[];
+}
+
+export interface IndependentSkillRecord {
+  skillKey: string;
+  skillLabel: string;
+  isSelected: boolean;
+}
+
+export async function getStaffSkillEntries(staffId: string): Promise<SkillEntryRecord[]> {
+  return request.get(`/staff/${staffId}/skill-entries`);
+}
+
+export async function getStaffIndependentSkills(staffId: string): Promise<{ skills: IndependentSkillRecord[] }> {
+  return request.get(`/staff/${staffId}/independent-skills`);
+}
