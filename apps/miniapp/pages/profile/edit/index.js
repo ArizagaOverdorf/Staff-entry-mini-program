@@ -304,7 +304,6 @@ Page({
       const profileData = {
         name: this.data.name,
         gender: this.data.gender,
-        birthday: this.data.birthday,
         avatarUrl: this.data.avatarFileId || this.data.avatarUrl,
         address: this.data.address,
         emergencyContact: this.data.emergencyContact,

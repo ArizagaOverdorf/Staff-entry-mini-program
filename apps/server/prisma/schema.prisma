@@ -124,6 +124,8 @@ model StaffAccount {
   auditRecords      AuditRecord[]
   messages          Message[]
   uploadedFiles     FileAsset[]
+  independentSkills StaffIndependentSkill[]
+  skillEntries      StaffSkillEntry[]
 
   @@index([openid])
   @@index([phoneMasked])
@@ -220,6 +222,59 @@ model StaffCredential {
   @@index([expiryDate])
   @@index([credentialGroupId])
   @@map("staff_credential")
+}
+
+// ============================================================
+// Independent skill toggles (保洁 / 厨师)
+// ============================================================
+
+model StaffIndependentSkill {
+  id             String   @id @default(uuid()) @db.Uuid
+  staffAccountId String   @map("staff_account_id") @db.Uuid
+  skillKey       String   @map("skill_key") @db.VarChar(32)
+  isSelected     Boolean  @default(false) @map("is_selected")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([staffAccountId, skillKey])
+  @@map("staff_independent_skill")
+}
+
+// ============================================================
+// Certificate-backed skill entries (技能一 / 技能二 / 技能三)
+// ============================================================
+
+model StaffSkillEntry {
+  id                   String   @id @default(uuid()) @db.Uuid
+  staffAccountId       String   @map("staff_account_id") @db.Uuid
+  entryIndex           Int      @map("entry_index") @db.SmallInt
+  skillName            String?  @map("skill_name") @db.VarChar(128)
+  skillLevel           String?  @map("skill_level") @db.VarChar(64)
+  workDurationMonths   Int?     @map("work_duration_months")
+  relatedServiceSkills Json?    @map("related_service_skills")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  staffAccount StaffAccount          @relation(fields: [staffAccountId], references: [id], onDelete: Cascade)
+  files        StaffSkillEntryFile[]
+
+  @@unique([staffAccountId, entryIndex])
+  @@map("staff_skill_entry")
+}
+
+model StaffSkillEntryFile {
+  id                String   @id @default(uuid()) @db.Uuid
+  staffSkillEntryId String   @map("staff_skill_entry_id") @db.Uuid
+  fileAssetId       String   @map("file_asset_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  staffSkillEntry StaffSkillEntry @relation(fields: [staffSkillEntryId], references: [id], onDelete: Cascade)
+  fileAsset       FileAsset       @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+
+  @@index([staffSkillEntryId])
+  @@map("staff_skill_entry_file")
 }
 
 model StaffCredentialFile {
@@ -470,6 +525,7 @@ model FileAsset {
 
   uploadedByStaffAccount StaffAccount?         @relation(fields: [uploadedByStaffAccountId], references: [id], onDelete: SetNull)
   credentialFiles        StaffCredentialFile[]
+  skillEntryFiles        StaffSkillEntryFile[]
 
   @@index([uploadedByStaffAccountId])
   @@map("file_asset")

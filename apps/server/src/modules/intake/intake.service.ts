@@ -6,7 +6,8 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   MANDATORY_CREDENTIAL_TYPES,
-  SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS,
+  CONDITIONAL_CREDENTIAL_TYPES,
+  MANDATORY_CREDENTIAL_TYPES_FULL,
   CredentialTypeLabels,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
 } from '../credential/credential.constants';
@@ -48,6 +49,7 @@ export class IntakeService {
         },
         intakeStatus: true,
         listingStatus: true,
+        skillEntries: true,
       },
     });
     if (!account) throw new NotFoundException('Staff not found');
@@ -57,8 +59,17 @@ export class IntakeService {
       return isDateBeforeToday(cred.expiryDate);
     };
 
-    const mandatoryCredentials = MANDATORY_CREDENTIAL_TYPES.map((type) => {
+    if (!account) throw new NotFoundException('Staff not found');
+
+    const hasCertificateBackedSkill = await this.hasAnyCertificateSkillEntry(accountId);
+    const hasIndependentSkill = await this.hasAnyIndependentSkillSelection(accountId);
+    const shouldRequireConditionalCredentials =
+      hasCertificateBackedSkill || !hasIndependentSkill;
+
+    const mandatoryCredentials = MANDATORY_CREDENTIAL_TYPES_FULL.map((type) => {
       const cred = account.credentials.find((c) => c.credentialType === type);
+      const isConditional = CONDITIONAL_CREDENTIAL_TYPES.includes(type);
+      const isRequired = isConditional ? shouldRequireConditionalCredentials : true;
       return {
         credentialType: type,
         credentialTypeLabel: CredentialTypeLabels[type] ?? type,
@@ -66,6 +77,8 @@ export class IntakeService {
         credentialId: cred?.id ?? null,
         credentialStatus: cred?.credentialStatus ?? null,
         isExpired: isCredentialExpired(cred),
+        isConditional,
+        isRequired,
       };
     });
 
@@ -73,28 +86,7 @@ export class IntakeService {
       (c) => c.credentialType === 'education' || c.credentialType === 'student_card',
     ).length;
 
-    const skillCredentialRequirements = account.skills
-      .filter((skill) =>
-        SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS.includes(skill.categoryId),
-      )
-      .map((skill) => {
-        const coveringCert = account.credentials.find(
-          (cred) =>
-            cred.credentialType === 'skill_cert' &&
-            cred.credentialSkills?.some(
-              (cs) => cs.staffSkillId === skill.id,
-            ),
-        );
-        return {
-          skillId: skill.id,
-          categoryId: skill.categoryId,
-          categoryName: skill.categoryName,
-          requiresSkillCert: true,
-          hasSkillCert: !!coveringCert,
-          coveringCredentialId: coveringCert?.id ?? null,
-          coveringCredentialStatus: coveringCert?.credentialStatus ?? null,
-        };
-      });
+    const skillCredentialRequirements: any[] = [];
 
     const issues: string[] = [];
     if (!account.phoneEncrypted) issues.push('未绑定手机号');
@@ -110,6 +102,7 @@ export class IntakeService {
     if (account.serviceAreas.length === 0) issues.push('未选择服务区域');
 
     for (const mc of mandatoryCredentials) {
+      if (!mc.isRequired) continue;
       if (!mc.hasCredential) {
         issues.push(`缺少强准入证件: ${mc.credentialTypeLabel}`);
       } else if (mc.isExpired) {
@@ -122,12 +115,6 @@ export class IntakeService {
         if (!hasFront || !hasBack) {
           issues.push('居民身份证需要上传人像面和国徽面');
         }
-      }
-    }
-
-    for (const sr of skillCredentialRequirements) {
-      if (!sr.hasSkillCert) {
-        issues.push(`服务技能「${sr.categoryName}」需要技能证书，请上传并关联`);
       }
     }
 
@@ -161,6 +148,7 @@ export class IntakeService {
           },
         },
         intakeStatus: true,
+        skillEntries: true,
       },
     });
     if (!account) throw new NotFoundException('Staff not found');
@@ -194,7 +182,17 @@ export class IntakeService {
       throw new BadRequestException('请至少选择一个服务区域');
     }
 
-    for (const credType of MANDATORY_CREDENTIAL_TYPES) {
+    const hasCertificateBackedSkill = await this.hasAnyCertificateSkillEntry(accountId);
+    const hasIndependentSkill = await this.hasAnyIndependentSkillSelection(accountId);
+    const shouldRequireConditionalCredentials =
+      hasCertificateBackedSkill || !hasIndependentSkill;
+
+    const requiredCredentialTypes = [
+      ...MANDATORY_CREDENTIAL_TYPES,
+      ...(shouldRequireConditionalCredentials ? CONDITIONAL_CREDENTIAL_TYPES : []),
+    ];
+
+    for (const credType of requiredCredentialTypes) {
       const cred = account.credentials.find(
         (c) => c.credentialType === credType,
       );
@@ -217,24 +215,6 @@ export class IntakeService {
           const label = CredentialTypeLabels[credType] ?? credType;
           throw new BadRequestException(`证件过期: ${label}（证件过期）`);
         }
-      }
-    }
-
-    for (const skill of account.skills) {
-      if (!SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS.includes(skill.categoryId)) {
-        continue;
-      }
-      const hasCoveringCert = account.credentials.some(
-        (cred) =>
-          cred.credentialType === 'skill_cert' &&
-          cred.credentialSkills?.some(
-            (cs) => cs.staffSkillId === skill.id,
-          ),
-      );
-      if (!hasCoveringCert) {
-        throw new BadRequestException(
-          `服务技能「${skill.categoryName}」需要关联技能证书，请上传技能证书并关联该技能`,
-        );
       }
     }
 
@@ -311,5 +291,25 @@ export class IntakeService {
       needs_more_info: '需补充资料',
     };
     return map[status] ?? status;
+  }
+
+  private async hasAnyCertificateSkillEntry(accountId: string): Promise<boolean> {
+    const entries = await this.prisma.staffSkillEntry.findMany({
+      where: {
+        staffAccountId: accountId,
+        skillName: { not: null },
+      },
+    });
+    return entries.length > 0;
+  }
+
+  private async hasAnyIndependentSkillSelection(accountId: string): Promise<boolean> {
+    const selectedCount = await this.prisma.staffIndependentSkill.count({
+      where: {
+        staffAccountId: accountId,
+        isSelected: true,
+      },
+    });
+    return selectedCount > 0;
   }
 }

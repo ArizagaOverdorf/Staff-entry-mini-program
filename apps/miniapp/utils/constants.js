@@ -24,6 +24,9 @@ const API = {
 
   CREDENTIALS: APP_API_PREFIX + '/credentials',
   CREDENTIAL_UPLOAD: APP_API_PREFIX + '/files/upload',
+  INDEPENDENT_SKILLS: APP_API_PREFIX + '/credentials/independent-skills',
+  SKILL_ENTRIES: APP_API_PREFIX + '/credentials/skill-entries',
+  SKILL_ENTRY_UPSERT: APP_API_PREFIX + '/credentials/skill-entries',
 
   SUBMIT_INTAKE: APP_API_PREFIX + '/intake/submit',
   INTAKE_PREVIEW: APP_API_PREFIX + '/intake/preview',
@@ -189,9 +192,17 @@ const SERVICE_AREA_OPTIONS = [
 const MANDATORY_CREDENTIAL_TYPES = [
   'id_card',
   'health_cert',
-  'no_crime_cert',
+  'no_crime_cert'
+];
+
+const CONDITIONAL_CREDENTIAL_TYPES = [
   'credit_report',
   'medical_report'
+];
+
+const MANDATORY_CREDENTIAL_TYPES_FULL = [
+  ...MANDATORY_CREDENTIAL_TYPES,
+  ...CONDITIONAL_CREDENTIAL_TYPES
 ];
 
 const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
@@ -212,6 +223,33 @@ const GENDER_OPTIONS = [
   { value: 'female', label: '女' }
 ];
 
+// Independent skill toggles (not certificate-backed)
+const INDEPENDENT_SKILLS = [
+  { key: 'cleaning', label: '保洁' },
+  { key: 'cook', label: '厨师' }
+];
+
+// Certificate-backed skill names for 技能一/二/三
+const CERTIFICATE_SKILL_OPTIONS = [
+  '月嫂', '育婴员', '育婴师', '育儿嫂', '家政服务员', '母婴护理师',
+  '产后恢复师', '产后康复师', '催乳师', '保育员', '整理收纳师',
+  '小儿推拿师', '早期教育指导师', '老年护理师', '养老护理师',
+  '护工', '陪诊师', '保姆', '管家', '中式管家', '家电清洗师',
+  '公共营养师', '健康管理师', '中式面点师', '护士', '医师'
+].map(function(name) { return { value: name, label: name }; });
+
+// Related service skills (multi-select for each skill entry)
+const RELATED_SERVICE_SKILLS = [
+  { value: '月嫂', label: '月嫂' },
+  { value: '育儿嫂', label: '育儿嫂' },
+  { value: '住家保姆', label: '住家保姆' },
+  { value: '白班保姆', label: '白班保姆' },
+  { value: '养老保姆', label: '养老保姆' },
+  { value: '保洁', label: '保洁' },
+  { value: '厨师', label: '厨师' },
+  { value: '护士', label: '护士' }
+];
+
 module.exports = {
   API_BASE_URL,
   API,
@@ -230,7 +268,12 @@ module.exports = {
   SERVICE_SKILL_OPTIONS,
   SERVICE_AREA_OPTIONS,
   MANDATORY_CREDENTIAL_TYPES,
+  CONDITIONAL_CREDENTIAL_TYPES,
+  MANDATORY_CREDENTIAL_TYPES_FULL,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
   MESSAGE_STATUS,
-  GENDER_OPTIONS
+  GENDER_OPTIONS,
+  INDEPENDENT_SKILLS,
+  CERTIFICATE_SKILL_OPTIONS,
+  RELATED_SERVICE_SKILLS
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Spin, Button, Space, Tabs, Empty } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Card, Spin, Button, Space, Tabs, Empty, Tag, Descriptions } from 'antd';
+import { ArrowLeftOutlined, FileImageOutlined } from '@ant-design/icons';
 import StaffProfileCard from './components/StaffProfileCard';
 import CredentialReviewList from './components/CredentialReviewList';
 import ReviewActions from './components/ReviewActions';
@@ -10,10 +10,15 @@ import {
   getStaffDetail,
   getStaffCredentials,
   getStaffAuditRecords,
+  getStaffSkillEntries,
+  getStaffIndependentSkills,
   type StaffRecord,
   type CredentialRecord,
   type AuditRecordItem,
+  type SkillEntryRecord,
+  type IndependentSkillRecord,
 } from './services/staff';
+import { getToken } from '../../utils/auth';
 
 const VALID_TABS = ['profile', 'review', 'credentials'];
 
@@ -26,6 +31,8 @@ const StaffDetail: React.FC = () => {
   const [staff, setStaff] = useState<StaffRecord | null>(null);
   const [credentials, setCredentials] = useState<CredentialRecord[]>([]);
   const [auditRecords, setAuditRecords] = useState<AuditRecordItem[]>([]);
+  const [skillEntries, setSkillEntries] = useState<SkillEntryRecord[]>([]);
+  const [independentSkills, setIndependentSkills] = useState<IndependentSkillRecord[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -38,14 +45,18 @@ const StaffDetail: React.FC = () => {
       setRefreshing(true);
     }
     try {
-      const [staffData, credentialsData, auditData] = await Promise.all([
+      const [staffData, credentialsData, auditData, skillEntriesData, independentSkillsData] = await Promise.all([
         getStaffDetail(staffId),
         getStaffCredentials(staffId),
         getStaffAuditRecords(staffId),
+        getStaffSkillEntries(staffId),
+        getStaffIndependentSkills(staffId),
       ]);
       setStaff(staffData);
       setCredentials(Array.isArray(credentialsData) ? credentialsData : []);
       setAuditRecords(Array.isArray(auditData) ? auditData : []);
+      setSkillEntries(Array.isArray(skillEntriesData) ? skillEntriesData : []);
+      setIndependentSkills(Array.isArray(independentSkillsData?.skills) ? independentSkillsData.skills : []);
     } catch {
       // handled by interceptor
     } finally {
@@ -117,6 +128,73 @@ const StaffDetail: React.FC = () => {
                 intakeStatus={staff.intakeStatus}
                 onActionComplete={refresh}
               />
+            </Card>
+            {/* Independent skills */}
+            <Card title="独立技能" style={{ marginBottom: 16 }}>
+              {independentSkills.length > 0 ? (
+                <Space wrap>
+                  {independentSkills.map((skill) => (
+                    <Tag key={skill.skillKey} color={skill.isSelected ? 'green' : 'default'}>
+                      {skill.skillLabel}: {skill.isSelected ? '已选择' : '未选择'}
+                    </Tag>
+                  ))}
+                </Space>
+              ) : (
+                <span style={{ color: '#999' }}>暂未选择独立技能</span>
+              )}
+            </Card>
+            {/* Skill entries */}
+            <Card title="技能证书条目" style={{ marginBottom: 16 }}>
+              {skillEntries.filter((e) => e.skillName).length > 0 ? (
+                skillEntries.filter((e) => e.skillName).map((entry) => (
+                  <Card
+                    key={entry.entryIndex}
+                    size="small"
+                    title={`技能${entry.entryIndex === 1 ? '一' : entry.entryIndex === 2 ? '二' : '三'}: ${entry.skillName}`}
+                    style={{ marginBottom: 8 }}
+                  >
+                    <Descriptions size="small" column={2}>
+                      <Descriptions.Item label="技能名称">{entry.skillName}</Descriptions.Item>
+                      <Descriptions.Item label="等级">{entry.skillLevel}</Descriptions.Item>
+                      <Descriptions.Item label="相关工作时长">{entry.workDurationMonths ? `${entry.workDurationMonths} 月` : '-'}</Descriptions.Item>
+                      <Descriptions.Item label="关联服务技能">
+                        {entry.relatedServiceSkills?.length > 0
+                          ? entry.relatedServiceSkills.join(', ')
+                          : '-'}
+                      </Descriptions.Item>
+                      {entry.files && entry.files.length > 0 && (
+                        <Descriptions.Item label="证书图片" span={2}>
+                          <Space wrap>
+                            {entry.files.map((f) => (
+                              <Button
+                                key={f.id}
+                                size="small"
+                                icon={<FileImageOutlined />}
+                                onClick={() => {
+                                  const token = getToken();
+                                  fetch(`/api/admin/files/${f.fileAsset.id}/preview`, {
+                                    headers: { Authorization: `Bearer ${token}` },
+                                  })
+                                    .then((r) => r.blob())
+                                    .then((blob) => {
+                                      const url = URL.createObjectURL(blob);
+                                      window.open(url, '_blank', 'noopener,noreferrer');
+                                      setTimeout(() => URL.revokeObjectURL(url), 60000);
+                                    });
+                                }}
+                              >
+                                {f.fileAsset.originalName || '预览'}
+                              </Button>
+                            ))}
+                          </Space>
+                        </Descriptions.Item>
+                      )}
+                    </Descriptions>
+                  </Card>
+                ))
+              ) : (
+                <span style={{ color: '#999' }}>暂未填写技能证书条目</span>
+              )}
             </Card>
             <Card title={`证件审核 (${credentials.length})`} style={{ marginBottom: 16 }}>
               {credentials.length > 0 ? (

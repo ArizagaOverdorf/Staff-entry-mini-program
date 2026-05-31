@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   MANDATORY_CREDENTIAL_TYPES,
-  SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS,
+  CONDITIONAL_CREDENTIAL_TYPES,
   CredentialTypeLabels,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
 } from '../credential/credential.constants';
@@ -306,8 +306,18 @@ export class AdminStaffService {
 
     const credentials = account.credentials || [];
 
+    const hasCertificateBackedSkill = await this.hasAnyCertificateSkillEntry(account.id);
+    const hasIndependentSkill = await this.hasAnyIndependentSkillSelection(account.id);
+    const shouldRequireConditionalCredentials =
+      hasCertificateBackedSkill || !hasIndependentSkill;
+
+    const requiredCredentialTypes = [
+      ...MANDATORY_CREDENTIAL_TYPES,
+      ...(shouldRequireConditionalCredentials ? CONDITIONAL_CREDENTIAL_TYPES : []),
+    ];
+
     const missingOrUnapproved: string[] = [];
-    for (const credentialType of MANDATORY_CREDENTIAL_TYPES) {
+    for (const credentialType of requiredCredentialTypes) {
       const credential = credentials.find(
         (item) => item.credentialType === credentialType && item.isCurrent,
       );
@@ -325,6 +335,13 @@ export class AdminStaffService {
       }
     }
 
+    if (missingOrUnapproved.length > 0) {
+      const labels = missingOrUnapproved
+        .map((type) => CredentialTypeLabels[type] ?? type)
+        .join('、');
+      throw new BadRequestException(`强准入资料未通过或缺失: ${labels}`);
+    }
+
     for (const cred of credentials) {
       if (!CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(cred.credentialType)) {
         continue;
@@ -332,26 +349,6 @@ export class AdminStaffService {
       if (isDateBeforeToday(cred.expiryDate)) {
         const label = CredentialTypeLabels[cred.credentialType] ?? cred.credentialType;
         throw new BadRequestException(`证件过期: ${label}（证件过期），无法通过入驻审核`);
-      }
-    }
-
-    for (const skill of account.skills || []) {
-      if (!SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS.includes(skill.categoryId)) {
-        continue;
-      }
-      const hasApprovedCert = credentials.some(
-        (cred) =>
-          cred.credentialType === 'skill_cert' &&
-          cred.credentialStatus === 'approved' &&
-          cred.isCurrent &&
-          (cred.credentialSkills || []).some(
-            (cs: any) => cs.staffSkillId === skill.id,
-          ),
-      );
-      if (!hasApprovedCert) {
-        throw new BadRequestException(
-          `Skill "${skill.categoryName}" requires an approved skill certificate`,
-        );
       }
     }
 
@@ -736,6 +733,94 @@ export class AdminStaffService {
     if (!remark?.trim()) {
       throw new BadRequestException(message);
     }
+  }
+
+  async getSkillEntries(staffId: string) {
+    const account = await this.getStaffAccount(staffId);
+    const entries = await this.prisma.staffSkillEntry.findMany({
+      where: { staffAccountId: account.id },
+      include: {
+        files: { include: { fileAsset: true } },
+      },
+      orderBy: { entryIndex: 'asc' },
+    });
+
+    const result: any[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const existing = entries.find((e) => e.entryIndex === i);
+      if (existing) {
+        result.push({
+          id: existing.id,
+          entryIndex: existing.entryIndex,
+          skillName: existing.skillName,
+          skillLevel: existing.skillLevel,
+          workDurationMonths: existing.workDurationMonths,
+          relatedServiceSkills: (existing.relatedServiceSkills as string[]) || [],
+          files: existing.files.map((f) => ({
+            id: f.id,
+            fileAsset: {
+              id: f.fileAsset.id,
+              originalName: f.fileAsset.originalName,
+              mimeType: f.fileAsset.mimeType,
+              size: Number(f.fileAsset.size),
+            },
+          })),
+        });
+      } else {
+        result.push({
+          entryIndex: i,
+          skillName: null,
+          skillLevel: null,
+          workDurationMonths: null,
+          relatedServiceSkills: [],
+          files: [],
+        });
+      }
+    }
+    return result;
+  }
+
+  async getIndependentSkills(staffId: string) {
+    const account = await this.getStaffAccount(staffId);
+    const skills = await this.prisma.staffIndependentSkill.findMany({
+      where: { staffAccountId: account.id },
+    });
+
+    const INDEPENDENT_SKILL_LABELS: Record<string, string> = {
+      cleaning: '保洁',
+      cook: '厨师',
+    };
+
+    return {
+      skills: ['cleaning', 'cook'].map((key) => {
+        const existing = skills.find((s) => s.skillKey === key);
+        return {
+          skillKey: key,
+          skillLabel: INDEPENDENT_SKILL_LABELS[key] || key,
+          isSelected: existing ? existing.isSelected : false,
+        };
+      }),
+    };
+  }
+
+  private async hasAnyCertificateSkillEntry(accountId: string): Promise<boolean> {
+    const entries = await this.prisma.staffSkillEntry.findMany({
+      where: {
+        staffAccountId: accountId,
+        skillName: { not: null },
+      },
+    });
+    return entries.length > 0;
+  }
+
+  private async hasAnyIndependentSkillSelection(accountId: string): Promise<boolean> {
+    const selectedCount = await this.prisma.staffIndependentSkill.count({
+      where: {
+        staffAccountId: accountId,
+        isSelected: true,
+      },
+    });
+    return selectedCount > 0;
   }
 
   private async loadCredentialFiles(credentialId: string) {

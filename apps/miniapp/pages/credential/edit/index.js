@@ -51,6 +51,7 @@ Page({
     isTypeLocked: false,
     isSkillCert: false,
     showNormalCredentialFields: true,
+    idCardKeyboardActive: false,
     credTypes: [],
     staffSkills: [],
     selectedSkillIds: [],
@@ -286,6 +287,19 @@ Page({
 
   onRemarkInput(e) {
     this.setData({ remark: e.detail.value });
+  },
+
+  onIdCardFocus() {
+    this.setData({ idCardKeyboardActive: true });
+  },
+
+  onIdCardBlur() {
+    this.setData({ idCardKeyboardActive: false });
+  },
+
+  onIdCardConfirm() {
+    // Dismiss keyboard and restore layout
+    this.setData({ idCardKeyboardActive: false });
   },
 
   handleUploadImage() {
