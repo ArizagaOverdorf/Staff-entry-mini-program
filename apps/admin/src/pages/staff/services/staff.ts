@@ -27,6 +27,7 @@ export interface StaffRecord {
   managementStatus?: string;
   managementStatusLabel?: string;
   managementReason?: string;
+  canViewSensitive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -57,6 +58,7 @@ export interface CredentialRecord {
 export interface CredentialFileRecord {
   id: string;
   fileType: string;
+  fileSide?: string;
   fileAsset: {
     id: string;
     originalName: string;

@@ -46,8 +46,11 @@ export class AdminStaffController {
   }
 
   @Get(':staffId')
-  async detail(@Param('staffId') staffId: string) {
-    return this.adminStaffService.detail(staffId);
+  async detail(
+    @Param('staffId') staffId: string,
+    @CurrentAdmin() admin: { id: string; isSuper: boolean; permissions: string[] },
+  ) {
+    return this.adminStaffService.detail(staffId, admin);
   }
 
   @Get(':staffId/credentials')

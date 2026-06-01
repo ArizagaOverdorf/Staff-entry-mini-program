@@ -40,6 +40,7 @@ const PERMISSIONS = [
   { code: 'dict.manage', name: '字典管理', description: '维护系统字典数据', parentCode: null },
   { code: 'staff.view', name: '查看服务人员', description: '查看服务人员列表和详情', parentCode: null },
   { code: 'staff.audit', name: '审核服务人员', description: '审核服务人员入驻申请', parentCode: null },
+  { code: 'staff.sensitive.view', name: '查看敏感信息', description: '查看服务人员完整手机号、身份证号、真实姓名', parentCode: null },
 ];
 
 const ROLES = [

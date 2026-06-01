@@ -74,12 +74,20 @@ const StaffProfileCard: React.FC<StaffProfileCardProps> = ({ staff, onRefresh })
         <Descriptions.Item label="编号">{staff.staffId || '-'}</Descriptions.Item>
         <Descriptions.Item label="姓名">{staff.name || '-'}</Descriptions.Item>
         <Descriptions.Item label="手机号">
-          <span title={staff.phone}>{maskPhone(staff.phone)}</span>
+          {staff.canViewSensitive ? (
+            <span>{staff.phone || '-'}</span>
+          ) : (
+            <span title={staff.phone}>{maskPhone(staff.phone)}</span>
+          )}
         </Descriptions.Item>
         <Descriptions.Item label="性别">{staff.gender || '-'}</Descriptions.Item>
         <Descriptions.Item label="年龄">{staff.age ?? '-'}</Descriptions.Item>
         <Descriptions.Item label="身份证号">
-          <span title={staff.idNumber}>{maskIdNumber(staff.idNumber)}</span>
+          {staff.canViewSensitive ? (
+            <span>{staff.idNumber || '-'}</span>
+          ) : (
+            <span title={staff.idNumber}>{maskIdNumber(staff.idNumber)}</span>
+          )}
         </Descriptions.Item>
         <Descriptions.Item label="入驻状态">
           {(() => {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { List, Tag, Descriptions, Button, Space, Modal, Input, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { List, Tag, Descriptions, Button, Space, Modal, Input, message, Image } from 'antd';
 import { CheckOutlined, CloseOutlined, FileImageOutlined } from '@ant-design/icons';
 import type { CredentialRecord } from '../services/staff';
 import { approveCredential, rejectCredential } from '../services/staff';
@@ -61,6 +61,52 @@ const fileTypeLabels: Record<string, string> = {
   attachment: '附件',
 };
 
+const AuthImage: React.FC<{ fileId: string; alt: string }> = ({ fileId, alt }) => {
+  const [src, setSrc] = useState<string>('');
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl = '';
+    const token = getToken();
+    fetch(`/api/admin/files/${fileId}/preview`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error('fetch failed');
+        return r.blob();
+      })
+      .then((blob) => {
+        if (!cancelled) {
+          objectUrl = URL.createObjectURL(blob);
+          setSrc(objectUrl);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [fileId]);
+
+  if (error) return <span style={{ color: '#999', fontSize: 12 }}>加载失败</span>;
+  if (!src) return <span style={{ color: '#999', fontSize: 12 }}>加载中...</span>;
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={240}
+      height="auto"
+      style={{ maxHeight: 360, objectFit: 'contain' }}
+      fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5OTkiIGZvbnQtc2l6ZT0iMTQiPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48L3N2Zz4="
+    />
+  );
+};
+
 const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
   staffId,
   credentials,
@@ -112,25 +158,6 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
     }
   };
 
-  const handlePreview = async (fileId: string) => {
-    try {
-      const response = await fetch(`/api/admin/files/${fileId}/preview`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('文件预览失败');
-      }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
-    } catch (error: any) {
-      message.error(error?.message || '文件预览失败');
-    }
-  };
-
   return (
     <>
       <List
@@ -175,7 +202,7 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                 title={
                   <span>
                     {typeLabel}
-                    {item.credentialName && ` - ${item.credentialName}`}
+                    {item.credentialName && item.credentialName !== typeLabel && ` - ${item.credentialName}`}
                     <Tag color={statusCfg.color} style={{ marginLeft: 8 }}>
                       {statusCfg.text}
                     </Tag>
@@ -229,18 +256,19 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                     )}
                     {item.files && item.files.length > 0 && (
                       <div style={{ marginTop: 8 }}>
-                        <Space wrap>
-                          {item.files.map((f) => (
-                            <Button
-                              key={f.id}
-                              size="small"
-                              icon={<FileImageOutlined />}
-                              onClick={() => handlePreview(f.fileAsset.id)}
-                            >
-                              {fileTypeLabels[f.fileType] || '预览'}
-                            </Button>
-                          ))}
-                        </Space>
+                        <div style={{ color: '#666', marginBottom: 4, fontSize: 12 }}>证件图片：</div>
+                        <Image.PreviewGroup>
+                          <Space wrap align="start">
+                            {item.files.map((f) => (
+                              <div key={f.id} style={{ textAlign: 'center' }}>
+                                <AuthImage fileId={f.fileAsset.id} alt={f.fileAsset.originalName || '证件图片'} />
+                                <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                                  {f.fileSide || fileTypeLabels[f.fileType] || f.fileType || '证件图片'}
+                                </div>
+                              </div>
+                            ))}
+                          </Space>
+                        </Image.PreviewGroup>
                       </div>
                     )}
                   </div>

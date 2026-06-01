@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ConfigService } from '../../config/config.service';
+import { decrypt } from '../../utils/crypto.util';
 import {
   MANDATORY_CREDENTIAL_TYPES,
   MANDATORY_CREDENTIAL_TYPES_FULL,
@@ -62,7 +64,10 @@ function isDateBeforeToday(value: Date | string | null | undefined): boolean {
 
 @Injectable()
 export class AdminStaffService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   async getDashboardStats() {
     const now = new Date();
@@ -167,7 +172,10 @@ export class AdminStaffService {
     };
   }
 
-  async detail(staffId: string) {
+  async detail(
+    staffId: string,
+    admin?: { id: string; isSuper: boolean; permissions: string[] },
+  ) {
     const account = await this.prisma.staffAccount.findFirst({
       where: { staffId, deletedAt: null },
       include: {
@@ -187,11 +195,49 @@ export class AdminStaffService {
     });
     if (!account) throw new NotFoundException('Staff not found');
 
+    const canViewSensitive =
+      admin?.isSuper || admin?.permissions?.includes('staff.sensitive.view');
+
+    let fullName: string | undefined;
+    let fullPhone: string | undefined;
+    let fullIdNumber: string | undefined;
+
+    if (canViewSensitive && admin) {
+      const key = this.config.encryptionKey;
+
+      if (account.profile?.realNameEncrypted) {
+        try {
+          fullName = decrypt(account.profile.realNameEncrypted, key);
+        } catch { /* leave undefined */ }
+      }
+      if (account.phoneEncrypted) {
+        try {
+          fullPhone = decrypt(account.phoneEncrypted, key);
+        } catch { /* leave undefined */ }
+      }
+      if (account.profile?.idNumberEncrypted) {
+        try {
+          fullIdNumber = decrypt(account.profile.idNumberEncrypted, key);
+        } catch { /* leave undefined */ }
+      }
+
+      await this.prisma.operationLog.create({
+        data: {
+          operatorId: admin.id,
+          operatorType: 'admin',
+          targetType: 'staff_sensitive_data',
+          targetId: account.staffId,
+          action: 'staff_sensitive_view',
+          detail: `管理员查看了服务人员敏感信息`,
+        },
+      });
+    }
+
     return {
       id: account.id,
       staffId: account.staffId,
-      name: account.profile?.realNameMasked ?? account.wechatNickname ?? '-',
-      phone: account.phoneMasked,
+      name: fullName ?? account.profile?.realNameMasked ?? account.wechatNickname ?? '-',
+      phone: fullPhone ?? account.phoneMasked,
       nickname: account.wechatNickname,
       avatar: account.profile?.avatarUrl,
       gender:
@@ -200,7 +246,7 @@ export class AdminStaffService {
             ? '男'
             : '女'
           : undefined,
-      idNumber: account.profile?.idNumberMasked,
+      idNumber: fullIdNumber ?? account.profile?.idNumberMasked,
       address: account.profile?.address,
       emergencyContact: account.profile?.emergencyContactName,
       emergencyPhone: account.profile?.emergencyContactPhone,
@@ -221,6 +267,7 @@ export class AdminStaffService {
       managementStatusLabel: MANAGEMENT_STATUS_LABELS[account.listingStatus?.managementStatus ?? 'normal'],
       managementReason: account.listingStatus?.managementReason,
       privacyAgreed: account.privacyAgreed,
+      canViewSensitive: !!canViewSensitive,
       auditRecords: account.auditRecords.map((record) =>
         this.formatAuditRecord(record),
       ),
@@ -232,15 +279,22 @@ export class AdminStaffService {
     const account = await this.getStaffAccount(staffId);
 
     const credentials = await this.prisma.staffCredential.findMany({
-      where: { staffAccountId: account.id },
+      where: { staffAccountId: account.id, isCurrent: true },
       include: {
         files: { include: { fileAsset: true } },
         credentialSkills: { include: { staffSkill: true } },
       },
-      orderBy: [{ isCurrent: 'desc' }, { version: 'desc' }],
+      orderBy: [{ credentialType: 'asc' }, { version: 'desc' }],
     });
 
     const isExpired = (cred: any) => isDateBeforeToday(cred.expiryDate);
+
+    const fileSideLabels: Record<string, string> = {
+      front: '人像面',
+      back: '国徽面',
+      credential_image: '证件图片',
+      attachment: '附件',
+    };
 
     return credentials.map((credential) => {
       const expired = isExpired(credential);
@@ -274,7 +328,7 @@ export class AdminStaffService {
       files: credential.files.map((file) => ({
         id: file.id,
         fileType: file.fileType,
-        fileSide: file.fileType,
+        fileSide: fileSideLabels[file.fileType] || file.fileType,
         fileAsset: {
           id: file.fileAsset.id,
           originalName: file.fileAsset.originalName,
