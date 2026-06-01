@@ -136,7 +136,13 @@ Page({
         phone: this.data.phone,
         smsCode
       });
-    }).then(() => {
+    }).then((res) => {
+      if (res.token) {
+        authUtil.setToken(res.token);
+      }
+      if (res.staffId) {
+        authUtil.setStaffId(res.staffId);
+      }
       authUtil.setMobileBound(true);
       return request.post(constants.API.PRIVACY_CONFIRM, { agreed: true });
     }).then(() => {

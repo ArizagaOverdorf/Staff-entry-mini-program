@@ -101,7 +101,13 @@ Page({
     request.post(constants.API.PHONE_BIND, {
       phone: this.data.phone,
       smsCode
-    }).then(() => {
+    }).then((res) => {
+      if (res.token) {
+        authUtil.setToken(res.token);
+      }
+      if (res.staffId) {
+        authUtil.setStaffId(res.staffId);
+      }
       authUtil.setMobileBound(true);
       wx.showToast({
         title: '登录成功',
