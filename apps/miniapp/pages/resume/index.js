@@ -6,8 +6,8 @@ const SENSITIVE_AUDIT_TYPES = [
   { typeId: 'id_card', label: '身份证', dateMode: 'none' },
   { typeId: 'no_crime_cert', label: '无犯罪记录证明', dateMode: 'issue' },
   { typeId: 'health_cert', label: '健康证', dateMode: 'expiry' },
-  { typeId: 'credit_report', label: '征信报告', dateMode: 'expiry' },
-  { typeId: 'medical_report', label: '体检报告', dateMode: 'expiry' }
+  { typeId: 'credit_report', label: '征信报告', dateMode: 'issue' },
+  { typeId: 'medical_report', label: '体检报告', dateMode: 'issue' }
 ];
 
 const DEMO_SERVICE_RECORDS = [

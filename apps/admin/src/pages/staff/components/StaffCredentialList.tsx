@@ -26,6 +26,32 @@ const statusMap: Record<string, { color: string; text: string }> = {
   expired: { color: 'default', text: '已过期' },
 };
 
+function getCredentialNameLabel(credentialType: string): string {
+  if (credentialType === 'education') return '学历';
+  if (credentialType === 'student_card') return '学历水平';
+  return '证件名称';
+}
+
+function getCredentialNumberLabel(credentialType: string): string {
+  if (credentialType === 'id_card') return '身份证号';
+  if (credentialType === 'insurance') return '保险单号';
+  return '证件编号';
+}
+
+function getIssueDateLabel(credentialType: string): string {
+  return credentialType === 'insurance' ? '生效日期' : '签发日期';
+}
+
+function getExpiryDateLabel(credentialType: string): string {
+  return credentialType === 'insurance' ? '有效日期' : '到期日期';
+}
+
+function getIssuingAuthorityLabel(credentialType: string): string {
+  if (credentialType === 'insurance') return '保险公司';
+  if (credentialType === 'education' || credentialType === 'student_card') return '专业';
+  return '签发机构';
+}
+
 const StaffCredentialList: React.FC<StaffCredentialListProps> = ({ credentials }) => {
   return (
     <List
@@ -50,16 +76,21 @@ const StaffCredentialList: React.FC<StaffCredentialListProps> = ({ credentials }
               description={
                 <Descriptions size="small" column={2}>
                   {item.credentialName && (
-                    <Descriptions.Item label="证件名称">{item.credentialName}</Descriptions.Item>
+                    <Descriptions.Item label={getCredentialNameLabel(item.credentialType)}>{item.credentialName}</Descriptions.Item>
                   )}
                   {item.credentialNumber && (
-                    <Descriptions.Item label="证件编号">{item.credentialNumber}</Descriptions.Item>
+                    <Descriptions.Item label={getCredentialNumberLabel(item.credentialType)}>{item.credentialNumber}</Descriptions.Item>
                   )}
                   {item.issueDate && (
-                    <Descriptions.Item label="发证日期">{item.issueDate}</Descriptions.Item>
+                    <Descriptions.Item label={getIssueDateLabel(item.credentialType)}>{item.issueDate}</Descriptions.Item>
                   )}
                   {item.expiryDate && (
-                    <Descriptions.Item label="到期日期">{item.expiryDate}</Descriptions.Item>
+                    <Descriptions.Item label={getExpiryDateLabel(item.credentialType)}>{item.expiryDate}</Descriptions.Item>
+                  )}
+                  {item.issuingAuthority && (
+                    <Descriptions.Item label={getIssuingAuthorityLabel(item.credentialType)}>
+                      {item.issuingAuthority}
+                    </Descriptions.Item>
                   )}
                   <Descriptions.Item label="审核状态">
                     <Tag color={statusCfg.color}>{statusCfg.text}</Tag>

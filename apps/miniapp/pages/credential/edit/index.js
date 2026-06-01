@@ -15,6 +15,10 @@ function getSkillLevelIndex(level) {
   return constants.SKILL_LEVEL_OPTIONS.findIndex((item) => item.value === level);
 }
 
+function getOptionIndex(options, value) {
+  return options.findIndex((item) => item.value === value);
+}
+
 const CREDENTIAL_IMAGE_REQUIRED_TYPES = [
   'health_cert',
   'no_crime_cert',
@@ -32,12 +36,23 @@ Page({
     typeId: '',
     expireDate: '',
     issueDate: '',
+    issueDateLabel: '签发日期',
+    issueDatePlaceholder: '请选择签发日期',
+    expireDateLabel: '有效期至',
+    expireDatePlaceholder: '请选择有效期至',
     todayDate: '',
     credentialNumber: '',
+    credentialNumberLabel: '证件编号',
+    credentialNumberPlaceholder: '请输入证件编号',
     idNumberRequired: false,
     issuingAuthority: '',
     issuingAuthorityLabel: '签发机构',
     issuingAuthorityPlaceholder: '请输入签发机构',
+    educationLevelOptions: constants.EDUCATION_LEVEL_OPTIONS,
+    educationLevelIndex: -1,
+    insuranceCompanyOptions: constants.INSURANCE_COMPANY_OPTIONS,
+    insuranceCompanyIndex: -1,
+    insuranceCompanyOther: '',
     skillLevel: '',
     skillLevelIndex: -1,
     skillLevelOptions: constants.SKILL_LEVEL_OPTIONS,
@@ -58,6 +73,14 @@ Page({
     isTypeLocked: false,
     isSkillCert: false,
     showNormalCredentialFields: true,
+    showNameField: true,
+    useEducationLevelPicker: false,
+    showCredentialNumber: true,
+    showIssuingAuthority: true,
+    showInsuranceCompanyPicker: false,
+    showInsuranceCompanyOther: false,
+    showIssueDate: false,
+    showExpireDate: false,
     idCardKeyboardActive: false,
     credTypes: [],
     staffSkills: [],
@@ -112,23 +135,68 @@ Page({
   applyTypeState(typeId, typeName, isLocked) {
     const isSkillCert = typeId === 'skill_cert';
     const isIdCard = typeId === 'id_card';
-    const isEducation = typeId === 'education' || typeId === 'student_card';
+    const isEducation = typeId === 'education';
+    const isStudentCard = typeId === 'student_card';
+    const isInsurance = typeId === 'insurance';
     const requireExpiry = constants.CREDENTIAL_TYPES_REQUIRE_EXPIRY.indexOf(typeId) > -1;
+    const issueOnlyTypes = ['no_crime_cert', 'credit_report', 'medical_report'];
+    const useEducationLevelPicker = isEducation || isStudentCard;
+    const showCredentialNumber = ![
+      'education',
+      'student_card',
+      'credit_report',
+      'health_cert',
+      'no_crime_cert',
+      'medical_report'
+    ].includes(typeId);
+    const showIssuingAuthority = ![
+      'credit_report',
+      'health_cert',
+      'no_crime_cert'
+    ].includes(typeId);
+    const showIssueDate = requireExpiry || issueOnlyTypes.includes(typeId);
+    const showExpireDate = requireExpiry;
+    const issuingAuthorityValue = this.data.issuingAuthority || '';
+    const insuranceCompanyIndex = isInsurance
+      ? getOptionIndex(constants.INSURANCE_COMPANY_OPTIONS, issuingAuthorityValue)
+      : -1;
+    const insuranceCompanyOther = isInsurance && insuranceCompanyIndex === -1
+      ? issuingAuthorityValue
+      : this.data.insuranceCompanyOther;
 
     this.setData({
       typeId,
       typeName,
-      name: isSkillCert ? '' : (this.data.name || typeName),
-      nameLabel: isSkillCert ? '名称' : '证件名称',
-      namePlaceholder: isSkillCert ? '请填写技能证书名称' : '请输入证件名称',
+      name: isSkillCert ? '' : (this.data.name || (useEducationLevelPicker ? '' : typeName)),
+      nameLabel: isSkillCert ? '名称' : (isEducation ? '学历' : isStudentCard ? '学历水平' : '证件名称'),
+      namePlaceholder: isSkillCert
+        ? '请填写技能证书名称'
+        : (useEducationLevelPicker ? '请选择学历水平' : '请输入证件名称'),
       isTypeLocked: !!isLocked,
       isSkillCert,
       isIdCard,
       idNumberRequired: isIdCard,
       showNormalCredentialFields: !isSkillCert && !isIdCard,
+      showNameField: !isIdCard,
+      useEducationLevelPicker,
+      educationLevelIndex: useEducationLevelPicker ? getOptionIndex(constants.EDUCATION_LEVEL_OPTIONS, this.data.name) : -1,
+      showCredentialNumber,
+      credentialNumberLabel: isInsurance ? '保险单号' : '证件编号',
+      credentialNumberPlaceholder: isInsurance ? '请输入保险单号' : '请输入证件编号',
+      showIssuingAuthority,
+      issuingAuthorityLabel: isInsurance ? '保险公司' : (isEducation || isStudentCard ? '专业' : '签发机构'),
+      issuingAuthorityPlaceholder: isInsurance ? '请选择保险公司' : (isEducation || isStudentCard ? '请输入专业' : '请输入签发机构'),
+      showInsuranceCompanyPicker: isInsurance,
+      insuranceCompanyIndex: isInsurance ? (insuranceCompanyIndex > -1 ? insuranceCompanyIndex : getOptionIndex(constants.INSURANCE_COMPANY_OPTIONS, '其他')) : -1,
+      showInsuranceCompanyOther: isInsurance && (insuranceCompanyIndex === -1 || issuingAuthorityValue === '其他'),
+      insuranceCompanyOther,
       requireExpiry,
-      issuingAuthorityLabel: isEducation ? '学校' : '签发机构',
-      issuingAuthorityPlaceholder: isEducation ? '请输入学校名称' : '请输入签发机构'
+      showIssueDate,
+      showExpireDate,
+      issueDateLabel: isInsurance ? '生效日期' : '签发日期',
+      issueDatePlaceholder: isInsurance ? '请选择生效日期' : '请选择签发日期',
+      expireDateLabel: isInsurance ? '有效日期' : '有效期至',
+      expireDatePlaceholder: isInsurance ? '请选择有效日期' : '请选择有效期至'
     });
 
     this.refreshSkillOptions(this.data.selectedSkillIds || []);
@@ -267,12 +335,39 @@ Page({
     this.setData({ name: e.detail.value });
   },
 
+  onEducationLevelChange(e) {
+    const index = parseInt(e.detail.value);
+    const option = this.data.educationLevelOptions[index];
+    this.setData({
+      educationLevelIndex: index,
+      name: option ? option.value : ''
+    });
+  },
+
   onNumberInput(e) {
     this.setData({ credentialNumber: e.detail.value });
   },
 
   onIssuingAuthorityInput(e) {
     this.setData({ issuingAuthority: e.detail.value });
+  },
+
+  onInsuranceCompanyChange(e) {
+    const index = parseInt(e.detail.value);
+    const option = this.data.insuranceCompanyOptions[index];
+    const value = option ? option.value : '';
+    this.setData({
+      insuranceCompanyIndex: index,
+      issuingAuthority: value === '其他' ? this.data.insuranceCompanyOther : value,
+      showInsuranceCompanyOther: value === '其他'
+    });
+  },
+
+  onInsuranceCompanyOtherInput(e) {
+    this.setData({
+      insuranceCompanyOther: e.detail.value,
+      issuingAuthority: e.detail.value
+    });
   },
 
   onSkillLevelChange(e) {
@@ -392,27 +487,35 @@ Page({
         return false;
       }
     }
-    if (this.data.requireExpiry) {
+    if (this.data.showExpireDate) {
       if (!this.data.issueDate) {
-        wx.showToast({ title: '请选择生效日期', icon: 'none' });
+        wx.showToast({ title: '请选择' + this.data.issueDateLabel, icon: 'none' });
         return false;
       }
       if (!this.data.expireDate) {
-        wx.showToast({ title: '请选择有效期至', icon: 'none' });
+        wx.showToast({ title: '请选择' + this.data.expireDateLabel, icon: 'none' });
         return false;
       }
       if (isNaN(Date.parse(this.data.issueDate))) {
-        wx.showToast({ title: '生效日期格式无效', icon: 'none' });
+        wx.showToast({ title: this.data.issueDateLabel + '格式无效', icon: 'none' });
         return false;
       }
       if (isNaN(Date.parse(this.data.expireDate))) {
-        wx.showToast({ title: '有效期至日期格式无效', icon: 'none' });
+        wx.showToast({ title: this.data.expireDateLabel + '格式无效', icon: 'none' });
         return false;
       }
       if (this.data.expireDate < this.data.issueDate) {
-        wx.showToast({ title: '有效期至不能早于生效日期', icon: 'none' });
+        wx.showToast({ title: this.data.expireDateLabel + '不能早于' + this.data.issueDateLabel, icon: 'none' });
         return false;
       }
+    }
+    if (this.data.showIssueDate && this.data.issueDate && isNaN(Date.parse(this.data.issueDate))) {
+      wx.showToast({ title: this.data.issueDateLabel + '格式无效', icon: 'none' });
+      return false;
+    }
+    if (this.data.showInsuranceCompanyOther && !this.data.insuranceCompanyOther.trim()) {
+      wx.showToast({ title: '请填写保险公司', icon: 'none' });
+      return false;
     }
     if (this.data.isSkillCert && !this.data.skillLevel) {
       wx.showToast({ title: '请选择等级', icon: 'none' });
@@ -467,12 +570,10 @@ Page({
       data.skillLevel = this.data.skillLevel;
       data.staffSkillCategories = this.getSelectedSkillCategories();
     } else {
-      data.credentialNumber = this.data.credentialNumber;
-      data.issuingAuthority = this.data.issuingAuthority;
-      if (this.data.requireExpiry) {
-        data.issueDate = this.data.issueDate;
-        data.expireDate = this.data.expireDate;
-      }
+      data.credentialNumber = this.data.showCredentialNumber ? this.data.credentialNumber : '';
+      data.issuingAuthority = this.data.showIssuingAuthority ? this.data.issuingAuthority : '';
+      data.issueDate = this.data.showIssueDate ? this.data.issueDate : '';
+      data.expireDate = this.data.showExpireDate ? this.data.expireDate : '';
     }
 
     const url = this.data.isEdit

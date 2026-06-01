@@ -57,9 +57,6 @@ export const SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS = [
 
 export const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
   'health_cert',
-  'no_crime_cert',
-  'credit_report',
-  'medical_report',
   'insurance',
 ];
 

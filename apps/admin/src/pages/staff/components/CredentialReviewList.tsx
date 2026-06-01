@@ -61,6 +61,32 @@ const fileTypeLabels: Record<string, string> = {
   attachment: '附件',
 };
 
+function getCredentialNameLabel(credentialType: string): string {
+  if (credentialType === 'education') return '学历';
+  if (credentialType === 'student_card') return '学历水平';
+  return '证件名称';
+}
+
+function getCredentialNumberLabel(credentialType: string): string {
+  if (credentialType === 'id_card') return '身份证号';
+  if (credentialType === 'insurance') return '保险单号';
+  return '证件编号';
+}
+
+function getIssueDateLabel(credentialType: string): string {
+  return credentialType === 'insurance' ? '生效日期' : '签发日期';
+}
+
+function getExpiryDateLabel(credentialType: string): string {
+  return credentialType === 'insurance' ? '有效日期' : '到期日期';
+}
+
+function getIssuingAuthorityLabel(credentialType: string): string {
+  if (credentialType === 'insurance') return '保险公司';
+  if (credentialType === 'education' || credentialType === 'student_card') return '专业';
+  return '签发机构';
+}
+
 const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
   staffId,
   credentials,
@@ -175,21 +201,26 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
                   <div>
                     <Descriptions size="small" column={2}>
                       {item.credentialNumber && (
-                        <Descriptions.Item label={item.credentialType === 'id_card' ? '身份证号' : '证件编号'}>
+                        <Descriptions.Item label={getCredentialNumberLabel(item.credentialType)}>
                           {item.credentialNumber}
+                        </Descriptions.Item>
+                      )}
+                      {item.credentialName && item.credentialName !== typeLabel && (
+                        <Descriptions.Item label={getCredentialNameLabel(item.credentialType)}>
+                          {item.credentialName}
                         </Descriptions.Item>
                       )}
                       {item.skillLevel && (
                         <Descriptions.Item label="技能等级">{item.skillLevel}</Descriptions.Item>
                       )}
                       {item.issueDate && (
-                        <Descriptions.Item label="发证日期">{item.issueDate}</Descriptions.Item>
+                        <Descriptions.Item label={getIssueDateLabel(item.credentialType)}>{item.issueDate}</Descriptions.Item>
                       )}
                       {item.expiryDate && (
-                        <Descriptions.Item label="到期日期">{item.expiryDate}</Descriptions.Item>
+                        <Descriptions.Item label={getExpiryDateLabel(item.credentialType)}>{item.expiryDate}</Descriptions.Item>
                       )}
                       {item.issuingAuthority && (
-                        <Descriptions.Item label="签发机构">{item.issuingAuthority}</Descriptions.Item>
+                        <Descriptions.Item label={getIssuingAuthorityLabel(item.credentialType)}>{item.issuingAuthority}</Descriptions.Item>
                       )}
                       <Descriptions.Item label="审核状态">
                         <Tag color={statusCfg.color}>{statusCfg.text}</Tag>

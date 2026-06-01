@@ -201,10 +201,29 @@ const MANDATORY_CREDENTIAL_TYPES_FULL = MANDATORY_CREDENTIAL_TYPES;
 
 const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
   'health_cert',
-  'no_crime_cert',
-  'credit_report',
-  'medical_report',
   'insurance'
+];
+
+const EDUCATION_LEVEL_OPTIONS = [
+  { value: '小学', label: '小学' },
+  { value: '中学', label: '中学' },
+  { value: '高中/中专', label: '高中/中专' },
+  { value: '大专', label: '大专' },
+  { value: '本科', label: '本科' },
+  { value: '研究生', label: '研究生' },
+  { value: '博士', label: '博士' }
+];
+
+const INSURANCE_COMPANY_OPTIONS = [
+  { value: '中国人保', label: '中国人保' },
+  { value: '中国平安', label: '中国平安' },
+  { value: '中国太保', label: '中国太保' },
+  { value: '中国人寿', label: '中国人寿' },
+  { value: '太平保险', label: '太平保险' },
+  { value: '泰康保险', label: '泰康保险' },
+  { value: '阳光保险', label: '阳光保险' },
+  { value: '中华联合', label: '中华联合' },
+  { value: '其他', label: '其他' }
 ];
 
 const MESSAGE_STATUS = {
@@ -262,6 +281,8 @@ module.exports = {
   MANDATORY_CREDENTIAL_TYPES,
   MANDATORY_CREDENTIAL_TYPES_FULL,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
+  EDUCATION_LEVEL_OPTIONS,
+  INSURANCE_COMPANY_OPTIONS,
   MESSAGE_STATUS,
   GENDER_OPTIONS,
   INDEPENDENT_SKILLS,
