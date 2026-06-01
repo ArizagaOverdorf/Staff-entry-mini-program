@@ -15,6 +15,13 @@ function getSkillLevelIndex(level) {
   return constants.SKILL_LEVEL_OPTIONS.findIndex((item) => item.value === level);
 }
 
+const CREDENTIAL_IMAGE_REQUIRED_TYPES = [
+  'health_cert',
+  'no_crime_cert',
+  'credit_report',
+  'medical_report'
+];
+
 Page({
   data: {
     id: '',
@@ -417,6 +424,10 @@ Page({
     }
     if (this.data.isSkillCert && (!this.data.fileIds || this.data.fileIds.length === 0)) {
       wx.showToast({ title: '请上传技能证书图片', icon: 'none' });
+      return false;
+    }
+    if (CREDENTIAL_IMAGE_REQUIRED_TYPES.indexOf(this.data.typeId) > -1 && (!this.data.fileIds || this.data.fileIds.length === 0)) {
+      wx.showToast({ title: '请上传证件图片', icon: 'none' });
       return false;
     }
     return true;

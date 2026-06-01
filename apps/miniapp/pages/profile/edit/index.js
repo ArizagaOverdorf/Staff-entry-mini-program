@@ -124,6 +124,8 @@ Page({
     selectedAreas: [],
     isSubmitting: false,
     isSaving: false,
+    isAutoSaving: false,
+    autoSaveStatus: '',
     isEdit: false,
     avatarChanged: false,
 
@@ -157,6 +159,13 @@ Page({
     this.loadDictionaries();
     this.loadCredentials();
     this.loadSkillEntries();
+  },
+
+  onUnload() {
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
   },
 
   onShow() {
@@ -285,6 +294,7 @@ Page({
             });
             setCachedAvatarFileId(fileId, tempFile.tempFilePath);
             wx.showToast({ title: '头像已上传', icon: 'success' });
+            that.saveProfileSilently();
           }).catch(function(err) {
             console.error('头像上传失败', err);
           }).finally(function() {
@@ -296,6 +306,10 @@ Page({
 
   onNameInput(e) {
     this.setData({ name: e.detail.value, avatarText: getAvatarText(e.detail.value) });
+  },
+
+  onProfileFieldBlur() {
+    this.scheduleAutoSave(0);
   },
 
   onAvatarImageLoad(e) {
@@ -318,14 +332,17 @@ Page({
       gender: opt ? opt.value : '',
       genderLabel: opt ? opt.label : '请选择性别'
     });
+    this.scheduleAutoSave(0);
   },
 
   onCategoryChange(e) {
     this.setData({ selectedCategories: e.detail.selectedValues || [] });
+    this.scheduleAutoSave(0);
   },
 
   onAreaChange(e) {
     this.setData({ selectedAreas: e.detail.selectedValues || [] });
+    this.scheduleAutoSave(0);
   },
 
   validateProfile() {
@@ -616,14 +633,38 @@ Page({
     });
   },
 
-  // ──────────── Save profile ────────────
+  // ──────────── Auto-save profile ────────────
 
-  handleSave() {
+  scheduleAutoSave(delay) {
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+    }
+    this.autoSaveTimer = setTimeout(() => {
+      this.autoSaveTimer = null;
+      this.saveProfileSilently();
+    }, delay == null ? 700 : delay);
+  },
+
+  saveProfileSilently() {
+    return this.saveProfile({ silent: true }).catch(function() {});
+  },
+
+  flushAutoSave() {
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
+    return this.saveProfile({ silent: true });
+  },
+
+  saveProfile(options) {
     var that = this;
-    if (this.data.isSaving || this.data.isSubmitting) return;
-    if (!this.validateProfile()) return;
+    var opts = options || {};
+    if (this.data.isSaving) {
+      return this.profileSavePromise || Promise.resolve();
+    }
 
-    this.setData({ isSaving: true });
+    this.setData({ isSaving: true, isAutoSaving: true, autoSaveStatus: '保存中...' });
 
     var profileData = {
       name: this.data.name,
@@ -636,7 +677,7 @@ Page({
     var avatarChanged = this.data.avatarChanged;
     var uploadedFileId = this.data.avatarFileId;
 
-    request.put(constants.API.PROFILE_UPDATE, profileData).then(function(updatedProfile) {
+    this.profileSavePromise = request.put(constants.API.PROFILE_UPDATE, profileData).then(function(updatedProfile) {
       var updatedAvatarValue = resolveAvatarValue(updatedProfile, updatedProfile);
       if (updatedAvatarValue) { setCachedAvatarFileId(updatedAvatarValue); }
 
@@ -679,22 +720,32 @@ Page({
         });
       }
     }).then(function() {
-      wx.showToast({ title: '保存成功', icon: 'success' });
+      that.setData({ autoSaveStatus: '已自动保存' });
+      if (!opts.silent) {
+        wx.showToast({ title: '保存成功', icon: 'success' });
+      }
     }).catch(function(err) {
       if (err) { console.error('保存失败', err); }
+      that.setData({ autoSaveStatus: '保存失败，请稍后重试' });
+      throw err;
     }).finally(function() {
-      that.setData({ isSaving: false });
+      that.setData({ isSaving: false, isAutoSaving: false });
+      that.profileSavePromise = null;
     });
+
+    return this.profileSavePromise;
   },
 
   // ──────────── Submit review ────────────
 
   handleSubmitReview() {
     var that = this;
-    if (this.data.isSubmitting || this.data.isSaving) return;
+    if (this.data.isSubmitting) return;
 
     this.setData({ isSubmitting: true });
-    request.get(constants.API.INTAKE_PREVIEW).then(function(preview) {
+    this.flushAutoSave().then(function() {
+      return request.get(constants.API.INTAKE_PREVIEW);
+    }).then(function(preview) {
       if (!preview.canSubmit) {
         var issues = preview.issues || [];
         wx.showModal({

@@ -97,13 +97,16 @@ export class IntakeService {
         issues.push(`缺少强准入证件: ${mc.credentialTypeLabel}`);
       } else if (mc.isExpired) {
         issues.push(`强准入证件已过期: ${mc.credentialTypeLabel}（证件过期）`);
-      } else if (mc.credentialType === 'id_card' && mc.credentialId) {
-        // Check ID card has both sides
+      } else if (mc.credentialId) {
         const sideFiles = await this.loadCredentialFiles(mc.credentialId);
-        const hasFront = sideFiles.some((f: any) => f.fileType === 'front');
-        const hasBack = sideFiles.some((f: any) => f.fileType === 'back');
-        if (!hasFront || !hasBack) {
-          issues.push('居民身份证需要上传人像面和国徽面');
+        if (mc.credentialType === 'id_card') {
+          const hasFront = sideFiles.some((f: any) => f.fileType === 'front');
+          const hasBack = sideFiles.some((f: any) => f.fileType === 'back');
+          if (!hasFront || !hasBack) {
+            issues.push('居民身份证需要上传人像面和国徽面');
+          }
+        } else if (sideFiles.length === 0) {
+          issues.push(`${mc.credentialTypeLabel}需要上传证件图片`);
         }
       }
     }
@@ -182,14 +185,16 @@ export class IntakeService {
         const label = CredentialTypeLabels[credType] ?? credType;
         throw new BadRequestException(`请上传强准入证件: ${label}`);
       }
-      // Validate ID card has both front and back
+      const sideFiles = await this.loadCredentialFiles(cred.id);
       if (credType === 'id_card') {
-        const sideFiles = await this.loadCredentialFiles(cred.id);
         const hasFront = sideFiles.some((f: any) => f.fileType === 'front');
         const hasBack = sideFiles.some((f: any) => f.fileType === 'back');
         if (!hasFront || !hasBack) {
           throw new BadRequestException('居民身份证需要上传人像面和国徽面');
         }
+      } else if (sideFiles.length === 0) {
+        const label = CredentialTypeLabels[credType] ?? credType;
+        throw new BadRequestException(`${label}需要上传证件图片`);
       }
       if (CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(credType)) {
         const expired = isDateBeforeToday(cred.expiryDate);

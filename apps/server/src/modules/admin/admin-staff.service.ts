@@ -317,13 +317,15 @@ export class AdminStaffService {
         missingOrUnapproved.push(credentialType);
         continue;
       }
+      const sideFiles = await this.loadCredentialFiles(credential.id);
       if (credentialType === 'id_card') {
-        const sideFiles = await this.loadCredentialFiles(credential.id);
         const hasFront = sideFiles.some((f: any) => f.fileType === 'front');
         const hasBack = sideFiles.some((f: any) => f.fileType === 'back');
         if (!hasFront || !hasBack) {
           missingOrUnapproved.push(credentialType);
         }
+      } else if (sideFiles.length === 0) {
+        missingOrUnapproved.push(credentialType);
       }
     }
 

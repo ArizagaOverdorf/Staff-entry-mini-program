@@ -26,6 +26,13 @@ type StaffSkillCategoryInput = {
   categoryName: string;
 };
 
+const CREDENTIAL_IMAGE_REQUIRED_TYPES = [
+  'health_cert',
+  'no_crime_cert',
+  'credit_report',
+  'medical_report',
+];
+
 function isDateBeforeToday(value: Date | string | null | undefined): boolean {
   if (!value) return false;
   const expiry = new Date(value);
@@ -103,6 +110,7 @@ export class CredentialService {
     if (credentialType === 'skill_cert') {
       this.validateSkillCert(dto, fileEntries);
     }
+    this.validateRequiredCredentialImage(credentialType, fileEntries);
 
     const fileIds = fileEntries.map((e) => e.fileId);
 
@@ -233,6 +241,7 @@ export class CredentialService {
         dto.skillLevel !== undefined ? dto.skillLevel : credential.skillLevel;
       this.validateSkillCert({ ...dto, skillLevel: skillLevel ?? undefined }, fileEntries);
     }
+    this.validateRequiredCredentialImage(credentialType, fileEntries);
 
     const fileIds = fileEntries.map((e) => e.fileId);
 
@@ -843,6 +852,19 @@ export class CredentialService {
       throw new BadRequestException(
         `技能等级无效，允许的等级：${(ALLOWED_SKILL_LEVELS as readonly string[]).join('、')}`,
       );
+    }
+  }
+
+  private validateRequiredCredentialImage(
+    credentialType: string,
+    fileEntries: { fileId: string; fileSide: string }[],
+  ) {
+    if (
+      CREDENTIAL_IMAGE_REQUIRED_TYPES.includes(credentialType) &&
+      (!fileEntries || fileEntries.length === 0)
+    ) {
+      const label = CredentialTypeLabels[credentialType] ?? credentialType;
+      throw new BadRequestException(`${label}需要上传证件图片`);
     }
   }
 

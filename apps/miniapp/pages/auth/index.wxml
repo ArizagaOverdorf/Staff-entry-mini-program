@@ -2,25 +2,60 @@
   <view class="auth-header">
     <image class="auth-logo" src="/assets/brand/xigua-logo.png" mode="aspectFit" />
     <text class="auth-title">家政服务人员入驻</text>
-    <text class="auth-desc">微信授权登录，轻松入驻</text>
+    <text class="auth-desc">手机号验证登录，轻松入驻</text>
   </view>
 
   <view class="auth-body">
+    <input
+      class="auth-input"
+      type="number"
+      maxlength="11"
+      value="{{phone}}"
+      bindinput="handlePhoneInput"
+      placeholder="请输入手机号"
+    />
+
+    <view class="auth-code-row">
+      <input
+        class="auth-code-input"
+        type="number"
+        maxlength="6"
+        value="{{smsCode}}"
+        bindinput="handleCodeInput"
+        placeholder="请输入验证码"
+      />
+      <button
+        class="auth-code-button"
+        disabled="{{isSendingCode || countdown > 0}}"
+        loading="{{isSendingCode}}"
+        bindtap="handleSendCode"
+      >
+        {{countdown > 0 ? countdown + '秒后重发' : '获取验证码'}}
+      </button>
+    </view>
+
+    <checkbox-group class="auth-agreement" bindchange="handleAgreementChange">
+      <label class="agreement-label">
+        <checkbox value="agreed" checked="{{agreed}}" color="#07c160" />
+        <text class="agreement-text">登录即表示您同意</text>
+        <text class="agreement-link" bindtap="showUserAgreement">《用户服务协议》</text>
+        <text class="agreement-text">和</text>
+        <text class="agreement-link" bindtap="showPrivacyPolicy">《隐私政策》</text>
+      </label>
+    </checkbox-group>
+
     <button
       class="btn-primary auth-login-button"
       type="primary"
       loading="{{isLogging}}"
       disabled="{{!canLogin || isLogging}}"
-      bindtap="handleWechatLogin"
+      bindtap="handlePhoneLogin"
     >
-      微信一键登录
+      登录
     </button>
 
-    <view class="auth-agreement">
-      <text class="agreement-text">登录即表示您同意</text>
-      <text class="agreement-link">《用户服务协议》</text>
-      <text class="agreement-text">和</text>
-      <text class="agreement-link">《隐私政策》</text>
+    <view class="auth-tip">
+      <text>本地测试验证码：123456。上线后接入短信服务。</text>
     </view>
   </view>
 </view>
