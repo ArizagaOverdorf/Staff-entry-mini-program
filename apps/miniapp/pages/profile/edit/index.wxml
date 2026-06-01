@@ -1,7 +1,8 @@
 <view class="profile-edit-container">
   <scroll-view class="form-scroll" scroll-y>
+    <!-- 一、基本信息 -->
     <view class="form-section">
-      <view class="form-section-header">基本信息</view>
+      <view class="form-section-header">一、基本信息</view>
       <view class="form-group">
         <view class="avatar-row">
           <view class="profile-avatar" bindtap="handleAvatarUpload">
@@ -26,21 +27,30 @@
         </view>
         <view class="form-item">
           <text class="form-label">出生日期</text>
-          <text class="form-value">{{birthday || '请先在证件管理中填写身份证号'}}</text>
+          <text class="form-value form-readonly">{{birthday || '请先在强准入资料中填写身份证号'}}</text>
         </view>
         <view class="form-item">
           <text class="form-label">手机号</text>
-          <text class="form-value">{{phone || '暂无'}}</text>
+          <text class="form-value form-readonly">{{phone || '暂无'}}</text>
         </view>
         <view class="form-item">
           <text class="form-label">家庭住址</text>
           <input class="form-input" type="text" placeholder="请输入家庭住址" value="{{address}}" bindinput="onAddressInput" />
         </view>
+        <view class="form-item">
+          <text class="form-label">紧急联系人</text>
+          <input class="form-input" type="text" placeholder="请输入紧急联系人" value="{{emergencyContact}}" bindinput="onEmergencyContactInput" maxlength="30" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">紧急联系人电话</text>
+          <input class="form-input" type="number" placeholder="请输入紧急联系电话" value="{{emergencyPhone}}" bindinput="onEmergencyPhoneInput" maxlength="11" />
+        </view>
       </view>
     </view>
 
+    <!-- 二、服务信息 -->
     <view class="form-section">
-      <view class="form-section-header">服务信息</view>
+      <view class="form-section-header">二、服务信息</view>
       <view class="form-group">
         <view class="form-item">
           <text class="form-label">服务类别</text>
@@ -57,24 +67,164 @@
       </view>
     </view>
 
+    <!-- 三、技能证书 -->
     <view class="form-section">
-      <view class="form-section-header">紧急联系人</view>
+      <view class="form-section-header">三、技能证书</view>
       <view class="form-group">
-        <view class="form-item">
-          <text class="form-label">联系人姓名</text>
-          <input class="form-input" type="text" placeholder="请输入紧急联系人" value="{{emergencyContact}}" bindinput="onEmergencyContactInput" maxlength="30" />
+        <view wx:for="{{skillEntries}}" wx:key="entryIndex" class="skill-entry-card">
+          <!-- Display mode -->
+          <view wx:if="{{editingEntryIndex !== item.entryIndex}}" class="skill-entry-summary" bindtap="onEditSkillEntry" data-index="{{item.entryIndex}}">
+            <view class="skill-entry-header">
+              <text class="skill-entry-title">技能{{item.entryIndex === 1 ? '一' : item.entryIndex === 2 ? '二' : '三'}}</text>
+              <text class="skill-entry-status {{item.isFilled ? 'tag-success' : 'tag-info'}}">{{item.isFilled ? '已填写' : '未填写'}}</text>
+            </view>
+            <view wx:if="{{item.isFilled}}" class="skill-entry-detail">
+              <text class="skill-entry-name">{{item.skillName}}</text>
+              <text class="skill-entry-level">{{item.skillLevel}}</text>
+              <text class="skill-entry-duration" wx:if="{{item.workDurationMonths}}">{{item.workDurationMonths}}个月</text>
+              <text class="skill-entry-related" wx:if="{{item.relatedServiceSkills.length > 0}}">关联：{{item.relatedServiceSkills}}</text>
+              <text class="skill-entry-files">{{item.files.length}}张证书图片</text>
+            </view>
+            <view wx:else class="skill-entry-hint">点击填写证书技能（选填）</view>
+            <view wx:if="{{item.isFilled}}" class="skill-entry-actions">
+              <text class="skill-entry-clear" catchtap="onClearSkillEntry" data-index="{{item.entryIndex}}">清空</text>
+            </view>
+          </view>
+
+          <!-- Edit mode -->
+          <view wx:else class="skill-entry-editor">
+            <view class="editor-header">
+              <text class="editor-title">编辑技能{{item.entryIndex === 1 ? '一' : item.entryIndex === 2 ? '二' : '三'}}</text>
+              <text class="editor-cancel" bindtap="onCancelEditEntry">取消</text>
+            </view>
+
+            <view class="form-item">
+              <text class="form-label">技能名称</text>
+              <picker mode="selector" range="{{skillNameOptions}}" range-key="label" value="{{editSkillNameIndex}}" bindchange="onEditSkillNameChange">
+                <view class="form-value form-picker {{editSkillName ? '' : 'form-placeholder'}}">
+                  {{editSkillName || '请选择技能名称'}}
+                </view>
+              </picker>
+            </view>
+
+            <view class="form-item">
+              <text class="form-label">等级</text>
+              <picker mode="selector" range="{{skillLevelOptions}}" range-key="label" value="{{editSkillLevelIndex}}" bindchange="onEditSkillLevelChange">
+                <view class="form-value form-picker {{editSkillLevel ? '' : 'form-placeholder'}}">
+                  {{editSkillLevel || '请选择等级'}}
+                </view>
+              </picker>
+            </view>
+
+            <view class="form-item">
+              <text class="form-label">相关工作时长（月）</text>
+              <input class="form-input" type="number" value="{{editWorkDuration}}" placeholder="请输入月数，如12" bindinput="onEditWorkDurationInput" />
+            </view>
+
+            <view class="form-item">
+              <text class="form-label">关联服务技能</text>
+              <view class="skill-tags">
+                <view
+                  wx:for="{{relatedSkillOptions}}"
+                  wx:key="value"
+                  class="skill-tag {{editRelatedSkills.indexOf(item.value) > -1 ? 'skill-tag-active' : ''}}"
+                  data-value="{{item.value}}"
+                  bindtap="onEditRelatedSkillToggle"
+                >
+                  {{item.label}}
+                </view>
+              </view>
+              <view wx:if="{{editRelatedSkillText}}" class="selected-skills">
+                <text class="selected-label">已选：</text>{{editRelatedSkillText}}
+              </view>
+            </view>
+
+            <view class="upload-section">
+              <text class="upload-label">证书图片（1-3张）</text>
+              <view class="upload-images">
+                <view wx:for="{{editFileUrls}}" wx:key="index" class="upload-image-item">
+                  <image wx:if="{{item}}" class="upload-thumb" src="{{item}}" mode="aspectFill" />
+                  <view wx:else class="upload-thumb upload-thumb-loading">加载中</view>
+                  <view class="upload-remove" bindtap="onEditRemoveImage" data-index="{{index}}">×</view>
+                </view>
+                <view wx:if="{{editFiles.length < 3}}" class="upload-add-btn" bindtap="onEditUploadImage">
+                  <text class="upload-add-icon">+</text>
+                </view>
+              </view>
+            </view>
+
+            <view class="editor-footer">
+              <button class="btn-primary" loading="{{editIsSubmitting}}" disabled="{{editIsSubmitting}}" bindtap="onSaveSkillEntry">
+                保存
+              </button>
+            </view>
+          </view>
         </view>
-        <view class="form-item">
-          <text class="form-label">联系人电话</text>
-          <input class="form-input" type="number" placeholder="请输入紧急联系电话" value="{{emergencyPhone}}" bindinput="onEmergencyPhoneInput" maxlength="11" />
+      </view>
+    </view>
+
+    <!-- 四、强准入资料 -->
+    <view class="form-section">
+      <view class="form-section-header">四、强准入资料</view>
+      <view class="form-group">
+        <view
+          class="requirement-card"
+          wx:for="{{requiredCredentialCards}}"
+          wx:key="typeId"
+          data-type="{{item.typeId}}"
+          data-name="{{item.typeName}}"
+          data-id="{{item.credentialId}}"
+          bindtap="goToCredentialType"
+        >
+          <view class="requirement-main">
+            <text class="requirement-title">{{item.title}}</text>
+            <text class="requirement-desc">{{item.desc}}</text>
+            <text class="requirement-files" wx:if="{{item.fileCount > 0}}">已上传 {{item.fileCount}} 张图片</text>
+          </view>
+          <view class="requirement-side">
+            <text class="tag {{item.statusClass}}">{{item.statusLabel}}</text>
+            <text class="requirement-action">{{item.actionText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 五、选填资料 -->
+    <view class="form-section">
+      <view class="form-section-header">五、选填资料</view>
+      <view class="form-group">
+        <view
+          class="requirement-card optional-card"
+          wx:for="{{optionalCredentialCards}}"
+          wx:key="typeId"
+          data-type="{{item.typeId}}"
+          data-name="{{item.typeName}}"
+          data-id="{{item.credentialId}}"
+          bindtap="goToCredentialType"
+        >
+          <view class="requirement-main">
+            <text class="requirement-title">{{item.title}}</text>
+            <text class="requirement-desc">{{item.desc}}</text>
+            <text class="requirement-files" wx:if="{{item.fileCount > 0}}">已上传 {{item.fileCount}} 张图片</text>
+          </view>
+          <view class="requirement-side">
+            <text class="tag {{item.statusClass}}">{{item.statusLabel}}</text>
+            <text class="requirement-action">{{item.actionText}}</text>
+          </view>
         </view>
       </view>
     </view>
   </scroll-view>
 
+  <!-- 底部固定按钮 -->
   <view class="form-submit-bar">
-    <button class="btn-primary" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="handleSave">
-      保存
-    </button>
+    <view class="bottom-btn-group">
+      <button class="btn-primary btn-save" loading="{{isSaving}}" disabled="{{isSaving || isSubmitting}}" bindtap="handleSave">
+        保存资料
+      </button>
+      <button class="btn-primary btn-submit" loading="{{isSubmitting}}" disabled="{{isSaving || isSubmitting}}" bindtap="handleSubmitReview">
+        提交审核
+      </button>
+    </view>
   </view>
 </view>

@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   MANDATORY_CREDENTIAL_TYPES,
-  CONDITIONAL_CREDENTIAL_TYPES,
+  MANDATORY_CREDENTIAL_TYPES_FULL,
   CredentialTypeLabels,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
 } from '../credential/credential.constants';
@@ -306,15 +306,7 @@ export class AdminStaffService {
 
     const credentials = account.credentials || [];
 
-    const hasCertificateBackedSkill = await this.hasAnyCertificateSkillEntry(account.id);
-    const hasIndependentSkill = await this.hasAnyIndependentSkillSelection(account.id);
-    const shouldRequireConditionalCredentials =
-      hasCertificateBackedSkill || !hasIndependentSkill;
-
-    const requiredCredentialTypes = [
-      ...MANDATORY_CREDENTIAL_TYPES,
-      ...(shouldRequireConditionalCredentials ? CONDITIONAL_CREDENTIAL_TYPES : []),
-    ];
+    const requiredCredentialTypes = MANDATORY_CREDENTIAL_TYPES_FULL;
 
     const missingOrUnapproved: string[] = [];
     for (const credentialType of requiredCredentialTypes) {

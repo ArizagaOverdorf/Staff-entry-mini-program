@@ -40,12 +40,6 @@
       </view>
     </view>
     <view class="grid-cell">
-      <view class="grid-action" bindtap="goToCredentials">
-        <view class="grid-icon icon-credential"><view class="icon-doc"></view><view class="icon-check"></view></view>
-        <text class="grid-label">证件管理</text>
-      </view>
-    </view>
-    <view class="grid-cell">
       <view class="grid-action" bindtap="goToResume">
         <view class="grid-icon icon-resume"><view class="icon-paper"></view><view class="icon-lines"></view></view>
         <text class="grid-label">我的简历</text>

@@ -41,17 +41,11 @@ export const MANDATORY_CREDENTIAL_TYPES = [
   'id_card',
   'health_cert',
   'no_crime_cert',
-];
-
-export const CONDITIONAL_CREDENTIAL_TYPES = [
   'credit_report',
   'medical_report',
 ];
 
-export const MANDATORY_CREDENTIAL_TYPES_FULL = [
-  ...MANDATORY_CREDENTIAL_TYPES,
-  ...CONDITIONAL_CREDENTIAL_TYPES,
-];
+export const MANDATORY_CREDENTIAL_TYPES_FULL = MANDATORY_CREDENTIAL_TYPES;
 
 export const SKILL_CREDENTIAL_REQUIRED_CATEGORY_IDS = [
   'nanny',

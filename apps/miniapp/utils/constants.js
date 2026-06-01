@@ -192,18 +192,12 @@ const SERVICE_AREA_OPTIONS = [
 const MANDATORY_CREDENTIAL_TYPES = [
   'id_card',
   'health_cert',
-  'no_crime_cert'
-];
-
-const CONDITIONAL_CREDENTIAL_TYPES = [
+  'no_crime_cert',
   'credit_report',
   'medical_report'
 ];
 
-const MANDATORY_CREDENTIAL_TYPES_FULL = [
-  ...MANDATORY_CREDENTIAL_TYPES,
-  ...CONDITIONAL_CREDENTIAL_TYPES
-];
+const MANDATORY_CREDENTIAL_TYPES_FULL = MANDATORY_CREDENTIAL_TYPES;
 
 const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
   'health_cert',
@@ -245,8 +239,6 @@ const RELATED_SERVICE_SKILLS = [
   { value: '住家保姆', label: '住家保姆' },
   { value: '白班保姆', label: '白班保姆' },
   { value: '养老保姆', label: '养老保姆' },
-  { value: '保洁', label: '保洁' },
-  { value: '厨师', label: '厨师' },
   { value: '护士', label: '护士' }
 ];
 
@@ -268,7 +260,6 @@ module.exports = {
   SERVICE_SKILL_OPTIONS,
   SERVICE_AREA_OPTIONS,
   MANDATORY_CREDENTIAL_TYPES,
-  CONDITIONAL_CREDENTIAL_TYPES,
   MANDATORY_CREDENTIAL_TYPES_FULL,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
   MESSAGE_STATUS,

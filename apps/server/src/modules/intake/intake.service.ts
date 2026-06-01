@@ -6,7 +6,6 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   MANDATORY_CREDENTIAL_TYPES,
-  CONDITIONAL_CREDENTIAL_TYPES,
   MANDATORY_CREDENTIAL_TYPES_FULL,
   CredentialTypeLabels,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
@@ -61,15 +60,8 @@ export class IntakeService {
 
     if (!account) throw new NotFoundException('Staff not found');
 
-    const hasCertificateBackedSkill = await this.hasAnyCertificateSkillEntry(accountId);
-    const hasIndependentSkill = await this.hasAnyIndependentSkillSelection(accountId);
-    const shouldRequireConditionalCredentials =
-      hasCertificateBackedSkill || !hasIndependentSkill;
-
     const mandatoryCredentials = MANDATORY_CREDENTIAL_TYPES_FULL.map((type) => {
       const cred = account.credentials.find((c) => c.credentialType === type);
-      const isConditional = CONDITIONAL_CREDENTIAL_TYPES.includes(type);
-      const isRequired = isConditional ? shouldRequireConditionalCredentials : true;
       return {
         credentialType: type,
         credentialTypeLabel: CredentialTypeLabels[type] ?? type,
@@ -77,8 +69,7 @@ export class IntakeService {
         credentialId: cred?.id ?? null,
         credentialStatus: cred?.credentialStatus ?? null,
         isExpired: isCredentialExpired(cred),
-        isConditional,
-        isRequired,
+        isRequired: true,
       };
     });
 
@@ -102,7 +93,6 @@ export class IntakeService {
     if (account.serviceAreas.length === 0) issues.push('未选择服务区域');
 
     for (const mc of mandatoryCredentials) {
-      if (!mc.isRequired) continue;
       if (!mc.hasCredential) {
         issues.push(`缺少强准入证件: ${mc.credentialTypeLabel}`);
       } else if (mc.isExpired) {
@@ -182,15 +172,7 @@ export class IntakeService {
       throw new BadRequestException('请至少选择一个服务区域');
     }
 
-    const hasCertificateBackedSkill = await this.hasAnyCertificateSkillEntry(accountId);
-    const hasIndependentSkill = await this.hasAnyIndependentSkillSelection(accountId);
-    const shouldRequireConditionalCredentials =
-      hasCertificateBackedSkill || !hasIndependentSkill;
-
-    const requiredCredentialTypes = [
-      ...MANDATORY_CREDENTIAL_TYPES,
-      ...(shouldRequireConditionalCredentials ? CONDITIONAL_CREDENTIAL_TYPES : []),
-    ];
+    const requiredCredentialTypes = MANDATORY_CREDENTIAL_TYPES_FULL;
 
     for (const credType of requiredCredentialTypes) {
       const cred = account.credentials.find(

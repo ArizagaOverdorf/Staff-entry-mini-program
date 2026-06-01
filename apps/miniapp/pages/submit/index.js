@@ -139,7 +139,7 @@ Page({
 
   goToEditCredential() {
     wx.navigateTo({
-      url: '/pages/credential/index'
+      url: '/pages/profile/edit/index'
     });
   }
 });

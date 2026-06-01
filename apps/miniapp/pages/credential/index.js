@@ -16,19 +16,16 @@ const REQUIRED_CREDENTIALS = [
     typeId: 'no_crime_cert',
     title: '无犯罪记录证明',
     desc: '必传，请上传公安机关或指定渠道出具的证明'
-  }
-];
-
-const CONDITIONAL_CREDENTIALS = [
+  },
   {
     typeId: 'credit_report',
     title: '征信报告',
-    desc: '默认必传；仅勾选保洁/厨师且不填写技能证书时可不传'
+    desc: '必传，请上传个人征信报告'
   },
   {
     typeId: 'medical_report',
     title: '体检报告',
-    desc: '默认必传；仅勾选保洁/厨师且不填写技能证书时可不传'
+    desc: '必传，请上传体检报告'
   }
 ];
 
@@ -119,13 +116,10 @@ Page({
   data: {
     credentials: [],
     requiredCredentialCards: [],
-    conditionalCredentialCards: [],
     skillCertificates: [],
     optionalCredentialCards: [],
     loaded: false,
     isSubmitting: false,
-    // Independent skills
-    independentSkills: [],
     // Skill entries
     skillEntries: [],
     // Expanding skill entry editor
@@ -162,7 +156,6 @@ Page({
     var that = this;
     var promises = [
       this.loadCredentials(),
-      this.loadIndependentSkills(),
       this.loadSkillEntries()
     ];
     Promise.all(promises).then(function() {
@@ -182,31 +175,9 @@ Page({
       that.setData({
         credentials: currentList,
         requiredCredentialCards: buildUploadCards(REQUIRED_CREDENTIALS, currentList),
-        conditionalCredentialCards: buildUploadCards(CONDITIONAL_CREDENTIALS, currentList),
         skillCertificates: skillCertificates,
         optionalCredentialCards: buildUploadCards(OPTIONAL_CREDENTIALS, currentList)
       });
-    });
-  },
-
-  loadIndependentSkills() {
-    var that = this;
-    return request.get(constants.API.INDEPENDENT_SKILLS).then(function(res) {
-      var skills = (res.skills || []).map(function(s) {
-        var def = constants.INDEPENDENT_SKILLS.find(function(d) { return d.key === s.skillKey; });
-        return {
-          key: s.skillKey,
-          label: def ? def.label : s.skillKey,
-          isSelected: s.isSelected
-        };
-      });
-      that.setData({ independentSkills: skills });
-    }).catch(function() {
-      // Use defaults
-      var skills = constants.INDEPENDENT_SKILLS.map(function(s) {
-        return { key: s.key, label: s.label, isSelected: false };
-      });
-      that.setData({ independentSkills: skills });
     });
   },
 
@@ -241,26 +212,6 @@ Page({
       }
       that.setData({ skillEntries: entries });
     });
-  },
-
-  // Independent skill toggle
-  onIndependentSkillToggle(e) {
-    var key = e.currentTarget.dataset.key;
-    var skills = this.data.independentSkills.map(function(s) {
-      if (s.key === key) {
-        return { ...s, isSelected: !s.isSelected };
-      }
-      return s;
-    });
-    this.setData({ independentSkills: skills });
-
-    // Save to server
-    var payload = {
-      skills: skills.map(function(s) {
-        return { skillKey: s.key, isSelected: s.isSelected };
-      })
-    };
-    request.put(constants.API.INDEPENDENT_SKILLS, payload).catch(function() {});
   },
 
   // Skill entry editing

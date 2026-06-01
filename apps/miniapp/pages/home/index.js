@@ -222,13 +222,7 @@ Page({
 
   goToProfile() {
     wx.navigateTo({
-      url: '/pages/profile/view/index'
-    });
-  },
-
-  goToCredentials() {
-    wx.navigateTo({
-      url: '/pages/credential/index'
+      url: '/pages/profile/edit/index'
     });
   },
 
