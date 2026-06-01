@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Spin, Button, Space, Tabs, Empty, Tag, Descriptions } from 'antd';
-import { ArrowLeftOutlined, FileImageOutlined } from '@ant-design/icons';
+import { Card, Spin, Button, Space, Tabs, Empty, Tag, Descriptions, Image } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import StaffProfileCard from './components/StaffProfileCard';
 import CredentialReviewList from './components/CredentialReviewList';
 import ReviewActions from './components/ReviewActions';
 import AuditHistory from './components/AuditHistory';
+import AuthImage from './components/AuthImage';
 import {
   getStaffDetail,
   getStaffCredentials,
@@ -18,7 +19,6 @@ import {
   type SkillEntryRecord,
   type IndependentSkillRecord,
 } from './services/staff';
-import { getToken } from '../../utils/auth';
 
 const VALID_TABS = ['profile', 'review', 'credentials'];
 
@@ -164,29 +164,18 @@ const StaffDetail: React.FC = () => {
                       </Descriptions.Item>
                       {entry.files && entry.files.length > 0 && (
                         <Descriptions.Item label="证书图片" span={2}>
-                          <Space wrap>
-                            {entry.files.map((f) => (
-                              <Button
-                                key={f.id}
-                                size="small"
-                                icon={<FileImageOutlined />}
-                                onClick={() => {
-                                  const token = getToken();
-                                  fetch(`/api/admin/files/${f.fileAsset.id}/preview`, {
-                                    headers: { Authorization: `Bearer ${token}` },
-                                  })
-                                    .then((r) => r.blob())
-                                    .then((blob) => {
-                                      const url = URL.createObjectURL(blob);
-                                      window.open(url, '_blank', 'noopener,noreferrer');
-                                      setTimeout(() => URL.revokeObjectURL(url), 60000);
-                                    });
-                                }}
-                              >
-                                {f.fileAsset.originalName || '预览'}
-                              </Button>
-                            ))}
-                          </Space>
+                          <Image.PreviewGroup>
+                            <Space wrap align="start">
+                              {entry.files.map((f) => (
+                                <div key={f.id} style={{ textAlign: 'center' }}>
+                                  <AuthImage fileId={f.fileAsset.id} alt={f.fileAsset.originalName || '证书图片'} />
+                                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                                    {f.fileAsset.originalName || '证书图片'}
+                                  </div>
+                                </div>
+                              ))}
+                            </Space>
+                          </Image.PreviewGroup>
                         </Descriptions.Item>
                       )}
                     </Descriptions>

@@ -1,14 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Tag, Button } from 'antd';
+import { Table, Tag, Button, Modal, Input, Space, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { SafetyOutlined } from '@ant-design/icons';
-import { listRoles, type RoleRecord } from './services/role';
+import { SafetyOutlined, PlusOutlined } from '@ant-design/icons';
+import { listRoles, createRole, type RoleRecord } from './services/role';
+import { getUser } from '../../utils/auth';
 import type { ColumnsType } from 'antd/es/table';
 
 const RoleList: React.FC = () => {
   const navigate = useNavigate();
+  const currentAdmin = getUser();
+  const isSuper = currentAdmin?.isSuper ?? false;
+
   const [data, setData] = useState<RoleRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: '', code: '', description: '' });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -25,6 +32,37 @@ const RoleList: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleCreate = async () => {
+    if (!createForm.name.trim()) {
+      message.warning('请输入角色名称');
+      return;
+    }
+    if (!createForm.code.trim()) {
+      message.warning('请输入角色编码');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(createForm.code.trim())) {
+      message.warning('角色编码只能包含字母、数字、下划线和连字符');
+      return;
+    }
+    setCreateSubmitting(true);
+    try {
+      await createRole({
+        name: createForm.name.trim(),
+        code: createForm.code.trim(),
+        description: createForm.description.trim() || undefined,
+      });
+      message.success('角色创建成功');
+      setCreateModalOpen(false);
+      setCreateForm({ name: '', code: '', description: '' });
+      fetchData();
+    } catch {
+      // handled by interceptor
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
 
   const columns: ColumnsType<RoleRecord> = [
     {
@@ -74,7 +112,14 @@ const RoleList: React.FC = () => {
 
   return (
     <div>
-      <h2 style={{ marginBottom: 16 }}>角色权限管理</h2>
+      <Space style={{ marginBottom: 16, justifyContent: 'space-between', width: '100%' }}>
+        <h2 style={{ margin: 0 }}>角色管理</h2>
+        {isSuper && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
+            新增角色
+          </Button>
+        )}
+      </Space>
       <Table
         columns={columns}
         dataSource={data}
@@ -82,6 +127,51 @@ const RoleList: React.FC = () => {
         loading={loading}
         pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
       />
+      <Modal
+        title="新增角色"
+        open={createModalOpen}
+        onOk={handleCreate}
+        onCancel={() => {
+          setCreateModalOpen(false);
+          setCreateForm({ name: '', code: '', description: '' });
+        }}
+        confirmLoading={createSubmitting}
+        okText="确认创建"
+        cancelText="取消"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+            角色名称 <span style={{ color: 'red' }}>*</span>
+          </div>
+          <Input
+            value={createForm.name}
+            onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+            placeholder="请输入角色名称"
+            maxLength={64}
+          />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+            角色编码 <span style={{ color: 'red' }}>*</span>
+          </div>
+          <Input
+            value={createForm.code}
+            onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
+            placeholder="请输入角色编码（字母、数字、下划线、连字符）"
+            maxLength={64}
+          />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>描述</div>
+          <Input.TextArea
+            value={createForm.description}
+            onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+            placeholder="请输入角色描述"
+            rows={3}
+            maxLength={255}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

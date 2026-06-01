@@ -40,7 +40,7 @@ const menuItems = [
   {
     key: '/role',
     icon: <SafetyOutlined />,
-    label: '角色权限',
+    label: '角色管理',
   },
   {
     key: '/dict',

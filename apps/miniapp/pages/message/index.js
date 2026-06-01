@@ -119,16 +119,24 @@ Page({
     }).catch(() => {});
   },
 
-  // Mark all regular messages as read
+  // Mark all messages as read (regular + support)
   markAllRead() {
     request.post(constants.API.MESSAGE_READ, { all: true }).then(() => {
       const messages = this.data.messages.map(m => {
         return { ...m, status: 'read' };
       });
+      // Clear support unread locally since server markAllRead covers all types
+      const supportSummary = this.data.supportSummary
+        ? { ...this.data.supportSummary, unreadCount: 0 }
+        : null;
       this.setData({
         messages: messages,
-        totalUnread: (this.data.supportSummary && this.data.supportSummary.unreadCount) || 0
+        totalUnread: 0,
+        supportSummary: supportSummary,
       });
+      // Refresh from server to stay in sync
+      this.loadUnreadCount();
+      this.loadSupportSummary();
       wx.showToast({ title: '已全部标记为已读', icon: 'none' });
     }).catch(() => {});
   },

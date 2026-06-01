@@ -52,12 +52,13 @@ grep -q "canViewSensitive" "$PROFILE_CARD" && pass "StaffProfileCard checks canV
 
 echo "--- Credential Title Dedup (Admin Frontend) ---"
 CRED_LIST="apps/admin/src/pages/staff/components/CredentialReviewList.tsx"
+AUTH_IMAGE="apps/admin/src/pages/staff/components/AuthImage.tsx"
 grep -q "credentialName !== typeLabel" "$CRED_LIST" && pass "Credential title prevents duplicate label-name" || fail "Credential title missing dedup logic"
 
 echo "--- Credential Images Inline Display ---"
 grep -q "Image.PreviewGroup" "$CRED_LIST" && pass "CredentialReviewList uses Image.PreviewGroup" || fail "CredentialReviewList missing Image.PreviewGroup"
 grep -q "AuthImage" "$CRED_LIST" && pass "CredentialReviewList uses AuthImage component" || fail "CredentialReviewList missing AuthImage"
-grep -q "URL.revokeObjectURL" "$CRED_LIST" && pass "AuthImage revokes blob URLs" || fail "AuthImage missing blob URL cleanup"
+grep -q "URL.revokeObjectURL" "$AUTH_IMAGE" && pass "AuthImage revokes blob URLs" || fail "AuthImage missing blob URL cleanup"
 ! grep -q "window.open" "$CRED_LIST" && pass "CredentialReviewList no longer uses window.open" || fail "CredentialReviewList still uses window.open"
 
 echo "--- Admin Credentials Endpoint Current-Only ---"

@@ -1,9 +1,40 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AdminRoleService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async create(dto: { name: string; code: string; description?: string }, adminUserId: string) {
+    const existing = await this.prisma.adminRole.findFirst({
+      where: { code: dto.code },
+    });
+    if (existing) {
+      throw new BadRequestException('角色编码已存在');
+    }
+
+    const role = await this.prisma.adminRole.create({
+      data: {
+        name: dto.name,
+        code: dto.code,
+        description: dto.description || null,
+        isActive: true,
+      },
+    });
+
+    await this.prisma.operationLog.create({
+      data: {
+        operatorId: adminUserId,
+        operatorType: 'admin',
+        targetType: 'admin_role',
+        targetId: role.id,
+        action: 'role_create',
+        detail: `创建角色: ${role.name} (${role.code})`,
+      },
+    });
+
+    return role;
+  }
 
   async list() {
     return this.prisma.adminRole.findMany({

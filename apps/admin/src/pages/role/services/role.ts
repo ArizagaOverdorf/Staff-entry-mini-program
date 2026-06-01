@@ -24,6 +24,16 @@ export interface RolePermission {
   permissionIds: string[];
 }
 
+export interface CreateRoleParams {
+  name: string;
+  code: string;
+  description?: string;
+}
+
+export async function createRole(params: CreateRoleParams): Promise<RoleRecord> {
+  return request.post('/roles', params);
+}
+
 export async function listRoles(): Promise<RoleRecord[]> {
   return request.get('/roles');
 }

@@ -154,9 +154,9 @@ Page({
   },
 
   loadUnreadCount() {
-    request.get(constants.API.MESSAGES, { unreadOnly: true, pageSize: 1 }).then((res) => {
+    request.get(constants.API.MESSAGE_UNREAD_COUNT).then((res) => {
       this.setData({
-        unreadMsgCount: res.total || 0
+        unreadMsgCount: res.unreadCount || res.count || 0
       });
     }).catch(() => {
       // ignore

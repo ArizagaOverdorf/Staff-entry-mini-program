@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '../../config/config.service';
 import { decrypt } from '../../utils/crypto.util';
+import { parseIdCardBirthday } from '../../utils/mask.util';
 import {
   MANDATORY_CREDENTIAL_TYPES,
   MANDATORY_CREDENTIAL_TYPES_FULL,
@@ -60,6 +61,31 @@ function isDateBeforeToday(value: Date | string | null | undefined): boolean {
     today.getDate(),
   );
   return expiryDate < todayDate;
+}
+
+function calculateAge(birthday: Date | string): number | undefined {
+  const birthDate = new Date(birthday);
+  if (Number.isNaN(birthDate.getTime())) return undefined;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+function deriveAge(birthday?: Date | string | null, idNumber?: string): number | undefined {
+  if (birthday) {
+    return calculateAge(birthday);
+  }
+  if (idNumber) {
+    const parsed = parseIdCardBirthday(idNumber);
+    if (parsed) {
+      return calculateAge(parsed);
+    }
+  }
+  return undefined;
 }
 
 @Injectable()
@@ -233,6 +259,8 @@ export class AdminStaffService {
       });
     }
 
+    const age = deriveAge(account.profile?.birthday, fullIdNumber);
+
     return {
       id: account.id,
       staffId: account.staffId,
@@ -246,6 +274,8 @@ export class AdminStaffService {
             ? '男'
             : '女'
           : undefined,
+      age,
+      birthday: account.profile?.birthday?.toISOString?.() ?? account.profile?.birthday,
       idNumber: fullIdNumber ?? account.profile?.idNumberMasked,
       address: account.profile?.address,
       emergencyContact: account.profile?.emergencyContactName,

@@ -27,6 +27,7 @@ $ADMIN_SERVICE = "apps/server/src/modules/admin/admin-staff.service.ts"
 $ADMIN_CONTROLLER = "apps/server/src/modules/admin/admin-staff.controller.ts"
 $PROFILE_CARD = "apps/admin/src/pages/staff/components/StaffProfileCard.tsx"
 $CRED_LIST = "apps/admin/src/pages/staff/components/CredentialReviewList.tsx"
+$AUTH_IMAGE = "apps/admin/src/pages/staff/components/AuthImage.tsx"
 $STAFF_SERVICE = "apps/admin/src/pages/staff/services/staff.ts"
 
 Write-Host "--- Sensitive Data Permission Seed ---"
@@ -51,7 +52,7 @@ if (Select-String -Path $CRED_LIST -Pattern "credentialName !== typeLabel" -Quie
 Write-Host "--- Credential Images Inline Display ---"
 if (Select-String -Path $CRED_LIST -Pattern "Image.PreviewGroup" -Quiet) { pass "CredentialReviewList uses Image.PreviewGroup" } else { fail "CredentialReviewList missing Image.PreviewGroup" }
 if (Select-String -Path $CRED_LIST -Pattern "AuthImage" -Quiet) { pass "CredentialReviewList uses AuthImage component" } else { fail "CredentialReviewList missing AuthImage" }
-if (Select-String -Path $CRED_LIST -Pattern "URL.revokeObjectURL" -Quiet) { pass "AuthImage revokes blob URLs" } else { fail "AuthImage missing blob URL cleanup" }
+if (Select-String -Path $AUTH_IMAGE -Pattern "URL.revokeObjectURL" -Quiet) { pass "AuthImage revokes blob URLs" } else { fail "AuthImage missing blob URL cleanup" }
 if (-not (Select-String -Path $CRED_LIST -Pattern "window\.open" -Quiet)) { pass "CredentialReviewList no longer uses window.open" } else { fail "CredentialReviewList still uses window.open" }
 
 Write-Host "--- Admin Credentials Endpoint Current-Only ---"
