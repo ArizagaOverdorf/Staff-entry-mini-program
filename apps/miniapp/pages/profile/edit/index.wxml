@@ -35,7 +35,9 @@
         </view>
         <view class="form-item">
           <text class="form-label">家庭住址</text>
-          <input class="form-input" type="text" placeholder="请输入家庭住址" value="{{address}}" bindinput="onAddressInput" bindblur="onProfileFieldBlur" />
+          <view class="form-value address-picker-value {{address ? '' : 'form-placeholder'}}" bindtap="onOpenAddressSelector">
+            {{address || '请选择家庭住址'}}
+          </view>
         </view>
         <view class="form-item">
           <text class="form-label">紧急联系人</text>
@@ -222,5 +224,39 @@
     <button class="btn-primary btn-submit" loading="{{isSubmitting}}" disabled="{{isSubmitting}}" bindtap="handleSubmitReview">
       提交审核
     </button>
+  </view>
+
+  <view wx:if="{{addressSelectorVisible}}" class="address-mask" catchtap="onCloseAddressSelector">
+    <view class="address-panel" catchtap="noop">
+      <view class="address-panel-header">
+        <text class="address-panel-title">选择家庭住址</text>
+        <text class="address-panel-close" bindtap="onCloseAddressSelector">关闭</text>
+      </view>
+      <view class="address-columns">
+        <scroll-view scroll-y class="address-column address-region-column">
+          <view
+            wx:for="{{addressRegionOptions}}"
+            wx:key="label"
+            class="address-option {{addressRegionIndex === index ? 'address-option-active' : ''}}"
+            data-index="{{index}}"
+            bindtap="onAddressRegionSelect"
+          >
+            {{item.label}}
+          </view>
+        </scroll-view>
+        <scroll-view scroll-y class="address-column address-city-column">
+          <view class="address-city-title">{{addressCityTitle}}</view>
+          <view
+            wx:for="{{addressCityOptions}}"
+            wx:key="*this"
+            class="address-option address-city-option"
+            data-value="{{item}}"
+            bindtap="onAddressCitySelect"
+          >
+            {{item}}
+          </view>
+        </scroll-view>
+      </view>
+    </view>
   </view>
 </view>
