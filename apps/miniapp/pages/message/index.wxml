@@ -42,12 +42,6 @@
     </view>
   </view>
 
-  <!-- Contact support entry (shown when no active conversation exists) -->
-  <view class="support-entry" wx:if="{{!supportSummary || !supportSummary.hasConversation}}" bindtap="goToSupport">
-    <text class="support-entry-text">联系客服 / 发送咨询</text>
-    <text class="support-entry-arrow">></text>
-  </view>
-
   <!-- Toolbar -->
   <view class="message-toolbar" wx:if="{{messages.length > 0 && totalUnread > 0}}">
     <text class="toolbar-info">未读消息 {{totalUnread}} 条</text>

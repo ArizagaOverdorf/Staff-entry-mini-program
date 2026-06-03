@@ -16,10 +16,17 @@
     </view>
 
     <view class="status-cards">
-      <view class="status-card">
-        <text class="status-card-label">等级称号</text>
-        <text class="status-card-value">开发中</text>
-        <text class="status-card-hint">信用分：开发中</text>
+      <view class="status-card status-card-metrics">
+        <view class="status-metric-row">
+          <text class="status-metric-label">等级</text>
+          <text class="status-metric-separator">-</text>
+          <text class="status-metric-value">开发中</text>
+        </view>
+        <view class="status-metric-row">
+          <text class="status-metric-label">信用分</text>
+          <text class="status-metric-separator">-</text>
+          <text class="status-metric-value">开发中</text>
+        </view>
       </view>
       <view class="status-card status-card-clickable online-status-card {{onlineStatusClass}}" bindtap="toggleOnlineStatus">
         <text class="status-card-label">上线状态</text>

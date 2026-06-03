@@ -37,9 +37,10 @@
 }
 
 .banner-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  line-height: 32px;
 }
 
 .banner-desc {

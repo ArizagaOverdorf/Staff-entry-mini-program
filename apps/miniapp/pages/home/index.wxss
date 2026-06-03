@@ -133,6 +133,42 @@
   min-height: 78px;
 }
 
+.status-card-metrics {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.status-metric-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-size: 17px;
+  line-height: 22px;
+}
+
+.status-metric-label {
+  flex: 0 0 auto;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.status-metric-separator {
+  flex: 0 0 auto;
+  margin: 0 4px;
+  opacity: 0.85;
+}
+
+.status-metric-value {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .status-card-clickable:active {
   background-color: rgba(255, 255, 255, 0.28);
 }

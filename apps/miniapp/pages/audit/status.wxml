@@ -1,9 +1,8 @@
 <view class="audit-container">
   <!-- 当前状态卡片 -->
   <view class="status-banner {{intakeStatus}}">
-    <text class="banner-icon" wx:if="{{intakeStatus === 'approved'}}">&#10003;</text>
-    <text class="banner-icon" wx:elif="{{intakeStatus === 'rejected'}}">&#10007;</text>
-    <text class="banner-icon" wx:else>&#8987;</text>
+    <text class="banner-icon" wx:if="{{intakeStatus === 'rejected'}}">&#10007;</text>
+    <text class="banner-icon" wx:elif="{{intakeStatus !== 'approved'}}">&#8987;</text>
     <text class="banner-title">{{intakeStatusLabel}}</text>
     <text class="banner-desc" wx:if="{{intakeStatus === 'pending_review'}}">您的申请正在审核中，请耐心等待</text>
     <text class="banner-desc" wx:elif="{{intakeStatus === 'approved'}}">恭喜您已通过审核</text>
