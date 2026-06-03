@@ -147,6 +147,50 @@ function getDomesticProvinceOptions() {
   });
 }
 
+function buildServiceAreaRegionOptions() {
+  const provinces = ADDRESS_REGION_OPTIONS.filter(function(item) {
+    return !item.type && item.label !== '台湾省';
+  });
+  return [
+    { label: '全国', type: 'direct', province: '全国', city: '' },
+    { label: '国外', type: 'direct', province: '国外', city: '' }
+  ].concat(provinces).concat([
+    { label: '香港', type: 'direct', province: '香港', city: '' },
+    { label: '澳门', type: 'direct', province: '澳门', city: '' },
+    { label: '台湾', type: 'direct', province: '台湾', city: '' }
+  ]);
+}
+
+function getServiceAreaValue(item) {
+  if (!item) return '';
+  return [item.province, item.city, item.district].filter(Boolean).join('_') ||
+    item.value ||
+    item.label ||
+    item.name ||
+    '';
+}
+
+function getServiceAreaLabel(item) {
+  if (!item) return '';
+  if (item.label) return item.label;
+  return [item.province, item.city, item.district].filter(Boolean).join(' ');
+}
+
+function getServiceAreaDisplayText(areas) {
+  const list = areas || [];
+  if (list.length === 0) return '请选择服务区域';
+  if (list.length <= 2) {
+    return list.map(getServiceAreaLabel).filter(Boolean).join('、');
+  }
+  return list.length + ' 个区域已选';
+}
+
+function normalizeServiceAreaItem(item) {
+  const value = getServiceAreaValue(item);
+  const label = getServiceAreaLabel(item);
+  return Object.assign({}, item, { value, label });
+}
+
 Page({
   data: {
     // Profile fields
@@ -156,11 +200,13 @@ Page({
     birthday: '',
     phone: '',
     address: '',
-    addressSelectorVisible: false,
-    addressRegionOptions: ADDRESS_REGION_OPTIONS,
-    addressRegionIndex: 0,
-    addressCityOptions: getDomesticProvinceOptions(),
-    addressCityTitle: '选择省份',
+    serviceAreaSelectorVisible: false,
+    serviceAreaRegionOptions: buildServiceAreaRegionOptions(),
+    serviceAreaRegionIndex: 0,
+    serviceAreaCityOptions: [],
+    serviceAreaCityTitle: '选择城市',
+    selectedAreaIds: [],
+    selectedAreaDisplayText: '请选择服务区域',
     avatarUrl: '',
     avatarFileId: '',
     avatarPreviewUrl: '',
@@ -245,6 +291,7 @@ Page({
         if (p.gender) {
           genderIndex = constants.GENDER_OPTIONS.findIndex(function(g) { return g.value === p.gender; });
         }
+        const selectedAreas = (p.serviceAreas || []).map(normalizeServiceAreaItem);
         that.setData({
           name: p.name || '',
           gender: p.gender || '',
@@ -260,7 +307,9 @@ Page({
           emergencyContact: p.emergencyContact || '',
           emergencyPhone: p.emergencyPhone || '',
           selectedCategories: p.serviceCategories || [],
-          selectedAreas: p.serviceAreas || [],
+          selectedAreas: selectedAreas,
+          selectedAreaIds: selectedAreas.map(getServiceAreaValue),
+          selectedAreaDisplayText: getServiceAreaDisplayText(selectedAreas),
           isEdit: true
         });
       } else {
@@ -359,6 +408,10 @@ Page({
     this.setData({ name: e.detail.value, avatarText: getAvatarText(e.detail.value) });
   },
 
+  onAddressInput(e) {
+    this.setData({ address: e.detail.value });
+  },
+
   onProfileFieldBlur() {
     this.scheduleAutoSave(0);
   },
@@ -371,61 +424,88 @@ Page({
     logAvatarDebug('image.error', { src: this.data.avatarPreviewUrl || this.data.avatarUrl, event: e.detail || {} });
   },
 
-  onOpenAddressSelector() {
+  onOpenServiceAreaSelector() {
+    const firstRegion = this.data.serviceAreaRegionOptions[0];
     this.setData({
-      addressSelectorVisible: true,
-      addressRegionIndex: 0,
-      addressCityOptions: getDomesticProvinceOptions(),
-      addressCityTitle: '选择省份'
+      serviceAreaSelectorVisible: true,
+      serviceAreaRegionIndex: 0,
+      serviceAreaCityOptions: firstRegion && firstRegion.type === 'direct' ? [] : getDomesticProvinceOptions(),
+      serviceAreaCityTitle: firstRegion && firstRegion.type === 'direct' ? '点击左侧可直接选择' : '选择省份'
     });
   },
 
-  onCloseAddressSelector() {
-    this.setData({ addressSelectorVisible: false });
+  onCloseServiceAreaSelector() {
+    this.setData({ serviceAreaSelectorVisible: false });
   },
 
   noop() {},
 
-  onAddressRegionSelect(e) {
-    const index = parseInt(e.currentTarget.dataset.index);
-    const region = this.data.addressRegionOptions[index];
-    if (!region) return;
-    const isDomestic = region.type === 'domestic';
-    this.setData({
-      addressRegionIndex: index,
-      addressCityOptions: isDomestic ? getDomesticProvinceOptions() : (region.cities || []),
-      addressCityTitle: isDomestic ? '选择省份' : '选择城市'
+  addServiceArea(area) {
+    const value = getServiceAreaValue(area);
+    if (!value) return;
+    const current = this.data.selectedAreas || [];
+    const exists = current.some(function(item) {
+      return getServiceAreaValue(item) === value;
     });
+    if (exists) {
+      wx.showToast({ title: '该区域已选择', icon: 'none' });
+      return;
+    }
+    const selectedAreas = current.concat([normalizeServiceAreaItem(area)]);
+    this.setData({
+      selectedAreas,
+      selectedAreaIds: selectedAreas.map(getServiceAreaValue),
+      selectedAreaDisplayText: getServiceAreaDisplayText(selectedAreas),
+      serviceAreaSelectorVisible: false
+    });
+    this.scheduleAutoSave(0);
   },
 
-  onAddressCitySelect(e) {
-    const value = e.currentTarget.dataset.value;
-    const region = this.data.addressRegionOptions[this.data.addressRegionIndex];
-    if (!region || !value) return;
+  onServiceAreaRegionSelect(e) {
+    const index = parseInt(e.currentTarget.dataset.index);
+    const region = this.data.serviceAreaRegionOptions[index];
+    if (!region) return;
 
-    if (region.type === 'domestic') {
-      const provinceIndex = this.data.addressRegionOptions.findIndex(function(item) {
-        return item.label === value;
+    if (region.type === 'direct') {
+      this.addServiceArea({
+        value: region.province,
+        label: region.label,
+        province: region.province,
+        city: region.city || '',
+        district: ''
       });
-      const province = this.data.addressRegionOptions[provinceIndex];
-      if (province) {
-        this.setData({
-          addressRegionIndex: provinceIndex,
-          addressCityOptions: province.cities || [],
-          addressCityTitle: '选择城市'
-        });
-      }
       return;
     }
 
-    const address = region.type === 'direct'
-      ? value
-      : region.type === 'group'
-        ? value
-        : region.label + ' ' + value;
     this.setData({
-      address,
-      addressSelectorVisible: false
+      serviceAreaRegionIndex: index,
+      serviceAreaCityOptions: region.cities || [],
+      serviceAreaCityTitle: region.label + ' - 选择城市'
+    });
+  },
+
+  onServiceAreaCitySelect(e) {
+    const value = e.currentTarget.dataset.value;
+    const region = this.data.serviceAreaRegionOptions[this.data.serviceAreaRegionIndex];
+    if (!region || !value) return;
+    this.addServiceArea({
+      value: region.label + '_' + value,
+      label: region.label + ' ' + value,
+      province: region.label,
+      city: value,
+      district: ''
+    });
+  },
+
+  onRemoveServiceArea(e) {
+    const value = e.currentTarget.dataset.value;
+    const selectedAreas = (this.data.selectedAreas || []).filter(function(item) {
+      return getServiceAreaValue(item) !== value;
+    }).map(normalizeServiceAreaItem);
+    this.setData({
+      selectedAreas,
+      selectedAreaIds: selectedAreas.map(getServiceAreaValue),
+      selectedAreaDisplayText: getServiceAreaDisplayText(selectedAreas)
     });
     this.scheduleAutoSave(0);
   },
@@ -450,7 +530,12 @@ Page({
   },
 
   onAreaChange(e) {
-    this.setData({ selectedAreas: e.detail.selectedValues || [] });
+    const selectedAreas = (e.detail.selectedValues || []).map(normalizeServiceAreaItem);
+    this.setData({
+      selectedAreas,
+      selectedAreaIds: selectedAreas.map(getServiceAreaValue),
+      selectedAreaDisplayText: getServiceAreaDisplayText(selectedAreas)
+    });
     this.scheduleAutoSave(0);
   },
 

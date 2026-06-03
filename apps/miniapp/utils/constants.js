@@ -221,6 +221,7 @@ const EDUCATION_LEVEL_OPTIONS = [
 ];
 
 const INSURANCE_COMPANY_OPTIONS = [
+  { value: '', label: '请选择保险公司' },
   { value: '中国人保', label: '中国人保' },
   { value: '中国平安', label: '中国平安' },
   { value: '中国太保', label: '中国太保' },

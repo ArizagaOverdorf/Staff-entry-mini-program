@@ -35,9 +35,7 @@
         </view>
         <view class="form-item">
           <text class="form-label">家庭住址</text>
-          <view class="form-value address-picker-value {{address ? '' : 'form-placeholder'}}" bindtap="onOpenAddressSelector">
-            {{address || '请选择家庭住址'}}
-          </view>
+          <input class="form-input address-detail-input" type="text" placeholder="请输入详细家庭住址" value="{{address}}" bindinput="onAddressInput" bindblur="onProfileFieldBlur" maxlength="120" />
         </view>
         <view class="form-item">
           <text class="form-label">紧急联系人</text>
@@ -62,8 +60,14 @@
         </view>
         <view class="form-item">
           <text class="form-label">服务区域</text>
-          <view class="form-value">
-            <area-picker areas="{{serviceAreas}}" selectedValues="{{selectedAreas}}" bind:change="onAreaChange" />
+          <view class="form-value service-area-trigger {{selectedAreas.length ? '' : 'form-placeholder'}}" bindtap="onOpenServiceAreaSelector">
+            {{selectedAreaDisplayText}}
+          </view>
+        </view>
+        <view wx:if="{{selectedAreas.length}}" class="selected-area-tags">
+          <view wx:for="{{selectedAreas}}" wx:key="value" class="selected-area-tag">
+            <text>{{item.label || item.province + (item.city ? ' ' + item.city : '')}}</text>
+            <text class="selected-area-remove" data-value="{{item.value}}" bindtap="onRemoveServiceArea">×</text>
           </view>
         </view>
       </view>
@@ -226,32 +230,33 @@
     </button>
   </view>
 
-  <view wx:if="{{addressSelectorVisible}}" class="address-mask" catchtap="onCloseAddressSelector">
+  <view wx:if="{{serviceAreaSelectorVisible}}" class="address-mask" catchtap="onCloseServiceAreaSelector">
     <view class="address-panel" catchtap="noop">
       <view class="address-panel-header">
-        <text class="address-panel-title">选择家庭住址</text>
-        <text class="address-panel-close" bindtap="onCloseAddressSelector">关闭</text>
+        <text class="address-panel-title">选择服务区域</text>
+        <text class="address-panel-close" bindtap="onCloseServiceAreaSelector">关闭</text>
       </view>
       <view class="address-columns">
         <scroll-view scroll-y class="address-column address-region-column">
           <view
-            wx:for="{{addressRegionOptions}}"
+            wx:for="{{serviceAreaRegionOptions}}"
             wx:key="label"
-            class="address-option {{addressRegionIndex === index ? 'address-option-active' : ''}}"
+            class="address-option {{serviceAreaRegionIndex === index ? 'address-option-active' : ''}}"
             data-index="{{index}}"
-            bindtap="onAddressRegionSelect"
+            bindtap="onServiceAreaRegionSelect"
           >
             {{item.label}}
           </view>
         </scroll-view>
         <scroll-view scroll-y class="address-column address-city-column">
-          <view class="address-city-title">{{addressCityTitle}}</view>
+          <view class="address-city-title">{{serviceAreaCityTitle}}</view>
+          <view wx:if="{{serviceAreaCityOptions.length === 0}}" class="address-city-empty">全国、国外、香港、澳门、台湾可直接点击左侧选择</view>
           <view
-            wx:for="{{addressCityOptions}}"
+            wx:for="{{serviceAreaCityOptions}}"
             wx:key="*this"
             class="address-option address-city-option"
             data-value="{{item}}"
-            bindtap="onAddressCitySelect"
+            bindtap="onServiceAreaCitySelect"
           >
             {{item}}
           </view>

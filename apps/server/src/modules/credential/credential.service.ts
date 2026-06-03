@@ -32,6 +32,10 @@ const CREDENTIAL_IMAGE_REQUIRED_TYPES = [
   'no_crime_cert',
   'credit_report',
   'medical_report',
+  'insurance',
+  'education',
+  'student_card',
+  'other',
 ];
 
 function isDateBeforeToday(value: Date | string | null | undefined): boolean {
@@ -108,6 +112,9 @@ export class CredentialService {
     if (credentialType === 'id_card') {
       this.validateIdCardFiles(fileEntries);
       this.validateIdCardNumber(dto.credentialNumber);
+    }
+    if (credentialType === 'insurance') {
+      this.validateInsuranceFields(dto.credentialNumber, dto.issuingAuthority);
     }
     if (credentialType === 'skill_cert') {
       this.validateSkillCert(dto, fileEntries);
@@ -237,6 +244,16 @@ export class CredentialService {
         dto.credentialNumber !== undefined
           ? dto.credentialNumber
           : credential.credentialNumber,
+      );
+    }
+    if (credentialType === 'insurance') {
+      this.validateInsuranceFields(
+        dto.credentialNumber !== undefined
+          ? dto.credentialNumber
+          : credential.credentialNumber,
+        dto.issuingAuthority !== undefined
+          ? dto.issuingAuthority
+          : credential.issuingAuthority,
       );
     }
     if (credentialType === 'skill_cert') {
@@ -657,6 +674,18 @@ export class CredentialService {
     }
     if (isNaN(Date.parse(issueDate))) {
       throw new BadRequestException('签发日期格式无效');
+    }
+  }
+
+  private validateInsuranceFields(
+    credentialNumber: string | undefined | null,
+    issuingAuthority: string | undefined | null,
+  ) {
+    if (!credentialNumber || !credentialNumber.trim()) {
+      throw new BadRequestException('保险需要填写保险单号');
+    }
+    if (!issuingAuthority || !issuingAuthority.trim()) {
+      throw new BadRequestException('保险需要选择或填写保险公司');
     }
   }
 

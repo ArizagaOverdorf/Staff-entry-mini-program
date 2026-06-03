@@ -1,7 +1,6 @@
 {
   "navigationBarTitleText": "个人资料",
   "usingComponents": {
-    "category-picker": "/components/category-picker/index",
-    "area-picker": "/components/area-picker/index"
+    "category-picker": "/components/category-picker/index"
   }
 }

@@ -449,6 +449,44 @@
   color: #333;
 }
 
+.address-detail-input {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
+.service-area-trigger {
+  min-height: 30px;
+  line-height: 30px;
+  text-align: right;
+  color: #333;
+}
+
+.selected-area-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 12px 86px;
+}
+
+.selected-area-tag {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f0fff4;
+  color: #07c160;
+  font-size: 12px;
+}
+
+.selected-area-remove {
+  margin-left: 6px;
+  color: #999;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .address-mask {
   position: fixed;
   left: 0;
@@ -533,6 +571,13 @@
   color: #999;
   background: #fafafa;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.address-city-empty {
+  padding: 24px 14px;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .address-city-option {

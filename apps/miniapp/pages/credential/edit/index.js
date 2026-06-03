@@ -23,7 +23,11 @@ const CREDENTIAL_IMAGE_REQUIRED_TYPES = [
   'health_cert',
   'no_crime_cert',
   'credit_report',
-  'medical_report'
+  'medical_report',
+  'insurance',
+  'education',
+  'student_card',
+  'other'
 ];
 
 Page({
@@ -80,6 +84,7 @@ Page({
     showIssuingAuthority: true,
     showInsuranceCompanyPicker: false,
     showInsuranceCompanyOther: false,
+    imageRequired: false,
     showIssueDate: false,
     showExpireDate: false,
     idCardKeyboardActive: false,
@@ -139,6 +144,7 @@ Page({
     const isEducation = typeId === 'education';
     const isStudentCard = typeId === 'student_card';
     const isInsurance = typeId === 'insurance';
+    const imageRequired = CREDENTIAL_IMAGE_REQUIRED_TYPES.indexOf(typeId) > -1 || isSkillCert;
     const requireExpiry = constants.CREDENTIAL_TYPES_REQUIRE_EXPIRY.indexOf(typeId) > -1;
     const requireIssueDate = constants.CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE.indexOf(typeId) > -1;
     const issueOnlyTypes = constants.CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE || [];
@@ -159,10 +165,19 @@ Page({
     const showIssueDate = requireExpiry || issueOnlyTypes.includes(typeId);
     const showExpireDate = requireExpiry;
     const issuingAuthorityValue = this.data.issuingAuthority || '';
-    const insuranceCompanyIndex = isInsurance
+    const rawInsuranceCompanyIndex = isInsurance
       ? getOptionIndex(constants.INSURANCE_COMPANY_OPTIONS, issuingAuthorityValue)
       : -1;
-    const insuranceCompanyOther = isInsurance && insuranceCompanyIndex === -1
+    const otherInsuranceCompanyIndex = getOptionIndex(constants.INSURANCE_COMPANY_OPTIONS, '其他');
+    const insuranceCompanyIndex = isInsurance
+      ? (rawInsuranceCompanyIndex > -1
+        ? rawInsuranceCompanyIndex
+        : issuingAuthorityValue
+          ? otherInsuranceCompanyIndex
+          : 0)
+      : -1;
+    const selectedInsuranceCompany = isInsurance ? constants.INSURANCE_COMPANY_OPTIONS[insuranceCompanyIndex] : null;
+    const insuranceCompanyOther = isInsurance && issuingAuthorityValue && rawInsuranceCompanyIndex === -1
       ? issuingAuthorityValue
       : this.data.insuranceCompanyOther;
 
@@ -189,9 +204,10 @@ Page({
       issuingAuthorityLabel: isInsurance ? '保险公司' : (isEducation || isStudentCard ? '专业' : '签发机构'),
       issuingAuthorityPlaceholder: isInsurance ? '请选择保险公司' : (isEducation || isStudentCard ? '请输入专业' : '请输入签发机构'),
       showInsuranceCompanyPicker: isInsurance,
-      insuranceCompanyIndex: isInsurance ? (insuranceCompanyIndex > -1 ? insuranceCompanyIndex : getOptionIndex(constants.INSURANCE_COMPANY_OPTIONS, '其他')) : -1,
-      showInsuranceCompanyOther: isInsurance && (insuranceCompanyIndex === -1 || issuingAuthorityValue === '其他'),
+      insuranceCompanyIndex: isInsurance ? insuranceCompanyIndex : -1,
+      showInsuranceCompanyOther: isInsurance && !!selectedInsuranceCompany && selectedInsuranceCompany.value === '其他',
       insuranceCompanyOther,
+      imageRequired,
       requireExpiry,
       requireIssueDate,
       showIssueDate,
@@ -512,6 +528,16 @@ Page({
         return false;
       }
     }
+    if (this.data.typeId === 'insurance') {
+      if (!this.data.credentialNumber || !this.data.credentialNumber.trim()) {
+        wx.showToast({ title: '请填写保险单号', icon: 'none' });
+        return false;
+      }
+      if (!this.data.issuingAuthority || !this.data.issuingAuthority.trim()) {
+        wx.showToast({ title: '请选择保险公司', icon: 'none' });
+        return false;
+      }
+    }
     if (this.data.requireIssueDate && !this.data.issueDate) {
       wx.showToast({ title: '请选择' + this.data.issueDateLabel, icon: 'none' });
       return false;
@@ -536,7 +562,7 @@ Page({
       wx.showToast({ title: '请上传技能证书图片', icon: 'none' });
       return false;
     }
-    if (CREDENTIAL_IMAGE_REQUIRED_TYPES.indexOf(this.data.typeId) > -1 && (!this.data.fileIds || this.data.fileIds.length === 0)) {
+    if (this.data.imageRequired && (!this.data.fileIds || this.data.fileIds.length === 0)) {
       wx.showToast({ title: '请上传证件图片', icon: 'none' });
       return false;
     }
