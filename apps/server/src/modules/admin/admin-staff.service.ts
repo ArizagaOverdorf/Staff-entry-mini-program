@@ -107,10 +107,10 @@ export class AdminStaffService {
       this.prisma.staffIntakeStatus.count({
         where: { intakeStatus: 'approved' },
       }),
-      this.prisma.staffAccount.count({
+      this.prisma.staffIntakeStatus.count({
         where: {
-          deletedAt: null,
-          createdAt: { gte: todayStart },
+          staffAccount: { deletedAt: null },
+          submittedAt: { gte: todayStart },
         },
       }),
     ]);
@@ -188,7 +188,10 @@ export class AdminStaffService {
         },
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { intakeStatus: { submittedAt: 'desc' } },
+          { createdAt: 'desc' },
+        ],
       }),
     ]);
 

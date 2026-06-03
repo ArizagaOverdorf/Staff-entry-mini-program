@@ -215,6 +215,7 @@ export class IntakeService {
       update: {
         intakeStatus: 'pending_review',
         submittedAt: new Date(),
+        reviewedAt: null,
         reviewRemark: null,
       },
     });
