@@ -204,6 +204,12 @@ const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
   'insurance'
 ];
 
+const CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE = [
+  'no_crime_cert',
+  'credit_report',
+  'medical_report'
+];
+
 const EDUCATION_LEVEL_OPTIONS = [
   { value: '小学', label: '小学' },
   { value: '中学', label: '中学' },
@@ -281,6 +287,7 @@ module.exports = {
   MANDATORY_CREDENTIAL_TYPES,
   MANDATORY_CREDENTIAL_TYPES_FULL,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
+  CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE,
   EDUCATION_LEVEL_OPTIONS,
   INSURANCE_COMPANY_OPTIONS,
   MESSAGE_STATUS,

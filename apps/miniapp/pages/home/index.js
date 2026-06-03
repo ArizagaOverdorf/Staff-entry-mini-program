@@ -17,17 +17,17 @@ function getQualificationClass(status) {
 function normalizeOnlineStatus(listingStatus, isAvailable) {
   if (isAvailable || listingStatus === 'on' || listingStatus === 'online') {
     return {
-      label: '上线中',
+      label: '工作中',
       status: 'on',
       className: 'success',
-      nextAction: '休息'
+      nextAction: '上线'
     };
   }
   return {
     label: '休息中',
     status: 'off',
     className: 'warning',
-    nextAction: '上线'
+    nextAction: '下线'
   };
 }
 
@@ -45,7 +45,7 @@ Page({
     listingStatus: '',
     onlineStatusLabel: '休息中',
     onlineStatusClass: 'warning',
-    onlineNextAction: '上线',
+    onlineNextAction: '下线',
     isAvailable: false,
     managementStatus: 'normal',
     managementStatusLabel: '服务状态：正常',

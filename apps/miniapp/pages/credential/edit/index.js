@@ -41,6 +41,7 @@ Page({
     expireDateLabel: '有效期至',
     expireDatePlaceholder: '请选择有效期至',
     todayDate: '',
+    requireIssueDate: false,
     credentialNumber: '',
     credentialNumberLabel: '证件编号',
     credentialNumberPlaceholder: '请输入证件编号',
@@ -139,7 +140,8 @@ Page({
     const isStudentCard = typeId === 'student_card';
     const isInsurance = typeId === 'insurance';
     const requireExpiry = constants.CREDENTIAL_TYPES_REQUIRE_EXPIRY.indexOf(typeId) > -1;
-    const issueOnlyTypes = ['no_crime_cert', 'credit_report', 'medical_report'];
+    const requireIssueDate = constants.CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE.indexOf(typeId) > -1;
+    const issueOnlyTypes = constants.CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE || [];
     const useEducationLevelPicker = isEducation || isStudentCard;
     const showCredentialNumber = ![
       'education',
@@ -191,6 +193,7 @@ Page({
       showInsuranceCompanyOther: isInsurance && (insuranceCompanyIndex === -1 || issuingAuthorityValue === '其他'),
       insuranceCompanyOther,
       requireExpiry,
+      requireIssueDate,
       showIssueDate,
       showExpireDate,
       issueDateLabel: isInsurance ? '生效日期' : '签发日期',
@@ -508,6 +511,10 @@ Page({
         wx.showToast({ title: this.data.expireDateLabel + '不能早于' + this.data.issueDateLabel, icon: 'none' });
         return false;
       }
+    }
+    if (this.data.requireIssueDate && !this.data.issueDate) {
+      wx.showToast({ title: '请选择' + this.data.issueDateLabel, icon: 'none' });
+      return false;
     }
     if (this.data.showIssueDate && this.data.issueDate && isNaN(Date.parse(this.data.issueDate))) {
       wx.showToast({ title: this.data.issueDateLabel + '格式无效', icon: 'none' });

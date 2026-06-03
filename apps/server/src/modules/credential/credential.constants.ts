@@ -60,6 +60,12 @@ export const CREDENTIAL_TYPES_REQUIRE_EXPIRY = [
   'insurance',
 ];
 
+export const CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE = [
+  'no_crime_cert',
+  'credit_report',
+  'medical_report',
+];
+
 export const ALLOWED_SKILL_LEVELS = ['初级', '中级', '高级', '专家'] as const;
 
 export const ALLOWED_SKILL_CERT_CATEGORY_IDS = [

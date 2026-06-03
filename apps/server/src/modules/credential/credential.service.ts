@@ -10,6 +10,7 @@ import { UpsertSkillEntryDto, UpsertIndependentSkillsDto } from './dto/skill-ent
 import {
   CredentialType,
   CredentialTypeLabels,
+  CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE,
   CREDENTIAL_TYPES_REQUIRE_EXPIRY,
   ALLOWED_SKILL_LEVELS,
   ALLOWED_SKILL_CERT_CATEGORY_IDS,
@@ -99,6 +100,7 @@ export class CredentialService {
       throw new BadRequestException('credentialName is required');
     }
     this.validateCredentialType(credentialType);
+    this.validateIssueDate(credentialType, dto.issueDate);
     this.validateExpiryDate(credentialType, dto.issueDate, dto.expiryDate ?? dto.expireDate);
 
     // Resolve files with optional side info
@@ -212,6 +214,7 @@ export class CredentialService {
       : undefined;
 
     this.validateCredentialType(credentialType);
+    this.validateIssueDate(credentialType, issueDate);
     this.validateExpiryDate(credentialType, issueDate, expiryDate);
     if (credentialType !== credential.credentialType) {
       throw new BadRequestException(
@@ -618,13 +621,14 @@ export class CredentialService {
     if (!CREDENTIAL_TYPES_REQUIRE_EXPIRY.includes(credentialType)) {
       return;
     }
+    const issueDateLabel = credentialType === 'insurance' ? '生效日期' : '签发日期';
     if (!issueDate) {
       throw new BadRequestException(
-        `证件「${CredentialTypeLabels[credentialType] || credentialType}」需要填写生效日期`,
+        `证件「${CredentialTypeLabels[credentialType] || credentialType}」需要填写${issueDateLabel}`,
       );
     }
     if (isNaN(Date.parse(issueDate))) {
-      throw new BadRequestException('生效日期格式无效');
+      throw new BadRequestException(`${issueDateLabel}格式无效`);
     }
     if (!expiryDate) {
       throw new BadRequestException(
@@ -635,7 +639,24 @@ export class CredentialService {
       throw new BadRequestException('有效期日期格式无效');
     }
     if (expiryDate < issueDate) {
-      throw new BadRequestException('有效期至不能早于生效日期');
+      throw new BadRequestException(`有效期至不能早于${issueDateLabel}`);
+    }
+  }
+
+  private validateIssueDate(
+    credentialType: string,
+    issueDate: string | undefined | null,
+  ) {
+    if (!CREDENTIAL_TYPES_REQUIRE_ISSUE_DATE.includes(credentialType)) {
+      return;
+    }
+    if (!issueDate) {
+      throw new BadRequestException(
+        `证件「${CredentialTypeLabels[credentialType] || credentialType}」需要填写签发日期`,
+      );
+    }
+    if (isNaN(Date.parse(issueDate))) {
+      throw new BadRequestException('签发日期格式无效');
     }
   }
 
