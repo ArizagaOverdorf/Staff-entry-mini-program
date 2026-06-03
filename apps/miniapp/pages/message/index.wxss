@@ -4,6 +4,109 @@
   padding-bottom: 20px;
 }
 
+/* ---- Audit progress summary row ---- */
+
+.audit-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 15px;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 8px;
+}
+
+.audit-summary:active {
+  background-color: #fafafa;
+}
+
+.audit-summary-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-summary-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background-color: #fff7e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.audit-summary-avatar-text {
+  font-size: 18px;
+  color: #faad14;
+  font-weight: 700;
+}
+
+.audit-summary-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-summary-top {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.audit-summary-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  margin-right: 8px;
+}
+
+.audit-summary-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: #f5f5f5;
+  color: #999;
+}
+
+.audit-summary-status.pending_review,
+.audit-summary-status.needs_more_info {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+
+.audit-summary-status.approved {
+  background-color: #e8f8e8;
+  color: #07c160;
+}
+
+.audit-summary-status.rejected {
+  background-color: #fff1f0;
+  color: #f56c6c;
+}
+
+.audit-summary-preview {
+  display: block;
+  font-size: 13px;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.audit-summary-right {
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.audit-summary-arrow {
+  font-size: 16px;
+  color: #ccc;
+}
+
 /* ---- Support conversation summary row ---- */
 
 .support-summary {

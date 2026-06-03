@@ -205,7 +205,7 @@ export class IntakeService {
       }
     }
 
-    return this.prisma.staffIntakeStatus.upsert({
+    const result = await this.prisma.staffIntakeStatus.upsert({
       where: { staffAccountId: accountId },
       create: {
         staffAccountId: accountId,
@@ -219,6 +219,18 @@ export class IntakeService {
         reviewRemark: null,
       },
     });
+
+    await this.prisma.message.create({
+      data: {
+        staffAccountId: accountId,
+        title: '个人资料审核进度',
+        content: '您的入驻申请已提交，平台已收到资料并进入审核中。',
+        messageType: 'audit',
+        senderType: 'system',
+      },
+    });
+
+    return result;
   }
 
   async getStatus(accountId: string) {

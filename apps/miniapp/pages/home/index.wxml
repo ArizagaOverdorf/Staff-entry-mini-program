@@ -16,10 +16,10 @@
     </view>
 
     <view class="status-cards">
-      <view class="status-card status-card-clickable" bindtap="goToAudit">
-        <text class="status-card-label">入驻状态</text>
-        <text class="status-card-value {{intakeStatusClass}}">{{intakeStatusLabel}}</text>
-        <text class="status-card-hint">查看进度</text>
+      <view class="status-card">
+        <text class="status-card-label">等级称号</text>
+        <text class="status-card-value">开发中</text>
+        <text class="status-card-hint">信用分：开发中</text>
       </view>
       <view class="status-card status-card-clickable online-status-card {{onlineStatusClass}}" bindtap="toggleOnlineStatus">
         <text class="status-card-label">上线状态</text>

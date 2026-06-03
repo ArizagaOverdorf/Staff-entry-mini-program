@@ -8,6 +8,7 @@ Page({
     page: 1,
     hasMore: false,
     totalUnread: 0,
+    auditSummary: null,
     // Support conversation summary
     supportSummary: null
   },
@@ -15,13 +16,47 @@ Page({
   onLoad() {
     this.loadMessages(1);
     this.loadUnreadCount();
+    this.loadAuditSummary();
     this.loadSupportSummary();
   },
 
   onShow() {
     this.loadMessages(1);
     this.loadUnreadCount();
+    this.loadAuditSummary();
     this.loadSupportSummary();
+  },
+
+  loadAuditSummary() {
+    const that = this;
+    request.get(constants.API.INTAKE_STATUS).then((res) => {
+      const status = res.intakeStatus || constants.INTAKE_STATUS.DRAFT;
+      that.setData({
+        auditSummary: {
+          status,
+          statusLabel: constants.INTAKE_STATUS_LABEL[status] || '未知',
+          title: '个人资料审核进度',
+          preview: that.getAuditPreview(status),
+          updatedAt: res.submittedAt || res.reviewedAt || ''
+        }
+      });
+    }).catch(() => {});
+  },
+
+  getAuditPreview(status) {
+    if (status === constants.INTAKE_STATUS.PENDING_REVIEW) {
+      return '资料已提交，平台正在审核，点击查看详细信息';
+    }
+    if (status === constants.INTAKE_STATUS.APPROVED) {
+      return '入驻审核已通过，点击查看详细信息';
+    }
+    if (status === constants.INTAKE_STATUS.REJECTED) {
+      return '资料被驳回，点击查看原因和证件明细';
+    }
+    if (status === constants.INTAKE_STATUS.INFO_REQUIRED) {
+      return '需要补充资料，点击查看详细信息';
+    }
+    return '点击查看个人资料和证件审核进度';
   },
 
   loadSupportSummary() {
@@ -94,6 +129,12 @@ Page({
   goToSupport() {
     wx.navigateTo({
       url: '/pages/message/support'
+    });
+  },
+
+  goToAudit() {
+    wx.navigateTo({
+      url: '/pages/audit/status'
     });
   },
 

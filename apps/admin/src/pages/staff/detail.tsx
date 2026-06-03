@@ -189,6 +189,7 @@ const StaffDetail: React.FC = () => {
               {credentials.length > 0 ? (
                 <CredentialReviewList
                   staffId={staff.staffId}
+                  intakeStatus={staff.intakeStatus}
                   credentials={credentials}
                   onActionComplete={refresh}
                 />
@@ -205,6 +206,7 @@ const StaffDetail: React.FC = () => {
               {credentials.length > 0 ? (
                 <CredentialReviewList
                   staffId={staff.staffId}
+                  intakeStatus={staff.intakeStatus}
                   credentials={credentials}
                   onActionComplete={refresh}
                 />

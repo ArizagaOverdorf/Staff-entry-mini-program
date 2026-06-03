@@ -8,6 +8,7 @@ Page({
     listingStatus: '',
     listingStatusLabel: '',
     auditRecords: [],
+    credentialReviews: [],
     currentStep: -1,
     loaded: false
   },
@@ -39,9 +40,56 @@ Page({
         rejectReason: res.rejectReason || '',
         reviewerRemark: res.reviewerRemark || ''
       });
+
+      return that.loadCredentialReviews();
     }).catch(() => {
       that.setData({ loaded: true });
     });
+  },
+
+  loadCredentialReviews() {
+    const that = this;
+    return request.get(constants.API.CREDENTIALS).then((res) => {
+      const list = res.list || res.credentials || res || [];
+      that.setData({
+        credentialReviews: that.normalizeCredentialReviews(Array.isArray(list) ? list : [])
+      });
+    }).catch(() => {
+      that.setData({ credentialReviews: [] });
+    });
+  },
+
+  normalizeCredentialReviews(list) {
+    return list.map((item) => {
+      const status = item.status || item.credentialStatus || 'pending';
+      const typeLabel = item.credentialTypeLabel || this.getCredentialTypeLabel(item.credentialType);
+      const isExpired = !!item.isExpired || status === 'expired';
+      return {
+        id: item.id,
+        credentialType: item.credentialType,
+        credentialName: item.credentialName || item.name || '',
+        credentialTypeLabel: typeLabel,
+        status,
+        statusLabel: constants.CREDENTIAL_STATUS_LABEL[status] || status || '待审核',
+        statusClass: this.getCredentialStatusClass(status, isExpired),
+        remark: item.remark || item.reviewRemark || item.rejectReason || '',
+        expiryDate: item.expiryDate || '',
+        isExpired
+      };
+    });
+  },
+
+  getCredentialTypeLabel(type) {
+    const found = (constants.CREDENTIAL_TYPES || []).find((item) => item.value === type);
+    return found ? found.label : (type || '证件');
+  },
+
+  getCredentialStatusClass(status, isExpired) {
+    if (isExpired) return 'expired';
+    if (status === 'approved') return 'approved';
+    if (status === 'rejected') return 'rejected';
+    if (status === 'needs_more_info') return 'needs-more-info';
+    return 'pending';
   },
 
   buildAuditRecords(status, logs) {

@@ -9,6 +9,7 @@ const { TextArea } = Input;
 
 interface CredentialReviewListProps {
   staffId: string;
+  intakeStatus?: string;
   credentials: CredentialRecord[];
   onActionComplete: () => void;
 }
@@ -49,6 +50,7 @@ function getCredentialTag(credentialType: string): { color: string; text: string
 
 const statusMap: Record<string, { color: string; text: string }> = {
   pending: { color: 'orange', text: '待审核' },
+  pending_review: { color: 'orange', text: '待审核' },
   approved: { color: 'green', text: '已通过' },
   rejected: { color: 'red', text: '已拒绝' },
   expired: { color: 'default', text: '已过期' },
@@ -89,6 +91,7 @@ function getIssuingAuthorityLabel(credentialType: string): string {
 
 const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
   staffId,
+  intakeStatus,
   credentials,
   onActionComplete,
 }) => {
@@ -144,14 +147,17 @@ const CredentialReviewList: React.FC<CredentialReviewListProps> = ({
         dataSource={credentials}
         renderItem={(item) => {
           const statusCfg = statusMap[item.status] || { color: 'default', text: item.status };
-          const isPending = item.status === 'pending';
+          const isPending = item.status === 'pending' || item.status === 'pending_review';
+          const canReviewRejectedAfterResubmit =
+            intakeStatus === 'pending_review' && item.status === 'rejected';
+          const canReview = isPending || canReviewRejectedAfterResubmit;
           const credTag = getCredentialTag(item.credentialType);
           const typeLabel = item.credentialTypeLabel || credentialTypeLabels[item.credentialType] || item.credentialType;
 
           return (
             <List.Item
               actions={
-                isPending
+                canReview
                   ? [
                       <Button
                         key="approve"

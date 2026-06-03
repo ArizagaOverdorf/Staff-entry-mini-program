@@ -1,4 +1,23 @@
 <view class="message-container">
+  <!-- Audit progress summary row -->
+  <view class="audit-summary" wx:if="{{auditSummary}}" bindtap="goToAudit">
+    <view class="audit-summary-left">
+      <view class="audit-summary-avatar">
+        <text class="audit-summary-avatar-text">审</text>
+      </view>
+      <view class="audit-summary-content">
+        <view class="audit-summary-top">
+          <text class="audit-summary-title">{{auditSummary.title}}</text>
+          <text class="audit-summary-status {{auditSummary.status}}">{{auditSummary.statusLabel}}</text>
+        </view>
+        <text class="audit-summary-preview">{{auditSummary.preview}}</text>
+      </view>
+    </view>
+    <view class="audit-summary-right">
+      <text class="audit-summary-arrow">></text>
+    </view>
+  </view>
+
   <!-- Support conversation summary row -->
   <view class="support-summary" wx:if="{{supportSummary && supportSummary.hasConversation}}" bindtap="goToSupport">
     <view class="support-summary-left">

@@ -12,6 +12,36 @@
     <text class="banner-desc" wx:else>请先提交入驻申请</text>
   </view>
 
+  <!-- 证件审核明细 -->
+  <view class="credential-review-card card">
+    <view class="credential-review-header">
+      <text class="credential-review-title">证件审核明细</text>
+      <text class="credential-review-count" wx:if="{{credentialReviews.length > 0}}">{{credentialReviews.length}} 项</text>
+    </view>
+
+    <view wx:if="{{credentialReviews.length > 0}}">
+      <view
+        class="credential-review-item"
+        wx:for="{{credentialReviews}}"
+        wx:key="id"
+      >
+        <view class="credential-review-main">
+          <text class="credential-review-name">{{item.credentialTypeLabel}}</text>
+          <text class="credential-review-sub" wx:if="{{item.credentialName && item.credentialName !== item.credentialTypeLabel}}">{{item.credentialName}}</text>
+          <text class="credential-review-remark" wx:if="{{item.remark}}">{{item.remark}}</text>
+        </view>
+        <view class="credential-review-side">
+          <text class="credential-review-status {{item.statusClass}}">{{item.isExpired ? '证件过期' : item.statusLabel}}</text>
+          <text class="credential-review-expiry" wx:if="{{item.expiryDate}}">有效期至 {{item.expiryDate}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="credential-empty" wx:else>
+      <text>暂无证件审核记录</text>
+    </view>
+  </view>
+
   <!-- 审核时间线 -->
   <view class="timeline-card card">
     <text class="timeline-title">审核进度</text>

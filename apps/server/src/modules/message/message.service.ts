@@ -17,11 +17,10 @@ export class MessageService {
         ? Math.min(params.pageSize, 100)
         : 20;
 
-    // Exclude support conversation messages from general message list.
-    // Support messages are aggregated into one conversation row in the miniapp.
+    // Support and audit messages are aggregated into dedicated rows in the miniapp.
     const where = {
       staffAccountId: accountId,
-      messageType: { notIn: ['support_request', 'support_reply'] },
+      messageType: { notIn: ['support_request', 'support_reply', 'audit'] },
     };
     const [total, list] = await Promise.all([
       this.prisma.message.count({ where }),
