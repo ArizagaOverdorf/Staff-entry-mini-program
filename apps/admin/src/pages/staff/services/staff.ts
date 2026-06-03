@@ -27,6 +27,8 @@ export interface StaffRecord {
   managementStatus?: string;
   managementStatusLabel?: string;
   managementReason?: string;
+  pendingCredentialCount?: number;
+  needsReview?: boolean;
   canViewSensitive?: boolean;
   createdAt?: string;
   updatedAt?: string;

@@ -185,11 +185,22 @@ export class AdminStaffService {
               managementUpdatedAt: true,
             },
           },
+          _count: {
+            select: {
+              credentials: {
+                where: {
+                  isCurrent: true,
+                  credentialStatus: 'pending',
+                },
+              },
+            },
+          },
         },
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
         orderBy: [
           { intakeStatus: { submittedAt: 'desc' } },
+          { credentials: { _count: 'desc' } },
           { createdAt: 'desc' },
         ],
       }),
@@ -733,6 +744,8 @@ export class AdminStaffService {
   }
 
   private formatStaffListItem(item: any) {
+    const intakeStatus = item.intakeStatus?.intakeStatus ?? 'draft';
+    const pendingCredentialCount = item._count?.credentials ?? 0;
     return {
       id: item.id,
       staffId: item.staffId,
@@ -745,7 +758,7 @@ export class AdminStaffService {
             : '女'
           : undefined,
       avatar: item.profile?.avatarUrl,
-      intakeStatus: item.intakeStatus?.intakeStatus ?? 'draft',
+      intakeStatus,
       reviewRemark: item.intakeStatus?.reviewRemark,
       submittedAt: item.intakeStatus?.submittedAt?.toISOString(),
       reviewedAt: item.intakeStatus?.reviewedAt?.toISOString(),
@@ -755,6 +768,8 @@ export class AdminStaffService {
       managementStatus: item.listingStatus?.managementStatus ?? 'normal',
       managementStatusLabel: MANAGEMENT_STATUS_LABELS[item.listingStatus?.managementStatus ?? 'normal'],
       managementReason: item.listingStatus?.managementReason,
+      pendingCredentialCount,
+      needsReview: intakeStatus === 'pending_review' || pendingCredentialCount > 0,
       createdAt: item.createdAt?.toISOString(),
     };
   }

@@ -118,7 +118,7 @@ const StaffTable: React.FC<StaffTableProps> = ({
           >
             查看详情
           </Button>
-          {record.intakeStatus === 'pending_review' && (
+          {(record.needsReview || record.intakeStatus === 'pending_review' || (record.pendingCredentialCount ?? 0) > 0) && (
             <Button
               type="link"
               size="small"
